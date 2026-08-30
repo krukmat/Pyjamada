@@ -1,0 +1,31 @@
+{
+  "name": "pyjamada",
+  "version": "0.5.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "test:cu01": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js",
+    "test:cu02": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu02.test.js",
+    "test:cu03": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu03.test.js",
+    "test:v1": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js && node .test-dist/tests/cu02.test.js && node .test-dist/tests/cu03.test.js && node .test-dist/tests/cu06.test.js && node .test-dist/tests/v1.integration.test.js",
+    "test:cu06": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu06.test.js",
+    "test:integration": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/v1.integration.test.js"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@shopify/react-native-skia": "2.6.2",
+    "expo": "~57.0.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~5.8.3"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
