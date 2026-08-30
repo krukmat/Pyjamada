@@ -1,0 +1,117 @@
+name: Android emulator smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "1"
+      ANDROID_PACKAGE: com.krukmat.pyjamada
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build, install and capture on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euxo pipefail
+
+            cd android
+            ./gradlew assembleDebug --no-daemon
+            cd ..
+
+            npx expo start --localhost > metro.log 2>&1 &
+            METRO_PID=$!
+
+            PACKAGER_READY=0
+            for i in $(seq 1 60); do
+              if curl -fsS http://127.0.0.1:8081/status | grep -q running; then
+                PACKAGER_READY=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$PACKAGER_READY" -ne 1 ]; then
+              echo "Metro did not become ready"
+              cat metro.log || true
+              exit 1
+            fi
+
+            adb reverse tcp:8081 tcp:8081
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop "$ANDROID_PACKAGE"
+            adb shell monkey -p "$ANDROID_PACKAGE" -c android.intent.category.LAUNCHER 1
+
+            sleep 20
+
+            adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp' | tee emulator-focus.txt || true
+            adb shell dumpsys activity activities | grep -E 'mResumedActivity|ResumedActivity' | tee -a emulator-focus.txt || true
+
+            if ! grep -q "$ANDROID_PACKAGE" emulator-focus.txt; then
+              echo "Pyjamada is not the foreground activity"
+              adb logcat -d -t 500 > android-logcat.txt || true
+              cat android-logcat.txt || true
+              exit 1
+            fi
+
+            adb exec-out screencap -p > pyjamada-main-menu.png
+            adb shell uiautomator dump /sdcard/pyjamada-window.xml || true
+            adb pull /sdcard/pyjamada-window.xml pyjamada-window.xml || true
+            adb logcat -d -t 500 > android-logcat.txt || true
+
+            kill "$METRO_PID" || true
+
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyjamada-android-emulator-smoke
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            pyjamada-main-menu.png
+            pyjamada-window.xml
+            emulator-focus.txt
+            android-logcat.txt
+            metro.log
+            android/app/build/outputs/apk/debug/app-debug.apk
