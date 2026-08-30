@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Pyjamada",
+    "slug": "pyjamada",
+    "version": "0.3.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.krukmat.pyjamada"
+    }
+  }
+}
