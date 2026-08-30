@@ -1,6 +1,6 @@
 {
   "name": "pyjamada",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -10,9 +10,10 @@
     "test:cu01": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js",
     "test:cu02": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu02.test.js",
     "test:cu03": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu03.test.js",
-    "test:v1": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js && node .test-dist/tests/cu02.test.js && node .test-dist/tests/cu03.test.js && node .test-dist/tests/cu06.test.js && node .test-dist/tests/v1.integration.test.js",
     "test:cu06": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu06.test.js",
-    "test:integration": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/v1.integration.test.js"
+    "test:integration": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/v1.integration.test.js",
+    "test:visual": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/visual-baseline.test.js",
+    "test:v1": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js && node .test-dist/tests/cu02.test.js && node .test-dist/tests/cu03.test.js && node .test-dist/tests/cu06.test.js && node .test-dist/tests/v1.integration.test.js && node .test-dist/tests/visual-baseline.test.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
