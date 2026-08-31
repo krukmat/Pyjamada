@@ -17,15 +17,42 @@ tags:
 - assertVisible:
     id: systemic-game-screen
 - assertVisible: GET DRESSED + FIND KEYS
+- takeScreenshot:
+    path: systemic_01_run_start
 
-- tapOn:
-    id: systemic-move-left-button
-- tapOn:
-    id: systemic-move-left-button
+# Reach the alarm from x=24, trigger it twice, then rush the wardrobe.
+# This deterministic route wakes the house through accumulated noise.
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: systemic-move-right-button
 - tapOn:
     id: systemic-action-button
+- tapOn:
+    id: systemic-action-button
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: systemic-move-right-button
+- tapOn:
+    id: systemic-action-button
+- tapOn:
+    id: systemic-action-button
+
 - assertVisible:
-    id: systemic-reaction
+    id: systemic-restart-button
+- assertVisible: CHAOS
+- takeScreenshot:
+    path: systemic_02_noise_failure
+
+- tapOn:
+    id: systemic-restart-button
+- assertVisible: GET DRESSED + FIND KEYS
+- assertVisible: Wally is barely awake
+- takeScreenshot:
+    path: systemic_03_restarted
 
 - tapOn:
     id: systemic-exit-button
