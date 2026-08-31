@@ -1,6 +1,6 @@
 # Android validation with Maestro
 
-Pyjamada keeps two reproducible Android flows: the stable Classic V1.1 screenshot tour and the Systemic Bedroom Prototype scenario.
+Pyjamada keeps separate Android flows for the stable Classic V1.1 baseline, systemic smoke validation, and the systemic visual screenshot tour.
 
 ## Prerequisites
 
@@ -20,27 +20,37 @@ The runner detects the emulator ABI, builds and installs a self-contained releas
 
 The flow covers menu, settings and the deterministic Bedroom → key → door → Hall → Landing path.
 
-## Systemic Bedroom Prototype
+## Systemic visual screenshot tour
 
-Against an installed build, run:
+```bash
+npm run screenshots:systemic:android
+```
+
+The runner uses the same release-build/emulator setup, runs `maestro/systemic-screenshots.yaml`, and copies exactly nine visual checkpoints to `artifacts/android-systemic-screenshots/`:
+
+```text
+Menu
+ -> Systemic run start
+ -> Bed wake / normal Wally
+ -> Slippers equipped
+ -> Alarm interaction
+ -> Startled Wally + rule trace
+ -> Wardrobe chained consequence
+ -> Successful dressed + keys outcome
+ -> Clean deterministic restart
+```
+
+Use this command when reviewing the systemic skin, HUD, object states, Wally states, consequence feedback and restart baseline.
+
+## Systemic smoke flow
+
+Against an installed build, the shorter functional scenario remains available as:
 
 ```bash
 maestro test maestro/systemic.yaml
 ```
 
-The systemic flow covers:
+It covers start → deterministic noise failure → TRY AGAIN → clean restart → menu. Domain-level efficient-success, near-miss and chaos scenarios are covered separately by `npm run test:systemic`.
 
-```text
-Menu
- -> Systemic Prototype
- -> repeated alarm / noisy wardrobe route
- -> house-awake failure
- -> TRY AGAIN
- -> clean deterministic restart
- -> Menu
-```
-
-It captures three evidence screenshots: run start, noise failure and restarted state. Domain-level efficient-success, near-miss and chaos scenarios are covered separately by `npm run test:systemic`.
-
-On Apple Silicon with Homebrew, the Classic screenshot runner automatically uses `openjdk@17`. Set `PYJAMADA_JAVA_HOME` to an alternate Java 17 home when needed.
-For flow-only Classic iteration against an already-built APK, use `SKIP_BUILD=1 npm run screenshots:android`.
+On Apple Silicon with Homebrew, both screenshot runners automatically use `openjdk@17`. Set `PYJAMADA_JAVA_HOME` to an alternate Java 17 home when needed.
+For flow-only iteration against an already-built APK, use `SKIP_BUILD=1 npm run screenshots:android` or `SKIP_BUILD=1 npm run screenshots:systemic:android`.
