@@ -1,0 +1,124 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { findSystemicObject } from '../game/systemic/SystemicContent';
+import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
+import { SystemicCanvas } from '../game/render/SystemicCanvas';
+import { RETRO_PALETTE } from '../game/render/VisualLanguage';
+
+type Props = {
+  state: SystemicRunState;
+  onInput: (input: SystemicInput) => void;
+  onRestart: () => void;
+  onExit: () => void;
+};
+
+export function SystemicGameScreen({ state, onInput, onRestart, onExit }: Props) {
+  const { width } = useWindowDimensions();
+  const viewport = Math.min(384, Math.max(128, Math.floor((width - 32) / 128) * 128));
+  const target = findSystemicObject(state.player.x);
+  const done = state.objective.status !== 'active';
+
+  return (
+    <View testID="systemic-game-screen" style={styles.container}>
+      <View style={[styles.gameFrame, { width: viewport + 8 }]}>
+        <View style={styles.hud}>
+          <Stat label="TIME" value={String(state.timeSpent)} />
+          <Stat label="ENERGY" value={String(state.energy)} />
+          <Stat label="NOISE" value={String(state.noise)} />
+          <Stat label="WALLY" value={state.wallyState.toUpperCase()} />
+        </View>
+        <View style={styles.objectiveStrip}>
+          <Text style={styles.objective}>GET DRESSED + FIND KEYS</Text>
+          <Text style={styles.nearby}>{target ? `NEAR: ${target.label}` : 'NEAR: —'}</Text>
+        </View>
+        <SystemicCanvas state={state} size={viewport} />
+      </View>
+
+      <View style={styles.feedbackBox}>
+        <Text testID="systemic-reaction" style={styles.reaction}>{reactionFor(state)}</Text>
+        <Text style={styles.delta}>{deltaFor(state)}</Text>
+        {state.lastAction?.ruleTrace.length ? <Text style={styles.trace}>RULES: {state.lastAction.ruleTrace.join(' → ')}</Text> : null}
+      </View>
+
+      {!done ? (
+        <View style={styles.controls}>
+          <Control testID="systemic-move-left-button" label="◀" onPress={() => onInput('left')} />
+          <Control testID="systemic-action-button" label="ACTION" wide onPress={() => onInput('action')} />
+          <Control testID="systemic-move-right-button" label="▶" onPress={() => onInput('right')} />
+        </View>
+      ) : (
+        <Pressable testID="systemic-restart-button" style={[styles.secondaryButton, styles.restart]} onPress={onRestart}>
+          <Text style={styles.buttonText}>TRY AGAIN</Text>
+        </Pressable>
+      )}
+
+      <Pressable testID="systemic-exit-button" style={styles.secondaryButton} onPress={onExit}>
+        <Text style={styles.buttonText}>BACK TO MENU</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return <View style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>;
+}
+
+function Control({ testID, label, onPress, wide = false }: { testID: string; label: string; onPress: () => void; wide?: boolean }) {
+  return (
+    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.control, wide && styles.controlWide, pressed && styles.pressed]}>
+      <Text style={styles.controlText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function reactionFor(state: SystemicRunState): string {
+  if (state.objective.status === 'completed') return 'READY! Wally has the keys and is dressed. One clean escape.';
+  if (state.objective.status === 'failed') {
+    if (state.objective.reason === 'house-awake') return 'CHAOS. Too much noise. Wally knows exactly what went wrong.';
+    if (state.objective.reason === 'too-late') return 'TOO LATE. A faster route is hiding in the same room.';
+    return 'EXHAUSTED. Wally needs a less heroic morning routine.';
+  }
+  const id = state.lastAction?.objectId;
+  if (id === 'bed') return 'Five more minutes. A suspiciously effective strategy.';
+  if (id === 'alarm-clock' && state.wallyState === 'startled') return 'THE ALARM AGAIN? Wally is now operating on panic.';
+  if (id === 'alarm-clock') return 'Awake instantly. Quietly? Not remotely.';
+  if (id === 'slippers') return 'Stealth slippers equipped. Domestic technology at its finest.';
+  if (id === 'wardrobe') return 'Dressed. Coordination remains optional.';
+  if (id === 'window') return state.flags.windowOpen ? 'Fresh air. Unfortunately, every sound now travels.' : 'Window closed. The house forgives nothing.';
+  if (id === 'keys') return 'Keys acquired. Now: is Wally actually dressed?';
+  if (state.wallyState === 'sleepy') return 'Wally is barely awake. Touch something and see what happens.';
+  if (state.wallyState === 'rushed') return 'Clock pressure. Faster decisions now have noisier consequences.';
+  if (state.wallyState === 'startled') return 'Wally is startled. Small mistakes are getting expensive.';
+  return 'The room is simple. The consequences are not.';
+}
+
+function deltaFor(state: SystemicRunState): string {
+  const action = state.lastAction;
+  if (!action) return 'ACTION → CONSEQUENCE → ADAPT';
+  const sign = (value: number) => value > 0 ? `+${value}` : String(value);
+  return `Δ TIME ${sign(action.timeDelta)} · ENERGY ${sign(action.energyDelta)} · NOISE ${sign(action.noiseDelta)}`;
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#07060b', padding: 14 },
+  gameFrame: { alignItems: 'center', overflow: 'hidden', backgroundColor: RETRO_PALETTE.void, borderWidth: 4, borderColor: RETRO_PALETTE.green },
+  hud: { width: '100%', minHeight: 48, flexDirection: 'row', backgroundColor: '#100d18', borderBottomWidth: 2, borderBottomColor: RETRO_PALETTE.green },
+  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
+  statLabel: { color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
+  statValue: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
+  objectiveStrip: { width: '100%', minHeight: 32, paddingHorizontal: 8, justifyContent: 'center', backgroundColor: '#171326' },
+  objective: { color: RETRO_PALETTE.yellow, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
+  nearby: { color: RETRO_PALETTE.magenta, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
+  feedbackBox: { width: '100%', maxWidth: 392, minHeight: 64, padding: 8, borderWidth: 2, borderColor: RETRO_PALETTE.purple, backgroundColor: '#100d18' },
+  reaction: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', textAlign: 'center' },
+  delta: { marginTop: 4, color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center' },
+  trace: { marginTop: 3, color: RETRO_PALETTE.purple, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
+  controls: { flexDirection: 'row', gap: 10 },
+  control: { width: 76, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: RETRO_PALETTE.cyan, backgroundColor: '#171326' },
+  controlWide: { width: 106, borderColor: RETRO_PALETTE.magenta },
+  pressed: { opacity: 0.55, transform: [{ translateY: 2 }] },
+  controlText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 15, fontWeight: '900' },
+  secondaryButton: { minWidth: 190, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: RETRO_PALETTE.purple, backgroundColor: '#171326', paddingHorizontal: 14 },
+  restart: { borderColor: RETRO_PALETTE.yellow },
+  buttonText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+});
