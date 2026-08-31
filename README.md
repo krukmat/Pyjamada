@@ -82,6 +82,59 @@ These screenshots come from the actual release APK. Maestro drives the Classic V
 
 The full Classic capture set also includes the [settings screen](artifacts/android-screenshots/02_settings.png). The systemic flow is defined separately in [`maestro/systemic.yaml`](maestro/systemic.yaml).
 
+## Systemic mode tour
+
+The **Systemic Bedroom Prototype** turns the Bedroom into a short, replayable chain of cause and effect. Move with **left / right**, use **action** near an object, and help Wally get dressed and find the keys before Time, Energy or Noise push the run into a near-miss or chaos outcome.
+
+Every interaction advances logical time and can trigger reusable rules. The HUD exposes the current resources and the latest consequence, so the same small set of objects can produce different but deterministic paths.
+
+<table>
+  <tr>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/01_systemic_menu.png" alt="Main menu with the systemic mode option" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/02_systemic_run_start.png" alt="Start of a systemic Bedroom run" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/03_systemic_bed_wake.png" alt="Wally waking up after interacting with the bed" width="220" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Choose the experiment</strong></td>
+    <td align="center"><strong>Read the room</strong></td>
+    <td align="center"><strong>Wake Wally</strong></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/04_systemic_slippers.png" alt="Wally wearing the slippers" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/05_systemic_alarm.png" alt="Alarm interaction in the systemic Bedroom" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/06_systemic_startled.png" alt="Startled Wally and the visible rule consequence" width="220" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Prepare</strong></td>
+    <td align="center"><strong>Change the state</strong></td>
+    <td align="center"><strong>Face the consequence</strong></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/07_systemic_wardrobe.png" alt="Wardrobe interaction and chained systemic consequence" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/08_systemic_success.png" alt="Successful systemic run with Wally dressed and holding the keys" width="220" /></td>
+    <td align="center"><img src="artifacts/android-systemic-screenshots/09_systemic_restart.png" alt="Clean deterministic restart of the systemic mode" width="220" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Chain interactions</strong></td>
+    <td align="center"><strong>Complete the objective</strong></td>
+    <td align="center"><strong>Try another route</strong></td>
+  </tr>
+</table>
+
+Generate this reproducible nine-screen tour from a running Android emulator with:
+
+```bash
+npm run screenshots:systemic:android
+```
+
+The command builds and installs the release APK, drives the scenario with Maestro, and writes exactly nine PNG files to `artifacts/android-systemic-screenshots/`.
+
 ## Clone and run
 
 ```bash
@@ -146,6 +199,7 @@ For Android flows:
 
 ```bash
 npm run screenshots:android
+npm run screenshots:systemic:android
 maestro test maestro/systemic.yaml
 ```
 

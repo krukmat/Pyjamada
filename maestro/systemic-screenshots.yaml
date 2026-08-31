@@ -56,7 +56,7 @@ tags:
           id: systemic-move-right-button
 - tapOn:
     id: systemic-action-button
-- assertVisible: SLIPPERS
+- assertVisible: "Stealth slippers equipped.*"
 - takeScreenshot:
     path: 04_systemic_slippers
 
@@ -68,14 +68,14 @@ tags:
           id: systemic-move-right-button
 - tapOn:
     id: systemic-action-button
-- assertVisible: ALARM
+- assertVisible: "Awake instantly.*"
 - takeScreenshot:
     path: 05_systemic_alarm
 
 # Repeating the alarm moves Wally into the startled state and exposes a rule trace.
 - tapOn:
     id: systemic-action-button
-- assertVisible: STARTLED
+- assertVisible: "THE ALARM AGAIN.*"
 - takeScreenshot:
     path: 06_systemic_startled
 
@@ -87,7 +87,7 @@ tags:
           id: systemic-move-right-button
 - tapOn:
     id: systemic-action-button
-- assertVisible: WARDROBE
+- assertVisible: "Dressed.*"
 - takeScreenshot:
     path: 07_systemic_wardrobe
 
@@ -101,7 +101,7 @@ tags:
     id: systemic-action-button
 - assertVisible:
     id: systemic-restart-button
-- assertVisible: READY!
+- assertVisible: "READY!.*"
 - takeScreenshot:
     path: 08_systemic_success
 
