@@ -195,13 +195,7 @@ Or run both suites:
 npm run test:all
 ```
 
-For Android flows:
-
-```bash
-npm run screenshots:android
-npm run screenshots:systemic:android
-maestro test maestro/systemic.yaml
-```
+For Android flows, regenerate the screenshot tours above (see those sections for details) or run the systemic gameplay flow directly with `maestro test maestro/systemic.yaml`.
 
 The CI [Android emulator smoke workflow](.github/workflows/android-emulator-smoke.yml) separately validates native generation, release build, installation and startup.
 
