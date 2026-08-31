@@ -1,0 +1,33 @@
+appId: com.krukmat.pyjamada
+name: Systemic Bedroom Prototype
+tags:
+  - android
+  - systemic
+---
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 20000
+
+- tapOn:
+    id: systemic-prototype-button
+- assertVisible:
+    id: systemic-game-screen
+- assertVisible: GET DRESSED + FIND KEYS
+
+- tapOn:
+    id: systemic-move-left-button
+- tapOn:
+    id: systemic-move-left-button
+- tapOn:
+    id: systemic-action-button
+- assertVisible:
+    id: systemic-reaction
+
+- tapOn:
+    id: systemic-exit-button
+- assertVisible:
+    id: main-menu-screen
