@@ -21,7 +21,7 @@ export function SettingsScreen({
   onToggleControlLayout,
 }: Props) {
   return (
-    <View style={styles.container}>
+    <View testID="settings-screen" style={styles.container}>
       <View style={styles.panel}>
         <Text style={styles.kicker}>PYJAMADA SYSTEM</Text>
         <Text style={styles.title}>SETTINGS</Text>
@@ -53,6 +53,7 @@ export function SettingsScreen({
         />
 
         <Pressable
+          testID="settings-back-button"
           accessibilityRole="button"
           onPress={onBack}
           style={({ pressed }: { pressed: boolean }) => [styles.backButton, pressed && styles.pressed]}

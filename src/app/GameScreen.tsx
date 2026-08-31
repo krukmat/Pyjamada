@@ -19,11 +19,11 @@ export function GameScreen({ gameState, touchControlLayout, onInput }: Props) {
   const viewport = Math.min(384, Math.max(128, Math.floor((width - 32) / 128) * 128));
   const room = ROOMS[gameState.roomId];
 
-  const left = <Control label="◀" onPress={() => onInput('left')} />;
-  const right = <Control label="▶" onPress={() => onInput('right')} />;
+  const left = <Control testID="move-left-button" label="◀" onPress={() => onInput('left')} />;
+  const right = <Control testID="move-right-button" label="▶" onPress={() => onInput('right')} />;
 
   return (
-    <View style={styles.container}>
+    <View testID="game-screen" style={styles.container}>
       <View style={[styles.gameFrame, { width: viewport + 8 }]}>
         <RetroHud gameState={gameState} />
         <View style={styles.roomStrip}>
@@ -35,7 +35,7 @@ export function GameScreen({ gameState, touchControlLayout, onInput }: Props) {
 
       <View style={styles.controls}>
         {touchControlLayout === 'standard' ? left : right}
-        <Control label="ACTION" wide onPress={() => onInput('action')} />
+        <Control testID="action-button" label="ACTION" wide onPress={() => onInput('action')} />
         {touchControlLayout === 'standard' ? right : left}
       </View>
 
@@ -46,9 +46,20 @@ export function GameScreen({ gameState, touchControlLayout, onInput }: Props) {
   );
 }
 
-function Control({ label, onPress, wide = false }: { label: string; onPress: () => void; wide?: boolean }) {
+function Control({
+  testID,
+  label,
+  onPress,
+  wide = false,
+}: {
+  testID: string;
+  label: string;
+  onPress: () => void;
+  wide?: boolean;
+}) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }: { pressed: boolean }) => [styles.control, wide && styles.controlWide, pressed && styles.controlPressed]}

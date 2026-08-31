@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "screenshots:android": "bash scripts/android-screenshots.sh",
     "typecheck": "tsc --noEmit",
     "test:cu01": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js",
     "test:cu02": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu02.test.js",

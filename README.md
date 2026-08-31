@@ -1,201 +1,138 @@
 # Pyjamada
 
-Android-first React Native/TypeScript project exploring a faithful room-based adventure architecture and a deliberately constrained retro visual language without distributing copyrighted Pyjamarama source assets.
+An Android-first, room-based retro adventure built with React Native, Expo, TypeScript, and React Native Skia.
 
-![Android emulator smoke](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml/badge.svg)
+Pyjamada is a compact vertical slice inspired by the feel of classic home-computer adventures: explore a bedroom, find a key, open the way forward, and reach the landing. The implementation and pixel art are original project work; no copyrighted Pyjamarama assets are distributed.
 
-## Current baseline — V1.1 / v0.6.0
+[![Android emulator smoke](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml/badge.svg)](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml)
 
-The functional V1 remains unchanged:
+## A short Android tour
 
-- **CU-01 — Start New Game**
-- **CU-02 — Continue Saved Game**
-- **CU-03 — Minimal Vertical Slice Gameplay**
-- **CU-06 — Configure Game**
-- **CU-05 — Persist Game Progress** as an internal supporting capability
+These images come from a release APK running on an Android emulator. They are captured automatically with Maestro, so the gallery also exercises the real path through the current game slice.
 
-V1.1 is a **visual fidelity pass**, not a new gameplay phase. It replaces the original debug-style rectangles with an intentional retro presentation while keeping the TypeScript game core, persistence and use-case semantics intact.
+<table>
+  <tr>
+    <td align="center"><img src="artifacts/android-screenshots/01_main_menu.png" alt="Pyjamada main menu on Android" width="220" /></td>
+    <td align="center"><img src="artifacts/android-screenshots/03_bedroom.png" alt="Starting bedroom and retro touch controls" width="220" /></td>
+    <td align="center"><img src="artifacts/android-screenshots/04_bedroom_key_collected.png" alt="Bedroom after collecting the key" width="220" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Main menu</strong></td>
+    <td align="center"><strong>Explore</strong></td>
+    <td align="center"><strong>Find the key</strong></td>
+  </tr>
+</table>
 
-See [`docs/VISUAL_BASELINE_V1_1.md`](docs/VISUAL_BASELINE_V1_1.md) for the visual rules and [`docs/V1_REVIEW.md`](docs/V1_REVIEW.md) for the integrated V1 architecture review.
+<table>
+  <tr>
+    <td align="center"><img src="artifacts/android-screenshots/05_bedroom_door_open.png" alt="Bedroom door open after using the key" width="220" /></td>
+    <td align="center"><img src="artifacts/android-screenshots/06_hall.png" alt="The hall room on Android" width="220" /></td>
+    <td align="center"><img src="artifacts/android-screenshots/07_landing.png" alt="The landing at the end of the vertical slice" width="220" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Open the door</strong></td>
+    <td align="center"><strong>Cross the hall</strong></td>
+    <td align="center"><strong>Reach the landing</strong></td>
+  </tr>
+</table>
 
-## Android runtime validation
+The complete capture set also includes the [settings screen](artifacts/android-screenshots/02_settings.png). The current baseline is **V1.1 / v0.6.0**: the V1 gameplay and persistence model with a focused visual-fidelity pass.
 
-The V1.1 shell has now been built as a self-contained Android release APK and executed successfully in CI on a **Pixel 6 emulator / Android API 35**.
+## Clone it and play
 
-Validated gate:
+The repository is intentionally small enough to explore in one sitting. The game core is framework-independent, the rooms are rendered from project-owned pixel primitives, and the playable slice has no backend or account setup.
 
-- Expo Android prebuild ✅
-- native React Native + Skia release build ✅
-- APK installation ✅
-- application launch ✅
-- Pyjamada foreground activity verification ✅
-- real emulator screenshot capture ✅
-- V1 domain/integration tests + TypeScript typecheck ✅
+You need Node.js 22.13 or newer. To start the Expo development server:
 
-The reproducible smoke workflow is [`android-emulator-smoke.yml`](.github/workflows/android-emulator-smoke.yml). Each successful run publishes `pyjamada-android-emulator-smoke` containing the tested APK, screenshot, logcat and window/focus evidence. Workflow artifacts are temporary CI evidence rather than a release distribution channel.
-
-[Open Android emulator smoke runs](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml)
-
-## Real Android screenshot
-
-This is a **real capture from the validated Android emulator run**, not a concept mockup:
-
-<p align="center">
-  <img src="assets/readme/android-main-menu.png" alt="Pyjamada V1.1 running on Android emulator" width="360" />
-</p>
-
-## V1.1 visual direction
-
-The target is deliberately limited rather than visually provisional:
-
-- black / near-black negative space;
-- saturated cyan, magenta, yellow, green, red and blue blocks;
-- room compositions built around recognisable furniture silhouettes;
-- an original compact pajama-character sprite with a two-pose walk treatment;
-- a recognisable key and closed/open door state;
-- a retro HUD integrated with the game frame;
-- touch controls styled as secondary game hardware rather than generic mobile UI;
-- all art authored from project-owned geometric/pixel primitives rather than copied sprites.
-
-### Three-room slice
-
-```text
-BEDROOM
-  bed + window + cabinet + key + progression door
-        ↓
-HALL
-  picture + console + vase + staircase
-        ↓
-LANDING
-  tall clock + window + table + continuation arch
+```bash
+git clone https://github.com/krukmat/Pyjamada.git
+cd Pyjamada
+npm install
+npm run start
 ```
 
-Gameplay progression is still:
+With an Android emulator already running, build and launch the native app with:
+
+```bash
+npm run android
+```
+
+## What is playable
+
+- Start a new game or continue the local single-slot save.
+- Explore the Bedroom, Hall, and Landing with touch controls.
+- Collect the bedroom key and use it to unlock the progression door.
+- Configure audio values and choose a standard or mirrored control layout.
+- Persist validated, versioned game and settings data through AsyncStorage adapters.
+
+The audio settings are persisted, but source-faithful audio playback remains deferred.
+
+## Visual direction
+
+The visual language is deliberately constrained: near-black negative space, saturated ZX-era colours, recognisable furniture silhouettes, a compact two-pose pajama hero, and a 128×128 logical Skia scene scaled cleanly for the device. Touch controls are styled as part of the game rather than generic mobile UI.
 
 ```text
-room-01
-  ↓
-collect bedroom-key
-  ↓
-locked door collision
-  ↓
-ACTION consumes key
-  ↓
-bedroomDoorUnlocked
-  ↓
-room-02
-  ↓
-room-03
-  ↓
-verticalSliceReached
+BEDROOM                         HALL                    LANDING
+bed + window + cabinet + key → picture + staircase → clock + continuation arch
 ```
+
+See [Visual Baseline V1.1](docs/VISUAL_BASELINE_V1_1.md) for the rendering rules and [V1 Review](docs/V1_REVIEW.md) for the integrated product and architecture review.
 
 ## Architecture
 
 ```text
-React Native Shell
-   ├── CU-01 New Game
-   ├── CU-02 Continue
-   ├── CU-06 Settings
-   └── CU-03 Gameplay UI
+React Native shell
+  ├── menu, settings, gameplay UI
+  └── use cases: new game, continue, configure, play
 
-TypeScript Game Core
-   ├── GameState
-   ├── updateGame()
-   ├── rooms / collision / inventory / progression
-   └── GameStateCodec
+Framework-independent TypeScript core
+  ├── state, movement, rooms, collision, inventory, progression
+  └── versioned game-save and settings codecs
 
-Visual Layer
-   ├── VisualLanguage (pure visual model)
-   ├── PixelArtKit (original reusable pixel primitives)
-   ├── RoomScene (3 composed rooms)
-   ├── PajamaHero (position-derived two-pose sprite)
-   └── RetroHud
-
-React Native Skia
-   └── 128×128 logical renderer, integer-scaled by the shell
+Skia visual layer
+  ├── original pixel primitives, room compositions, hero, HUD
+  └── presentation derived from game state
 
 Persistence
-   ├── GameSavePort → AsyncStorageGameSaveRepository
-   └── GameSettingsPort → AsyncStorageGameSettingsRepository
+  ├── GameSavePort     → AsyncStorageGameSaveRepository
+  └── GameSettingsPort → AsyncStorageGameSettingsRepository
 ```
 
-Architectural rules:
-
-- Game rules/state remain outside React UI components.
-- Visual animation pose is derived from existing player position; no presentation-only gameplay state was added.
-- Skia renders game state; it does not own gameplay decisions.
-- Game save and application settings remain separate domains and storage keys.
-- Use cases depend on ports, not directly on AsyncStorage.
-- Save/settings schemas remain versioned and validated.
-- No original/remake sprites, maps, audio or other copyrighted Pyjamarama assets are included.
-
-## CU-06 settings
-
-Settings remain independent from the game save:
-
-- audio ON/OFF;
-- music volume;
-- SFX volume;
-- standard/mirrored touch-control layout.
-
-The touch layout affects CU-03 controls immediately. Audio values are persisted but source-faithful audio playback remains deferred.
+Game rules stay outside React components, renderers do not own gameplay decisions, and use cases depend on ports rather than AsyncStorage directly.
 
 ## Stack
 
-- Expo SDK 57
-- React Native 0.86
-- React 19.2.3
-- TypeScript
+- Expo SDK 57 and React Native 0.86
+- React 19.2.3 and strict TypeScript
 - React Native Skia 2.6.2
 - AsyncStorage 2.2.0 behind explicit persistence ports
-- React Native Reanimated / Worklets runtime required by the Expo 57 native stack
-- Node.js 22.13+ required by Expo SDK 57
-
-## Run
-
-```bash
-npm install
-npx expo start
-```
-
-For Android native development:
-
-```bash
-npx expo run:android
-```
+- React Native Reanimated and Worklets for the Expo native stack
 
 ## Tests
 
+Run the complete TypeScript, domain, integration, and visual suite:
+
 ```bash
-npm run test:cu01
-npm run test:cu02
-npm run test:cu03
-npm run test:cu06
-npm run test:integration
-npm run test:visual
+npm run typecheck
 npm run test:v1
 ```
 
-Specifications:
+Focused scripts are also available for `test:cu01`, `test:cu02`, `test:cu03`, `test:cu06`, `test:integration`, and `test:visual`.
 
-- [`docs/CU-01.md`](docs/CU-01.md)
-- [`docs/CU-02.md`](docs/CU-02.md)
-- [`docs/CU-03.md`](docs/CU-03.md)
-- [`docs/CU-06.md`](docs/CU-06.md)
-- [`docs/VISUAL_BASELINE_V1_1.md`](docs/VISUAL_BASELINE_V1_1.md)
-- [`docs/ANDROID_SMOKE_TEST.md`](docs/ANDROID_SMOKE_TEST.md)
+The use-case specifications live in [`docs/`](docs/), including [CU-01](docs/CU-01.md), [CU-02](docs/CU-02.md), [CU-03](docs/CU-03.md), and [CU-06](docs/CU-06.md).
 
-## Deferred
+## Reproduce the Android screenshots
 
-- broader/full Classic Mode port;
-- final/source-authentic art and audio decisions;
-- advanced settings/accessibility;
-- monetization, Google Play Billing and entitlements;
-- Premium Extras / Challenge Packs;
-- backend/accounts/cloud saves;
-- iOS/App Store/StoreKit.
+Install Java 17, the Android SDK and emulator, and [Maestro](https://maestro.mobile.dev/). Boot one emulator, then run:
 
-## Next gate
+```bash
+npm run screenshots:android
+```
 
-The native startup gate is now proven. The next validation should exercise the **CU-03 slice interactively on Android**, inspect Bedroom → Hall → Landing, verify persistence/lifecycle behavior on the emulator and add gameplay screenshots only from validated runtime states. No broader gameplay scope should be added before that pass.
+The command builds and installs a release APK, plays the complete Maestro tour, and writes the PNG files to `artifacts/android-screenshots/`. See the [capture guide](maestro/README.md) for requirements and the faster flow-only option.
+
+The CI [Android emulator smoke workflow](.github/workflows/android-emulator-smoke.yml) separately verifies native prebuild, release compilation, APK installation, launch, foreground activity, and emulator evidence on Android API 35.
+
+## Scope
+
+Pyjamada deliberately stops at the three-room vertical slice. A broader classic-mode port, final art and audio decisions, monetisation, accounts, cloud saves, and iOS distribution are outside the current baseline.

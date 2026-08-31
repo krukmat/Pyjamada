@@ -12,7 +12,7 @@ type Props = {
 
 export function MainMenu({ busy, canContinue, onContinue, onNewGame, onSettings }: Props) {
   return (
-    <View style={styles.container}>
+    <View testID="main-menu-screen" style={styles.container}>
       <View style={styles.poster}>
         <View style={styles.starRow}>
           <View style={[styles.star, { backgroundColor: RETRO_PALETTE.cyan }]} />
@@ -25,9 +25,27 @@ export function MainMenu({ busy, canContinue, onContinue, onNewGame, onSettings 
 
         <View style={styles.rule} />
 
-        <MenuButton label="CONTINUE" accent="cyan" disabled={busy || !canContinue} onPress={onContinue} />
-        <MenuButton label={busy ? 'WORKING…' : 'NEW GAME'} accent="yellow" disabled={busy} onPress={onNewGame} />
-        <MenuButton label="SETTINGS" accent="magenta" disabled={busy} onPress={onSettings} />
+        <MenuButton
+          testID="continue-button"
+          label="CONTINUE"
+          accent="cyan"
+          disabled={busy || !canContinue}
+          onPress={onContinue}
+        />
+        <MenuButton
+          testID="new-game-button"
+          label={busy ? 'WORKING…' : 'NEW GAME'}
+          accent="yellow"
+          disabled={busy}
+          onPress={onNewGame}
+        />
+        <MenuButton
+          testID="settings-button"
+          label="SETTINGS"
+          accent="magenta"
+          disabled={busy}
+          onPress={onSettings}
+        />
 
         <Text style={styles.footer}>128×128 LOGICAL WORLD · ANDROID V1</Text>
       </View>
@@ -36,11 +54,13 @@ export function MainMenu({ busy, canContinue, onContinue, onNewGame, onSettings 
 }
 
 function MenuButton({
+  testID,
   label,
   disabled,
   onPress,
   accent,
 }: {
+  testID: string;
   label: string;
   disabled: boolean;
   onPress: () => void;
@@ -54,6 +74,7 @@ function MenuButton({
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
