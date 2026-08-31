@@ -1,4 +1,6 @@
+import { V1_BEDROOM_DOOR, V1_BEDROOM_KEY } from '../content/objects';
 import { BEDROOM_KEY_ID, type GameState } from './GameState';
+import { canReachInteraction } from './InteractionEngine';
 import { MOVE_STEP, PLAYER_GROUND_Y, type RoomId } from './World';
 
 export type GameInput = 'left' | 'right' | 'action';
@@ -12,11 +14,7 @@ export type GameUpdate = { state: GameState; events: readonly GameEvent[] };
 
 const LEFT_BOUND = 8;
 const RIGHT_BOUND = 112;
-const BEDROOM_KEY_X = 48;
-const KEY_PICKUP_RADIUS = 6;
-const LOCKED_DOOR_X = 92;
-const DOOR_ACTION_MIN_X = 84;
-const DOOR_ACTION_MAX_X = 96;
+const LOCKED_DOOR_X = V1_BEDROOM_DOOR.x;
 
 export function updateGame(state: GameState, input: GameInput): GameUpdate {
   let next = state;
@@ -59,13 +57,11 @@ function moveHorizontally(state: GameState, direction: 'left' | 'right'): GameSt
 }
 
 function pickupBedroomKey(state: GameState): GameUpdate {
-  if (state.roomId !== 'room-01' || state.flags.bedroomKeyCollected) {
-    return { state, events: [] };
-  }
-
-  if (Math.abs(state.player.x - BEDROOM_KEY_X) > KEY_PICKUP_RADIUS) {
-    return { state, events: [] };
-  }
+  if (state.flags.bedroomKeyCollected) return { state, events: [] };
+  if (!canReachInteraction(
+    { roomId: state.roomId, playerX: state.player.x, kind: 'proximity' },
+    V1_BEDROOM_KEY,
+  )) return { state, events: [] };
 
   return {
     state: {
@@ -79,11 +75,12 @@ function pickupBedroomKey(state: GameState): GameUpdate {
 
 function interact(state: GameState): GameUpdate {
   if (
-    state.roomId === 'room-01' &&
-    !state.flags.bedroomDoorUnlocked &&
-    state.player.x >= DOOR_ACTION_MIN_X &&
-    state.player.x <= DOOR_ACTION_MAX_X &&
-    state.inventory.includes(BEDROOM_KEY_ID)
+    !state.flags.bedroomDoorUnlocked
+    && state.inventory.includes(BEDROOM_KEY_ID)
+    && canReachInteraction(
+      { roomId: state.roomId, playerX: state.player.x, kind: 'action' },
+      V1_BEDROOM_DOOR,
+    )
   ) {
     return {
       state: {
