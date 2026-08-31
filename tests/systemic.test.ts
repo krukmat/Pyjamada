@@ -3,6 +3,7 @@ import { SYSTEMIC_OBJECTS } from '../src/game/systemic/SystemicContent';
 import { SYSTEMIC_RULE_IDS } from '../src/game/systemic/SystemicRuleEngine';
 import { restartSystemicRun, updateSystemicRun } from '../src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicRunState } from '../src/game/systemic/SystemicState';
+import { InMemorySystemicTelemetry, recordSystemicUpdate, summarizeSystemicTelemetry } from '../src/game/systemic/SystemicTelemetry';
 
 function equal(actual: unknown, expected: unknown, label: string) { if (actual !== expected) throw new Error(`${label}: ${actual} !== ${expected}`); }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
@@ -62,5 +63,32 @@ equal(state.objective.reason,'house-awake','chaos wakes house');
 const restarted=restartSystemicRun(state).state;
 const baseline=createSystemicRun('chaos');
 equal(JSON.stringify({...restarted,lastAction:undefined}),JSON.stringify(baseline),'restart baseline');
+
+const telemetry = new InMemorySystemicTelemetry();
+telemetry.record({type:'run_started',runId:'telemetry'});
+let telemetryState=createSystemicRun('telemetry');
+telemetryState=moveTo(telemetryState,16);
+const telemetryBefore=telemetryState;
+const telemetryUpdate=updateSystemicRun(telemetryBefore,'action');
+recordSystemicUpdate(telemetry,telemetryBefore,'action',telemetryUpdate,0);
+let summary=summarizeSystemicTelemetry(telemetry.snapshot());
+equal(summary.firstObjectId,'bed','telemetry captures first meaningful object');
+equal(summary.retries,0,'telemetry retries baseline');
+
+const nearMissTelemetry = new InMemorySystemicTelemetry();
+const nearMissBefore=createSystemicRun('telemetry-near-miss');
+const nearMissFailed={...nearMissBefore,noise:85,objective:{id:'leave-ready' as const,status:'failed' as const,reason:'house-awake' as const}};
+recordSystemicUpdate(nearMissTelemetry,nearMissBefore,'action',{state:nearMissFailed,events:[{type:'OBJECTIVE_FAILED',reason:'house-awake'}],ruleTrace:[]},1);
+summary=summarizeSystemicTelemetry(nearMissTelemetry.snapshot());
+equal(summary.outcome,'near-miss','telemetry classifies non-window house-awake failure');
+equal(summary.logicalTime,0,'telemetry exposes logical run duration');
+equal(summary.retries,1,'telemetry exposes retry count');
+
+const chaosTelemetry = new InMemorySystemicTelemetry();
+const chaosBefore=createSystemicRun('telemetry-chaos');
+const chaosFailed={...chaosBefore,noise:85,flags:{...chaosBefore.flags,windowOpen:true},objective:{id:'leave-ready' as const,status:'failed' as const,reason:'house-awake' as const}};
+recordSystemicUpdate(chaosTelemetry,chaosBefore,'action',{state:chaosFailed,events:[{type:'OBJECTIVE_FAILED',reason:'house-awake'}],ruleTrace:[]},0);
+summary=summarizeSystemicTelemetry(chaosTelemetry.snapshot());
+equal(summary.outcome,'chaos','telemetry classifies window-amplified house-awake failure');
 
 console.log('systemic tests passed');
