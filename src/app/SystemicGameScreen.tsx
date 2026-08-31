@@ -4,6 +4,7 @@ import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
 import { SystemicCanvas } from '../game/render/SystemicCanvas';
 import { RETRO_PALETTE } from '../game/render/VisualLanguage';
+import { PixelMeter } from './RetroUiKit';
 
 type Props = {
   state: SystemicRunState;
@@ -23,8 +24,8 @@ export function SystemicGameScreen({ state, onInput, onRestart, onExit }: Props)
       <View style={[styles.gameFrame, { width: viewport + 8 }]}>
         <View style={styles.hud}>
           <Stat label="TIME" value={String(state.timeSpent)} />
-          <Stat label="ENERGY" value={String(state.energy)} />
-          <Stat label="NOISE" value={String(state.noise)} />
+          <ResourceStat label="ENERGY" value={state.energy} max={100} accent={RETRO_PALETTE.green} />
+          <ResourceStat label="NOISE" value={state.noise} max={100} accent={RETRO_PALETTE.red} />
           <Stat label="WALLY" value={state.wallyState.toUpperCase()} />
         </View>
         <View style={styles.objectiveStrip}>
@@ -47,12 +48,12 @@ export function SystemicGameScreen({ state, onInput, onRestart, onExit }: Props)
           <Control testID="systemic-move-right-button" label="▶" onPress={() => onInput('right')} />
         </View>
       ) : (
-        <Pressable testID="systemic-restart-button" style={[styles.secondaryButton, styles.restart]} onPress={onRestart}>
+        <Pressable testID="systemic-restart-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, styles.restart, pressed && styles.pressed]} onPress={onRestart}>
           <Text style={styles.buttonText}>TRY AGAIN</Text>
         </Pressable>
       )}
 
-      <Pressable testID="systemic-exit-button" style={styles.secondaryButton} onPress={onExit}>
+      <Pressable testID="systemic-exit-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={onExit}>
         <Text style={styles.buttonText}>BACK TO MENU</Text>
       </Pressable>
     </View>
@@ -61,6 +62,15 @@ export function SystemicGameScreen({ state, onInput, onRestart, onExit }: Props)
 
 function Stat({ label, value }: { label: string; value: string }) {
   return <View style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>;
+}
+
+function ResourceStat({ label, value, max, accent }: { label: string; value: number; max: number; accent: string }) {
+  return (
+    <View style={styles.stat}>
+      <View style={styles.resourceHeader}><Text style={styles.statLabel}>{label}</Text><Text style={styles.resourceValue}>{value}</Text></View>
+      <PixelMeter value={value / max} segments={5} accent={accent} />
+    </View>
+  );
 }
 
 function Control({ testID, label, onPress, wide = false }: { testID: string; label: string; onPress: () => void; wide?: boolean }) {
@@ -101,24 +111,26 @@ function deltaFor(state: SystemicRunState): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#07060b', padding: 14 },
-  gameFrame: { alignItems: 'center', overflow: 'hidden', backgroundColor: RETRO_PALETTE.void, borderWidth: 4, borderColor: RETRO_PALETTE.green },
-  hud: { width: '100%', minHeight: 48, flexDirection: 'row', backgroundColor: '#100d18', borderBottomWidth: 2, borderBottomColor: RETRO_PALETTE.green },
-  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
-  statLabel: { color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  statValue: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
-  objectiveStrip: { width: '100%', minHeight: 32, paddingHorizontal: 8, justifyContent: 'center', backgroundColor: '#171326' },
+  gameFrame: { alignItems: 'center', overflow: 'hidden', backgroundColor: RETRO_PALETTE.void, borderWidth: 4, borderColor: RETRO_PALETTE.greenDark },
+  hud: { width: '100%', minHeight: 56, flexDirection: 'row', backgroundColor: RETRO_PALETTE.panel, borderBottomWidth: 3, borderBottomColor: RETRO_PALETTE.greenDark },
+  stat: { flex: 1, justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4, borderRightWidth: 1, borderRightColor: RETRO_PALETTE.purpleDark },
+  statLabel: { color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
+  statValue: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center', marginTop: 4 },
+  resourceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  resourceValue: { color: RETRO_PALETTE.yellow, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
+  objectiveStrip: { width: '100%', minHeight: 34, paddingHorizontal: 8, justifyContent: 'center', backgroundColor: RETRO_PALETTE.panelRaised, borderBottomWidth: 2, borderBottomColor: RETRO_PALETTE.purpleDark },
   objective: { color: RETRO_PALETTE.yellow, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
   nearby: { color: RETRO_PALETTE.magenta, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  feedbackBox: { width: '100%', maxWidth: 392, minHeight: 64, padding: 8, borderWidth: 2, borderColor: RETRO_PALETTE.purple, backgroundColor: '#100d18' },
+  feedbackBox: { width: '100%', maxWidth: 392, minHeight: 66, padding: 8, borderWidth: 2, borderBottomWidth: 4, borderRightWidth: 4, borderColor: RETRO_PALETTE.purpleDark, backgroundColor: RETRO_PALETTE.panel },
   reaction: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', textAlign: 'center' },
   delta: { marginTop: 4, color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center' },
   trace: { marginTop: 3, color: RETRO_PALETTE.purple, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
   controls: { flexDirection: 'row', gap: 10 },
-  control: { width: 76, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: RETRO_PALETTE.cyan, backgroundColor: '#171326' },
-  controlWide: { width: 106, borderColor: RETRO_PALETTE.magenta },
-  pressed: { opacity: 0.55, transform: [{ translateY: 2 }] },
-  controlText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 15, fontWeight: '900' },
-  secondaryButton: { minWidth: 190, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: RETRO_PALETTE.purple, backgroundColor: '#171326', paddingHorizontal: 14 },
-  restart: { borderColor: RETRO_PALETTE.yellow },
+  control: { width: 74, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, borderColor: RETRO_PALETTE.cyanDark, backgroundColor: RETRO_PALETTE.panelRaised },
+  controlWide: { width: 110, borderColor: RETRO_PALETTE.magentaDark },
+  pressed: { opacity: 0.78, transform: [{ translateX: 2 }, { translateY: 3 }], borderRightWidth: 3, borderBottomWidth: 3 },
+  controlText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 14, fontWeight: '900' },
+  secondaryButton: { minWidth: 190, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRightWidth: 5, borderBottomWidth: 5, borderColor: RETRO_PALETTE.purpleDark, backgroundColor: RETRO_PALETTE.panelRaised, paddingHorizontal: 14 },
+  restart: { borderColor: RETRO_PALETTE.yellowDark },
   buttonText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 });
