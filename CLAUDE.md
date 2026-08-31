@@ -1,85 +1,97 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with this repository.
 
 ## Project
 
-Pyjamada is an Android-first React Native/TypeScript project: a room-based adventure game with a deliberately constrained retro visual language. It reimplements gameplay structure without distributing copyrighted Pyjamarama source assets. Current baseline is **V1.1 / v0.6.0** — a visual fidelity pass on top of an unchanged functional V1 (CU-01 New Game, CU-02 Continue, CU-03 vertical-slice gameplay, CU-06 Settings, CU-05 persistence as a supporting capability).
+Pyjamada is an Android-first React Native/TypeScript room-based adventure with a deliberately constrained retro visual language. It reimplements gameplay structure without distributing copyrighted Pyjamarama source assets.
+
+Current implementation baseline is **V1.1 restrained polish / v0.8.0**. Classic V1 semantics remain CU-01 New Game, CU-02 Continue, CU-03 vertical-slice gameplay, CU-06 Settings, with CU-05 persistence as a supporting capability. A separate Systemic Bedroom Prototype explores short deterministic runs with Time/Energy/Noise/Wally-state consequences without replacing the Classic path.
 
 ## Commands
 
 ```bash
 npm install
-npx expo start          # dev server
-npx expo run:android    # native Android build
+npx expo start
+npx expo run:android
 
-npm run typecheck       # tsc --noEmit against tsconfig.json
+npm run typecheck
+npm run test:v1
+npm run test:systemic
+npm run test:all
 
-npm run test:cu01
-npm run test:cu02
-npm run test:cu03
-npm run test:cu06
-npm run test:integration
-npm run test:visual
-npm run test:v1          # runs all of the above in sequence
+npm run screenshots:android
+npm run screenshots:systemic:android
 ```
 
-There is no test runner framework — each `test:*` script compiles via `tsconfig.test.json` into `.test-dist/` (CommonJS) and runs the resulting JS directly with `node`. To run a single test file directly after a build:
+Tests use the custom harness in `tests/assert.ts` rather than Jest/Vitest. `test:*` scripts compile through `tsconfig.test.json` into `.test-dist/` and execute the generated CommonJS with Node.
 
-```bash
-rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js
-```
-
-Tests use a minimal custom harness (`tests/assert.ts`: `test`, `equal`, `deepEqual`) — not Jest/Vitest. Each test file's `run()` is invoked at the bottom of the file and exits non-zero on failure.
-
-CI (`.github/workflows/v1-validation.yml`) runs `npm run test:v1` + `npm run typecheck` on push/PR to `main` and `feat/**`. A separate workflow (`.github/workflows/android-emulator-smoke.yml`) builds a release APK and runs it on a Pixel 6 / API 35 emulator, publishing screenshot/logcat evidence as CI artifacts (not a release channel).
+CI (`.github/workflows/v1-validation.yml`) runs Classic regression, Systemic tests and TypeScript validation on `main` and `feat/**`. Android emulator smoke is separate and publishes device evidence; local screenshot tours remain the preferred visual-review workflow.
 
 ## Architecture
 
-The codebase strictly separates game rules from React UI and from persistence, using a ports/use-cases pattern:
+The repository separates game rules, presentation and persistence:
 
+```text
+React Native shell
+  App.tsx / src/app/*
+  MainMenu / SettingsScreen / GameScreen / SystemicGameScreen
+
+Classic TypeScript core
+  src/game/core/*
+  GameState + GameRuntime + codecs
+
+Systemic TypeScript core
+  src/game/systemic/*
+  deterministic resources, rules, objectives and run lifecycle
+
+Use cases + ports
+  src/game/usecases/*
+  src/settings/usecases/*
+  src/game/ports/*
+  src/settings/ports/*
+
+Platform adapters
+  src/platform/*
+  AsyncStorage repositories with separate Classic/Systemic/settings keys
+
+Visual layer
+  VisualLanguage -> PixelArtKit -> RoomScene / SystemicCanvas
+  RN chrome shares RetroUiKit primitives
 ```
-React Native Shell (App.tsx, src/app/*)
-   MainMenu / SettingsScreen / GameScreen — thin, delegate to use cases
 
-TypeScript Game Core (src/game/core)
-   GameState (data), World (constants), GameRuntime.updateGame() (pure reducer),
-   GameStateCodec (versioned serialize/validate)
+### Key invariants
 
-Use cases (src/game/usecases, src/settings/usecases)
-   StartNewGameUseCase, ContinueSavedGameUseCase,
-   LoadGameSettingsUseCase, UpdateGameSettingsUseCase
-   — depend on ports (interfaces), never directly on AsyncStorage
+- Gameplay reducers stay pure; React components do not own game rules.
+- Presentation-only animation/state must never be added to persisted game state.
+- Classic saves, Systemic runs and settings remain separate storage domains.
+- Hitboxes and room transitions remain in the core, independent of room artwork.
+- Visual changes preserve the 128×128 authored coordinate system and integer scaling.
+- Classic and Systemic should share one restrained visual vocabulary: authored shade tokens, pixel shadows, key treatment and panel/control language.
+- Do not use original/remake Pyjamarama sprites, maps, audio or protected artwork.
 
-Ports (src/game/ports, src/settings/ports)
-   GameSavePort, GameSettingsPort — interfaces implemented by platform adapters
+### Classic slice
 
-Platform adapters (src/platform/storage, src/platform/settings)
-   AsyncStorageGameSaveRepository, AsyncStorageGameSettingsRepository
-   — the only place AsyncStorage is touched; save data and settings use
-     separate storage keys/domains and are never mixed
+`room-01` Bedroom (key -> door) -> `room-02` Hall -> `room-03` Landing (`SLICE_COMPLETED`).
 
-Visual layer (src/game/render)
-   VisualLanguage (pure visual model) → PixelArtKit (reusable pixel primitives)
-   → RoomScene (3 composed rooms) + PajamaHero (pose derived from player position)
-   GameCanvas renders via React Native Skia at a 128×128 logical resolution,
-   integer-scaled by the shell. Skia renders game state; it never owns gameplay logic.
-```
+### Systemic prototype
 
-Key invariants (violating these breaks the architecture the codebase is built around):
+One Bedroom-based run with six interactive objects, deterministic Time/Energy/Noise resources, four Wally states, reusable rule consequences and explicit success/failure/restart outcomes. It is a product experiment, not a replacement for Classic V1.
 
-- `GameRuntime.updateGame(state, input)` is a pure function — all gameplay logic lives here, not in components. `App.tsx` calls it and persists the result.
-- Sprite/animation pose is *derived* from existing player state (position/facing) — no new presentation-only gameplay state is added for visuals.
-- Save-game and settings are separate domains: separate core types, separate codecs, separate ports, separate storage keys.
-- Use cases depend on port interfaces, not concrete repositories, so tests substitute `tests/FakeGameSavePort.ts` / `tests/FakeGameSettingsPort.ts`.
-- Save/settings payloads are versioned and validated through their `*Codec` before use (see `GameSaveReadResult`'s `'invalid'` status and how `App.tsx`/use cases handle it).
-- `App.tsx` keeps refs (`gameStateRef`, `settingsRef`) as the authoritative source read by event handlers, separate from React state used for rendering — this avoids stale reads when rapid input outpaces async persistence. Settings writes are serialized through `settingsQueueRef` for the same reason.
-- No original/remake Pyjamarama sprites, maps, audio, or other copyrighted assets — all art is authored from project-owned geometric/pixel primitives (see `docs/VISUAL_BASELINE_V1_1.md`).
+## Visual baseline
 
-### Gameplay slice (three rooms)
+`docs/VISUAL_BASELINE_V1_1.md` remains authoritative. The v0.8.0 restrained-polish addendum allows one explicit darker shade per major object, sparse atmosphere/floor detail, a low-cost collectible halo and contact shadows while retaining the original limited-palette/readability rules.
 
-`room-01` (bedroom, collect key → unlock door) → `room-02` (hall) → `room-03` (landing, reaching it fires `SLICE_COMPLETED`). Room bounds, transition thresholds, and interaction hitboxes are constants at the top of `src/game/core/GameRuntime.ts`.
+The UI/UX implementation rationale and scope reconciliation are documented in `docs/UI_UX_IMPLEMENTATION_REPORT.md`.
 
 ## Specs
 
-Use-case behavior is specified in `docs/CU-01.md`, `docs/CU-02.md`, `docs/CU-03.md`, `docs/CU-06.md`; visual rules in `docs/VISUAL_BASELINE_V1_1.md`; architecture review in `docs/V1_REVIEW.md`; Android validation process in `docs/ANDROID_SMOKE_TEST.md`. When changing use-case behavior, check the corresponding `CU-*.md` spec and its test file together.
+- `docs/CU-01.md`, `CU-02.md`, `CU-03.md`, `CU-06.md`
+- `docs/VISUAL_BASELINE_V1_1.md`
+- `docs/SYSTEMIC_GAMEPLAY_PLAN.md`
+- `docs/SYSTEMIC_GAMEPLAY_IMPLEMENTATION.md`
+- `docs/UI_UX_IMPROVEMENT_PLAN.md`
+- `docs/UI_UX_IMPLEMENTATION_REPORT.md`
+- `docs/ANDROID_SMOKE_TEST.md`
+
+When changing behavior, update the matching spec and test together. Presentation-only work must not create hidden gameplay semantics.

@@ -17,6 +17,19 @@ The target is not a modern mobile reinterpretation. The target is a deliberately
 7. **HUD belongs to the game frame.** Life/energy/pocket information uses the same palette and border language as the room.
 8. **Mobile chrome stays subordinate.** Touch controls remain readable but visually secondary to the game viewport.
 
+## Restrained polish addendum (v0.8.0)
+
+The UI/UX pass keeps all eight rules above authoritative and adds a small systematic vocabulary rather than a new art direction:
+
+- every major object may use **one explicit darker shade token** for edge/depth separation;
+- contact shadows are allowed as small pixel-grid layers under the hero or furniture;
+- collectible emphasis may use a restrained two-layer halo; the key retains its gameplay anchor and now uses a clearer ring + shaft + teeth silhouette;
+- backgrounds may use a few low-contrast atmosphere blocks (stars/moonbeam) and sparse floor dither, never enough to compete with interactive silhouettes;
+- raised mobile controls use hard pixel shadows and a translated pressed state;
+- the same palette, shade tokens, key primitive and shadow vocabulary apply to both Classic and the Systemic Prototype.
+
+No gameplay hitbox, persistence contract, room transition, objective or systemic rule is changed by this polish pass.
+
 ## Room composition
 
 ### room-01 — Bedroom
@@ -45,12 +58,12 @@ The target is not a modern mobile reinterpretation. The target is a deliberately
 
 The V1.1 HUD uses three compact groups:
 
-- `LIFE` — three blocks (presentation only in current V1);
-- `DREAM` — a compact energy bar (presentation only until a future approved gameplay CU exists);
-- `POCKET` — derived from the real current inventory (`KEY` or `EMPTY`).
+- `LIFE` — three presentation-only icons;
+- `DREAM` — a numeric readout plus compact meter (presentation only until a future approved gameplay CU exists);
+- `POCKET` — derived from the real current inventory (`KEY` or `EMPTY`) with a small pixel key glyph when carried.
 
 Presentation-only indicators must not create hidden gameplay semantics.
 
 ## Exit criteria
 
-A screenshot of each of the three rooms should look like an intentional retro game screen rather than a renderer/debug harness. The game core, persistence, settings and CU behavior must remain unchanged.
+A screenshot of each of the three rooms should look like an intentional retro game screen rather than a renderer/debug harness. Classic and Systemic should read as the same product family. The game core, persistence, settings and CU behavior must remain unchanged.
