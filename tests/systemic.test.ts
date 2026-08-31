@@ -29,7 +29,14 @@ ok(state.noise < 40,'efficient low noise');
 ok(success.events.some(e=>e.type==='OBJECTIVE_COMPLETED'),'success event');
 
 const decoded=decodeSystemicRun(encodeSystemicRun(state)); equal(decoded.status,'ok','codec roundtrip');
-const invalid=decodeSystemicRun(JSON.stringify({...state,noise:101})); equal(invalid.status,'invalid','codec rejects invalid noise');
+equal(decodeSystemicRun(JSON.stringify({...state,noise:101})).status,'invalid','codec rejects invalid noise');
+equal(decodeSystemicRun(JSON.stringify({...state,energy:35.5})).status,'invalid','codec rejects fractional resources');
+equal(decodeSystemicRun(JSON.stringify({...state,equipped:['bed']})).status,'invalid','codec rejects impossible equipment');
+equal(decodeSystemicRun(JSON.stringify({...state,objective:{id:'leave-ready',status:'failed'}})).status,'invalid','codec rejects failure without reason');
+const impossibleComplete=createSystemicRun('impossible-complete');
+equal(decodeSystemicRun(JSON.stringify({...impossibleComplete,objective:{id:'leave-ready',status:'completed'}})).status,'invalid','codec rejects completion without requirements');
+const impossibleWindow=createSystemicRun('impossible-window');
+equal(decodeSystemicRun(JSON.stringify({...impossibleWindow,flags:{...impossibleWindow.flags,windowOpen:true}})).status,'invalid','codec rejects inconsistent window state');
 
 state=createSystemicRun('near-miss');
 state=moveTo(state,48); state=step(state,'action');
