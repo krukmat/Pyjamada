@@ -70,20 +70,27 @@ Node.js 22.13+ is required.
 
 ## Architecture
 
-```text
-React Native shell
-        ↓
-TypeScript game core
-        ↓
-Skia renderer
+At a glance, the implementation separates **app concerns**, **game rules**, **rendering**, and **platform services**:
 
-Persistence
-GameSavePort / GameSettingsPort
-        ↓
-AsyncStorage adapters
+```mermaid
+flowchart TB
+    Player["Player / touch input"] --> Shell["React Native shell<br/>Menu · Settings · GameScreen"]
+    Shell --> UseCases["Application use cases<br/>New Game · Continue · Configure · Play"]
+    UseCases --> Core["TypeScript game core<br/>State · Rooms · Collision · Inventory · Progression"]
+
+    Core --> Renderer["Skia renderer<br/>128×128 logical world"]
+    Renderer --> Screen["Android screen"]
+
+    UseCases --> Ports["Persistence ports<br/>GameSavePort · GameSettingsPort"]
+    Ports --> Storage["AsyncStorage adapters"]
+
+    Maestro["Maestro"] --> Shell
+    CI["GitHub Actions"] --> APK["Release APK"]
+    APK --> Emulator["Android emulator"]
+    Emulator --> Shell
 ```
 
-Game rules stay outside React components, rendering stays separate from gameplay decisions, and persistence is replaceable.
+The important boundary is the middle: **React handles the shell, the TypeScript core owns gameplay decisions, and Skia only renders state.** Persistence and Android tooling sit behind replaceable edges rather than leaking into the game rules.
 
 ## Experiment with it
 
