@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-emulator-smoke-${{ github.event.pull_request.number || github.ref }}
@@ -58,21 +58,6 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
           script: bash .github/scripts/android-emulator-smoke.sh
-
-      - name: Persist first validated README screenshot
-        if: success() && github.event_name == 'pull_request'
-        run: |
-          if [ -f assets/readme/android-main-menu.png ]; then
-            echo "Validated README screenshot already exists; leaving it unchanged."
-            exit 0
-          fi
-          mkdir -p assets/readme
-          cp artifacts/android-smoke/pyjamada-main-menu.png assets/readme/android-main-menu.png
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/readme/android-main-menu.png
-          git commit -m "docs: add validated Android emulator screenshot"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Upload emulator evidence
         if: always()
