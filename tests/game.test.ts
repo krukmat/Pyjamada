@@ -91,4 +91,4 @@ recordSystemicUpdate(chaosTelemetry,chaosBefore,'action',{state:chaosFailed,even
 summary=summarizeSystemicTelemetry(chaosTelemetry.snapshot());
 equal(summary.outcome,'chaos','telemetry classifies window-amplified house-awake failure');
 
-console.log('systemic tests passed');
+console.log('game tests passed');

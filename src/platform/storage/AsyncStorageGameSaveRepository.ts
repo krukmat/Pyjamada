@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { GameState } from '../../game/core/GameState';
-import { decodeGameState, encodeGameState } from '../../game/core/GameStateCodec';
 import type { GameSavePort, GameSaveReadResult } from '../../game/ports/GameSavePort';
+import { decodeSystemicRun, encodeSystemicRun } from '../../game/systemic/SystemicCodec';
+import type { SystemicRunState } from '../../game/systemic/SystemicState';
 
-export const GAME_SAVE_KEY = 'pyjamada:v1:game-save';
+export const GAME_SAVE_KEY = 'pyjamada:game:v1:run';
 
 export class AsyncStorageGameSaveRepository implements GameSavePort {
   private writeQueue: Promise<void> = Promise.resolve();
@@ -12,15 +12,12 @@ export class AsyncStorageGameSaveRepository implements GameSavePort {
     await this.writeQueue.catch(() => undefined);
     const raw = await AsyncStorage.getItem(GAME_SAVE_KEY);
     if (raw === null) return { status: 'none' };
-
-    const decoded = decodeGameState(raw);
-    return decoded.status === 'ok'
-      ? { status: 'ok', gameState: decoded.gameState }
-      : { status: 'invalid' };
+    const decoded = decodeSystemicRun(raw);
+    return decoded.status === 'ok' ? { status: 'ok', state: decoded.state } : { status: 'invalid' };
   }
 
-  save(state: GameState): Promise<void> {
-    const encoded = encodeGameState(state);
+  save(state: SystemicRunState): Promise<void> {
+    const encoded = encodeSystemicRun(state);
     return this.enqueue(() => AsyncStorage.setItem(GAME_SAVE_KEY, encoded));
   }
 

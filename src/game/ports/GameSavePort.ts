@@ -1,12 +1,12 @@
-import type { GameState } from '../core/GameState';
+import type { SystemicRunState } from '../systemic/SystemicState';
 
 export type GameSaveReadResult =
   | { status: 'none' }
-  | { status: 'invalid' }
-  | { status: 'ok'; gameState: GameState };
+  | { status: 'ok'; state: SystemicRunState }
+  | { status: 'invalid' };
 
 export interface GameSavePort {
   read(): Promise<GameSaveReadResult>;
-  save(state: GameState): Promise<void>;
+  save(state: SystemicRunState): Promise<void>;
   clear(): Promise<void>;
 }

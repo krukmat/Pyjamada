@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Rect } from '@shopify/react-native-skia';
-import type { GameState } from '../core/GameState';
-import { getWalkFrame, RETRO_PALETTE } from './VisualLanguage';
+import { RETRO_PALETTE } from './VisualLanguage';
 
 type ScaleFn = (value: number) => number;
 
@@ -49,34 +48,6 @@ export function HeroContactShadow({ x, y, px, width = 10 }: { x: number; y: numb
   );
 }
 
-export function PajamaHero({ gameState, px }: { gameState: GameState; px: ScaleFn }) {
-  const { x, y, facing } = gameState.player;
-  const frame = getWalkFrame(gameState);
-  const eyeX = facing === 'right' ? x + 5 : x + 2;
-  const frontArmX = facing === 'right' ? x + 6 : x;
-  const backArmX = facing === 'right' ? x : x + 6;
-  const leftLegX = frame === 0 ? x + 1 : x + 2;
-  const rightLegX = frame === 0 ? x + 5 : x + 4;
-
-  const blocks: PixelBlock[] = [
-    { x: x + 1, y, width: 5, height: 1, color: RETRO_PALETTE.magenta },
-    { x, y: y + 1, width: 7, height: 1, color: RETRO_PALETTE.magentaDark },
-    { x: x + 1, y: y + 2, width: 6, height: 4, color: RETRO_PALETTE.ink },
-    { x: eyeX, y: y + 3, width: 1, height: 1, color: RETRO_PALETTE.shadow },
-    { x: x + 1, y: y + 6, width: 6, height: 6, color: RETRO_PALETTE.cyan },
-    { x: x + 5, y: y + 6, width: 2, height: 6, color: RETRO_PALETTE.cyanDark },
-    { x: x + 1, y: y + 9, width: 6, height: 1, color: RETRO_PALETTE.magenta },
-    { x: frontArmX, y: y + 7, width: 2, height: 4, color: RETRO_PALETTE.cyan },
-    { x: backArmX, y: y + 7, width: 1, height: 3, color: RETRO_PALETTE.blueDark },
-    { x: leftLegX, y: y + 12, width: 2, height: frame === 0 ? 4 : 3, color: RETRO_PALETTE.cyan },
-    { x: rightLegX, y: y + 12, width: 2, height: frame === 0 ? 3 : 4, color: RETRO_PALETTE.cyanDark },
-    { x: leftLegX - 1, y: y + 15, width: 3, height: 1, color: RETRO_PALETTE.ink },
-    { x: rightLegX, y: y + 15, width: 3, height: 1, color: RETRO_PALETTE.ink },
-  ];
-
-  return <PixelBlocks blocks={blocks} px={px} prefix="hero" />;
-}
-
 export function KeySprite({ x, y, px, pulse = true }: { x: number; y: number; px: ScaleFn; pulse?: boolean }) {
   const [bright, setBright] = useState(true);
 
@@ -103,27 +74,4 @@ export function KeySprite({ x, y, px, pulse = true }: { x: number; y: number; px
       <PixelBlocks blocks={blocks} px={px} prefix="key" />
     </>
   );
-}
-
-export function ClosedDoor({ x, y, px }: { x: number; y: number; px: ScaleFn }) {
-  const blocks: PixelBlock[] = [
-    { x, y, width: 12, height: 24, color: RETRO_PALETTE.magentaDark },
-    { x: x + 1, y: y + 1, width: 10, height: 22, color: RETRO_PALETTE.magenta },
-    { x: x + 3, y: y + 3, width: 6, height: 8, color: RETRO_PALETTE.red },
-    { x: x + 4, y: y + 4, width: 5, height: 7, color: RETRO_PALETTE.redDark },
-    { x: x + 3, y: y + 13, width: 6, height: 7, color: RETRO_PALETTE.red },
-    { x: x + 4, y: y + 14, width: 5, height: 6, color: RETRO_PALETTE.redDark },
-    { x: x + 8, y: y + 12, width: 1, height: 1, color: RETRO_PALETTE.yellow },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="closed-door" />;
-}
-
-export function OpenDoor({ x, y, px }: { x: number; y: number; px: ScaleFn }) {
-  const blocks: PixelBlock[] = [
-    { x, y, width: 2, height: 24, color: RETRO_PALETTE.cyanDark },
-    { x: x + 10, y, width: 2, height: 24, color: RETRO_PALETTE.cyanDark },
-    { x, y, width: 12, height: 2, color: RETRO_PALETTE.cyan },
-    { x: x + 2, y: y + 2, width: 8, height: 22, color: RETRO_PALETTE.void },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="open-door" />;
 }

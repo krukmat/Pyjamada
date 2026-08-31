@@ -1,23 +1,16 @@
 {
   "name": "pyjamada",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "screenshots:android": "bash scripts/android-screenshots.sh",
-    "screenshots:systemic:android": "bash scripts/android-systemic-screenshots.sh",
     "typecheck": "tsc --noEmit",
-    "test:cu01": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js",
-    "test:cu02": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu02.test.js",
-    "test:cu03": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu03.test.js",
-    "test:cu06": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu06.test.js",
-    "test:integration": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/v1.integration.test.js",
-    "test:visual": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/visual-baseline.test.js",
-    "test:systemic": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/systemic.test.js",
-    "test:v1": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/cu01.test.js && node .test-dist/tests/cu02.test.js && node .test-dist/tests/cu03.test.js && node .test-dist/tests/cu06.test.js && node .test-dist/tests/v1.integration.test.js && node .test-dist/tests/visual-baseline.test.js",
-    "test:all": "npm run test:v1 && npm run test:systemic"
+    "test:game": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/game.test.js",
+    "test:settings": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/settings.test.js",
+    "test:all": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/game.test.js && node .test-dist/tests/settings.test.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

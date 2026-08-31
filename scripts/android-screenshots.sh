@@ -2,24 +2,23 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_ID="com.krukmat.pyjamada"
 APK_PATH="$REPO_ROOT/android/app/build/outputs/apk/release/app-release.apk"
 FLOW_PATH="$REPO_ROOT/maestro/screenshots.yaml"
 SCREENSHOTS_DIR="$REPO_ROOT/artifacts/android-screenshots"
 MAESTRO_REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-maestro.XXXXXX")"
 EXPECTED_SCREENSHOTS=(
   "01_main_menu.png"
-  "02_settings.png"
-  "03_bedroom.png"
-  "04_bedroom_key_collected.png"
-  "05_bedroom_door_open.png"
-  "06_hall.png"
-  "07_landing.png"
+  "02_run_start.png"
+  "03_bed_wake.png"
+  "04_slippers.png"
+  "05_alarm.png"
+  "06_startled.png"
+  "07_wardrobe.png"
+  "08_success.png"
+  "09_restart.png"
 )
 
-cleanup() {
-  rm -rf "$MAESTRO_REPORT_DIR"
-}
+cleanup() { rm -rf "$MAESTRO_REPORT_DIR"; }
 trap cleanup EXIT
 
 for command_name in adb maestro node npm; do
@@ -82,7 +81,7 @@ find "$MAESTRO_REPORT_DIR" -type f -name '*.png' -exec cp {} "$SCREENSHOTS_DIR/"
 
 for screenshot in "${EXPECTED_SCREENSHOTS[@]}"; do
   if [[ ! -s "$SCREENSHOTS_DIR/$screenshot" ]]; then
-    echo "Missing canonical screenshot: $screenshot" >&2
+    echo "Missing screenshot: $screenshot" >&2
     exit 1
   fi
 done
@@ -90,9 +89,8 @@ done
 PNG_COUNT="$(find "$SCREENSHOTS_DIR" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
 EXPECTED_COUNT="${#EXPECTED_SCREENSHOTS[@]}"
 if [[ "$PNG_COUNT" -ne "$EXPECTED_COUNT" ]]; then
-  echo "Expected exactly $EXPECTED_COUNT canonical screenshots, found $PNG_COUNT." >&2
-  find "$SCREENSHOTS_DIR" -maxdepth 1 -type f -name '*.png' -printf '%f\n' 2>/dev/null || ls -1 "$SCREENSHOTS_DIR"
+  echo "Expected exactly $EXPECTED_COUNT screenshots, found $PNG_COUNT." >&2
   exit 1
 fi
 
-echo "$PNG_COUNT canonical Android screenshots available in $SCREENSHOTS_DIR"
+echo "$PNG_COUNT Android screenshots available in $SCREENSHOTS_DIR"

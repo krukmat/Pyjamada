@@ -26,63 +26,81 @@ tags:
     path: 01_main_menu
 
 - tapOn:
-    id: settings-button
-- assertVisible:
-    id: settings-screen
-- takeScreenshot:
-    path: 02_settings
-- tapOn:
-    id: settings-back-button
-
-- assertVisible:
-    id: main-menu-screen
-- tapOn:
     id: new-game-button
 - extendedWaitUntil:
     visible:
-      text: BEDROOM
+      id: game-screen
     timeout: 20000
+- assertVisible: GET DRESSED + FIND KEYS
 - takeScreenshot:
-    path: 03_bedroom
+    path: 02_run_start
+
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: move-left-button
+- tapOn:
+    id: action-button
+- assertVisible: NORMAL
+- takeScreenshot:
+    path: 03_bed_wake
+
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- assertVisible: "Stealth slippers equipped.*"
+- takeScreenshot:
+    path: 04_slippers
+
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- assertVisible: "Awake instantly.*"
+- takeScreenshot:
+    path: 05_alarm
+
+- tapOn:
+    id: action-button
+- assertVisible: "THE ALARM AGAIN.*"
+- takeScreenshot:
+    path: 06_startled
 
 - repeat:
     times: 5
     commands:
       - tapOn:
           id: move-right-button
-- assertVisible: KEY
+- tapOn:
+    id: action-button
+- assertVisible: "Dressed.*"
 - takeScreenshot:
-    path: 04_bedroom_key_collected
+    path: 07_wardrobe
 
 - repeat:
-    times: 10
+    times: 5
     commands:
       - tapOn:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible: EMPTY
+- assertVisible:
+    id: restart-button
+- assertVisible: "READY!.*"
 - takeScreenshot:
-    path: 05_bedroom_door_open
+    path: 08_success
 
-- repeat:
-    times: 7
-    commands:
-      - tapOn:
-          id: move-right-button
-- assertVisible: HALL
+- tapOn:
+    id: restart-button
+- assertVisible: GET DRESSED + FIND KEYS
+- assertVisible: SLEEPY
 - takeScreenshot:
-    path: 06_hall
-
-- repeat:
-    times: 26
-    commands:
-      - tapOn:
-          id: move-right-button
-- extendedWaitUntil:
-    visible: Vertical slice reached
-    timeout: 10000
-- tapOn: OK
-- assertVisible: LANDING
-- takeScreenshot:
-    path: 07_landing
+    path: 09_restart
