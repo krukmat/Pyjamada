@@ -1,4 +1,4 @@
-name: V1 validation
+name: V1 + systemic validation
 
 on:
   push:
@@ -25,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Domain and integration tests
+      - name: V1 regression suite
         run: npm run test:v1
+
+      - name: Systemic prototype suite
+        run: npm run test:systemic
 
       - name: TypeScript typecheck
         run: npm run typecheck
