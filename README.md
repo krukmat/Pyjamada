@@ -1,76 +1,145 @@
 # Pyjamada
 
-Pyjamada is an Android-first React Native experiment: a tiny domestic adventure where a simple morning routine turns into a chain of systemic consequences.
+**A tiny domestic adventure where getting ready in the morning can become a complete disaster.**
 
-The game intentionally has one active gameplay model. Move around the bedroom, interact with a small set of objects, manage **time / energy / noise**, and get Wally dressed with the keys before the house wakes up or the morning collapses.
+Pyjamada is an Android-first React Native game experiment built around a deliberately small systemic sandbox. Wally needs to get dressed and find his keys, but every action costs **time**, **energy** or **noise** — and simple objects can combine into surprisingly bad decisions.
 
-## Core loop
+Six objects. Ten deterministic rules. One bedroom. No game engine hiding the interesting parts.
 
-`move → interact → consequence → adapt → succeed/fail → retry`
+```text
+move → interact → consequence → adapt → succeed / fail → retry
+```
 
-Six objects drive the current room: bed, slippers, alarm clock, wardrobe, keys and window. Ten deterministic rules combine those objects with Wally's state (`sleepy`, `normal`, `rushed`, `startled`) to produce efficient, near-miss and chaos runs.
+## Why this repo exists
+
+Pyjamada is also a compact game-architecture playground:
+
+- **React Native owns the app shell.**
+- **TypeScript owns the game rules and state.**
+- **Skia owns the pixels.**
+- **AsyncStorage owns persistence.**
+- **Maestro owns the Android visual tour.**
+
+The goal is to see how much emergent gameplay can come from a very small deterministic model before adding more rooms, progression or monetization.
+
+## The current game
+
+The bedroom contains six interactive objects:
+
+`bed · slippers · alarm clock · wardrobe · keys · window`
+
+Wally can be `sleepy`, `normal`, `rushed` or `startled`. Ten ordered rules connect those states with object interactions and movement, producing different routes through the same room: efficient escapes, near misses and full domestic chaos.
+
+The objective is simple:
+
+> **Get dressed + find the keys before the house wakes up, Wally runs out of energy, or time runs out.**
+
+There is one active gameplay path and one save model.
+
+## Architecture
+
+```text
+                         PYJAMADA
+                            │
+                    React Native shell
+                            │
+             ┌──────────────┼──────────────┐
+             ▼              ▼              ▼
+         MainMenu      SettingsScreen   GameScreen
+                                           │
+                              input ────────┼──────── render
+                                           │
+                         ┌─────────────────┴─────────────────┐
+                         ▼                                   ▼
+                 SystemicRuntime                         GameCanvas
+                  pure TypeScript                           Skia
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+           Objects      Rules    Objectives
+              └──────────┼──────────┘
+                         ▼
+                       State
+                         │
+                 ┌───────┴────────┐
+                 ▼                ▼
+             Persistence       Telemetry
+```
+
+The `systemic` folder describes the architecture of the gameplay engine; it is not a separate game mode.
 
 ## Stack
 
-- React Native + Expo
+- React Native 0.86 + Expo 57
 - TypeScript
 - React Native Skia
 - AsyncStorage
-- Maestro for Android screenshot tours
+- Maestro
+- Android-first development
 
-Gameplay rules are pure TypeScript. React/Skia render state but do not own gameplay semantics.
+Gameplay logic is UI-independent and deterministic, which keeps the interesting behavior testable without rendering a frame.
 
-## Run
+## Run it
+
+Requirements: Node.js `>=22.13`, Android tooling and Java 17.
 
 ```bash
 npm install
-npm start
 npm run android
 ```
 
-## Validate
+For the Expo development server separately:
+
+```bash
+npm start
+```
+
+## Validate it
 
 ```bash
 npm run test:all
 npm run typecheck
 ```
 
-Generate the current Android visual tour with:
+The test suite covers the game rules, object interactions, success / near-miss / chaos paths, restart behavior, persistence validation, telemetry and settings.
+
+## Generate the Android visual tour
+
+With an Android emulator running and Maestro installed:
 
 ```bash
 npm run screenshots:android
 ```
 
-After an APK is already built:
+If the release APK is already built:
 
 ```bash
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-Screenshots are written to `artifacts/android-screenshots/`.
-
-## Current architecture
+The tour exercises the real game flow and writes its screenshots to:
 
 ```text
-App
-├── MainMenu
-├── SettingsScreen
-└── GameScreen
-    ├── HUD + touch controls
-    └── GameCanvas
-         ↓
-Systemic runtime (pure TypeScript)
-├── object definitions
-├── ordered rule engine
-├── objective resolution
-├── codec / persistence validation
-└── telemetry
+artifacts/android-screenshots/
 ```
 
-The `systemic` folder name describes the gameplay architecture, not a second product mode. There is no Classic/prototype split in the active application.
+## Useful entry points
 
-## Scope
+```text
+App.tsx                         application composition + navigation
+src/app/GameScreen.tsx          HUD, feedback and touch controls
+src/game/systemic/              state, objects, rules, runtime and telemetry
+src/game/render/GameCanvas.tsx  Skia bedroom renderer
+src/platform/storage/           game persistence
+src/settings/                   settings domain
+maestro/screenshots.yaml        Android screenshot journey
+tests/game.test.ts              deterministic gameplay coverage
+```
 
-The current build is deliberately small. It validates whether a single room with reusable rules can create curiosity, understandable cause/effect and voluntary retries before adding more rooms, progression or monetization.
+## Current scope
 
-See `docs/GAMEPLAY.md` for the active design contract and `docs/ANDROID_SMOKE_TEST.md` for device validation.
+Pyjamada is intentionally small. The current question is not **“how much content can we add?”** but **“does this tiny room make players curious enough to experiment and retry?”**
+
+The next expansion gate is human playtesting: objective comprehension, understandable cause/effect, at least one unexpected-but-logical consequence, and voluntary retry.
+
+See [`docs/GAMEPLAY.md`](docs/GAMEPLAY.md) for the active gameplay contract and [`docs/ANDROID_SMOKE_TEST.md`](docs/ANDROID_SMOKE_TEST.md) for device validation.
