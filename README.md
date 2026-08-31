@@ -2,6 +2,8 @@
 
 Android-first React Native/TypeScript project exploring a faithful room-based adventure architecture and a deliberately constrained retro visual language without distributing copyrighted Pyjamarama source assets.
 
+![Android emulator smoke](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml/badge.svg)
+
 ## Current baseline — V1.1 / v0.6.0
 
 The functional V1 remains unchanged:
@@ -15,6 +17,32 @@ The functional V1 remains unchanged:
 V1.1 is a **visual fidelity pass**, not a new gameplay phase. It replaces the original debug-style rectangles with an intentional retro presentation while keeping the TypeScript game core, persistence and use-case semantics intact.
 
 See [`docs/VISUAL_BASELINE_V1_1.md`](docs/VISUAL_BASELINE_V1_1.md) for the visual rules and [`docs/V1_REVIEW.md`](docs/V1_REVIEW.md) for the integrated V1 architecture review.
+
+## Android runtime validation
+
+The V1.1 shell has now been built as a self-contained Android release APK and executed successfully in CI on a **Pixel 6 emulator / Android API 35**.
+
+Validated gate:
+
+- Expo Android prebuild ✅
+- native React Native + Skia release build ✅
+- APK installation ✅
+- application launch ✅
+- Pyjamada foreground activity verification ✅
+- real emulator screenshot capture ✅
+- V1 domain/integration tests + TypeScript typecheck ✅
+
+The reproducible smoke workflow is [`android-emulator-smoke.yml`](.github/workflows/android-emulator-smoke.yml). Each successful run publishes `pyjamada-android-emulator-smoke` containing the tested APK, screenshot, logcat and window/focus evidence. Workflow artifacts are temporary CI evidence rather than a release distribution channel.
+
+[Open Android emulator smoke runs](https://github.com/krukmat/Pyjamada/actions/workflows/android-emulator-smoke.yml)
+
+## Real Android screenshot
+
+This is a **real capture from the validated Android emulator run**, not a concept mockup:
+
+<p align="center">
+  <img src="assets/readme/android-main-menu.png" alt="Pyjamada V1.1 running on Android emulator" width="360" />
+</p>
 
 ## V1.1 visual direction
 
@@ -61,10 +89,6 @@ room-03
   ↓
 verticalSliceReached
 ```
-
-## Screenshots
-
-Real Android screenshots are intentionally **not** included yet. The previous conceptual mockups did not represent the running build closely enough. Screenshots should be captured only after the Android V1.1 smoke test so the README shows the actual product rather than aspirational artwork.
 
 ## Architecture
 
@@ -125,6 +149,7 @@ The touch layout affects CU-03 controls immediately. Audio values are persisted 
 - TypeScript
 - React Native Skia 2.6.2
 - AsyncStorage 2.2.0 behind explicit persistence ports
+- React Native Reanimated / Worklets runtime required by the Expo 57 native stack
 - Node.js 22.13+ required by Expo SDK 57
 
 ## Run
@@ -159,6 +184,7 @@ Specifications:
 - [`docs/CU-03.md`](docs/CU-03.md)
 - [`docs/CU-06.md`](docs/CU-06.md)
 - [`docs/VISUAL_BASELINE_V1_1.md`](docs/VISUAL_BASELINE_V1_1.md)
+- [`docs/ANDROID_SMOKE_TEST.md`](docs/ANDROID_SMOKE_TEST.md)
 
 ## Deferred
 
@@ -172,4 +198,4 @@ Specifications:
 
 ## Next gate
 
-Run the Android V1.1 smoke test, inspect all three rooms on-device and capture real screenshots. Only then decide whether the visual language is strong enough to approve a deeper fidelity/content phase.
+The native startup gate is now proven. The next validation should exercise the **CU-03 slice interactively on Android**, inspect Bedroom → Hall → Landing, verify persistence/lifecycle behavior on the emulator and add gameplay screenshots only from validated runtime states. No broader gameplay scope should be added before that pass.

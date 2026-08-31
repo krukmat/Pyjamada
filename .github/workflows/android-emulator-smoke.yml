@@ -1,0 +1,84 @@
+name: Android emulator smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-emulator-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "1"
+      ANDROID_PACKAGE: com.krukmat.pyjamada
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build, install and capture on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          script: bash .github/scripts/android-emulator-smoke.sh
+
+      - name: Persist first validated README screenshot
+        if: success() && github.event_name == 'pull_request'
+        run: |
+          if [ -f assets/readme/android-main-menu.png ]; then
+            echo "Validated README screenshot already exists; leaving it unchanged."
+            exit 0
+          fi
+          mkdir -p assets/readme
+          cp artifacts/android-smoke/pyjamada-main-menu.png assets/readme/android-main-menu.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/readme/android-main-menu.png
+          git commit -m "docs: add validated Android emulator screenshot"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyjamada-android-emulator-smoke
+          if-no-files-found: warn
+          retention-days: 14
+          path: artifacts/android-smoke/
