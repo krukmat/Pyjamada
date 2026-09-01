@@ -3,6 +3,9 @@ import { Alert, StatusBar } from 'react-native';
 import { GameScreen } from './src/app/GameScreen';
 import { MainMenu } from './src/app/MainMenu';
 import { SettingsScreen } from './src/app/SettingsScreen';
+import { systemAnimationClock } from './src/game/presentation/AnimationClock';
+import { PresentationRuntime } from './src/game/presentation/PresentationRuntime';
+import { mapSystemicUpdateToVisualEvents } from './src/game/presentation/VisualEventMapper';
 import { restartSystemicRun, updateSystemicRun } from './src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicInput, type SystemicRunState } from './src/game/systemic/SystemicState';
 import { InMemorySystemicTelemetry, recordSystemicUpdate } from './src/game/systemic/SystemicTelemetry';
@@ -25,6 +28,7 @@ export default function App() {
   const gameStateRef = useRef<SystemicRunState | null>(null);
   const retriesRef = useRef(0);
   const telemetryRef = useRef(new InMemorySystemicTelemetry());
+  const presentationRef = useRef(new PresentationRuntime(systemAnimationClock));
   const settingsRef = useRef<GameSettings>(DEFAULT_GAME_SETTINGS);
   const settingsQueueRef = useRef<Promise<void>>(Promise.resolve());
 
@@ -60,6 +64,7 @@ export default function App() {
     retriesRef.current = 0;
     telemetryRef.current = new InMemorySystemicTelemetry();
     telemetryRef.current.record({ type: 'run_started', runId: next.runId });
+    presentationRef.current.reset();
   }
 
   async function handleNewGame(overwrite = false) {
@@ -115,6 +120,7 @@ export default function App() {
     if (current === null) return;
     const result = updateSystemicRun(current, input);
     recordSystemicUpdate(telemetryRef.current, current, input, result, retriesRef.current);
+    presentationRef.current.push(mapSystemicUpdateToVisualEvents(current, result));
     activateGame(result.state);
     try {
       await saves.save(result.state);
@@ -129,6 +135,7 @@ export default function App() {
     retriesRef.current += 1;
     const result = restartSystemicRun(current);
     telemetryRef.current.record({ type: 'run_restarted', runId: current.runId, retries: retriesRef.current });
+    presentationRef.current.push(mapSystemicUpdateToVisualEvents(current, result));
     activateGame(result.state);
     try {
       await saves.save(result.state);
@@ -176,10 +183,14 @@ export default function App() {
       {view === 'game' && gameState !== null && (
         <GameScreen
           state={gameState}
+          presentationRuntime={presentationRef.current}
           touchControlLayout={gameSettings.touchControlLayout}
           onInput={(input) => void handleInput(input)}
           onRestart={() => void handleRestart()}
-          onExit={() => setView('menu')}
+          onExit={() => {
+            presentationRef.current.reset();
+            setView('menu');
+          }}
         />
       )}
     </>
