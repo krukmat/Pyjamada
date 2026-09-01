@@ -13,13 +13,13 @@ This log records implementation incidents, constraints, deviations and decisions
 
 ### INC-001 — Android baseline cannot be captured from the GitHub execution environment
 
-- **Phase:** AR-00
+- **Phase:** AR-00 / AR-13
 - **Severity:** S3
 - **Status:** Open / external validation required
 - **Observation:** the branch can inspect and rewrite the deterministic Maestro tour, but this execution environment has no attached Android emulator on which to run `npm run screenshots:android`.
-- **Impact:** the pre-refactor nine-screen baseline must be captured or retained from a developer machine for final side-by-side review.
-- **Mitigation:** the current tour, test IDs, logical viewport and screenshot names are frozen in `docs/VISUAL_REFACTOR_BASELINE.md`; CI remains responsible for game semantics and type safety.
-- **Evaluation:** compare the final eleven-shot tour with the last pre-refactor local screenshots before merge.
+- **Impact:** actual visual evidence and side-by-side judgement must come from a developer machine/device.
+- **Mitigation:** test IDs, logical viewport and the final eleven-shot screenshot journey are deterministic and checked as part of the static audit contract; CI remains responsible for game semantics, presentation semantics and type safety.
+- **Evaluation:** run the final eleven-shot tour locally and review composition/state readability before approving the merge if visual QA is a merge gate.
 
 ### INC-002 — Binary sprite authoring is a separate delivery concern from atlas architecture
 
@@ -41,19 +41,20 @@ This log records implementation incidents, constraints, deviations and decisions
 - **Decision:** do not rename the gameplay engine during an art refactor; presentation modules use neutral visual/animation terminology.
 - **Evaluation:** consider a separate naming cleanup only if the internal terminology becomes confusing to contributors.
 
-### INC-004 — Low-frequency screen ticker temporarily advances sprite animation
+### INC-004 — Screen-level React ticker advances sprite animation
 
-- **Phase:** AR-04 / AR-10
+- **Phase:** AR-04 / AR-10 / AR-11
 - **Severity:** S3
-- **Status:** Open until AR-11 performance pass
-- **Observation:** stable idle clips and transient reactions must advance even when gameplay state is not changing. The first integrated implementation uses one screen-level animation tick rather than timers inside sprites or gameplay state.
-- **Impact:** React re-renders at the chosen arcade animation cadence while the game screen is mounted.
-- **Decision:** acceptable through Gate C because it preserves a clean gameplay/presentation boundary and keeps all leaf sprites timer-free.
-- **Evaluation:** AR-11 must either move cadence to a Skia/shared-value driver or demonstrate that the current cadence is cheap enough on the Android target.
+- **Status:** Open / explicit audit decision required
+- **Observation:** stable idle clips and transient reactions advance through one screen-level 80 ms presentation tick. Leaf sprites contain no timers and gameplay state contains no animation clock, but the tick updates React state while `GameScreen` is mounted.
+- **Impact:** the game screen/canvas path re-renders at the presentation cadence. Static inspection cannot prove whether that cost is material on the Android target.
+- **Pre-audit cleanup:** obsolete `PixelArtKit`/`PixelBlocks` rendering and the legacy palette compatibility layer were removed; atlas indexes remain module-level caches; transient event lifetimes are bounded.
+- **Decision needed:** measure on Android and choose ACCEPT, FIX BEFORE MERGE, or FOLLOW-UP as described in `docs/PERFORMANCE_REVIEW_NOTES.md`.
+- **Evaluation:** focus on JS-thread work, touch responsiveness and stacked-noise FX rather than generic FPS assumptions.
 
 ## Review rules
 
 - Do not close an incident just because its surrounding milestone completes.
 - S1/S2 incidents must be resolved before merge.
-- S3 incidents are re-evaluated at Gate D.
-- Manual visual quality and human-fun observations are never inferred from CI.
+- S3 incidents are explicitly dispositioned by the team audit.
+- Manual visual quality, device performance and human-fun observations are never inferred from CI.
