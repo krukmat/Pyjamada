@@ -1,122 +1,127 @@
 import React from 'react';
-import { Canvas, Rect } from '@shopify/react-native-skia';
+import { Canvas, Group, Rect, useImage } from '@shopify/react-native-skia';
 import { LOGICAL_SIZE, PLAYER_GROUND_Y } from '../core/World';
-import type { SystemicRunState } from '../systemic/SystemicState';
-import { HeroContactShadow, KeySprite, PixelBlocks, type PixelBlock } from './PixelArtKit';
-import { RETRO_PALETTE } from './VisualLanguage';
+import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
+import { BEDROOM_OBJECTS_ATLAS_SOURCE, DOMESTIC_FX_ATLAS_SOURCE, WALLY_ATLAS_SOURCE } from '../presentation/AssetSources';
+import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
+import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
+import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
+import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
+import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
+import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
+import { VISUAL_TOKENS } from './VisualLanguage';
 
-type Props = { state: SystemicRunState; size: number };
-type ScaleFn = (value: number) => number;
+type Props = {
+  state: SystemicRunState;
+  size: number;
+  activeVisualEvents: readonly ActiveVisualEvent[];
+  nowMs: number;
+};
 
-export function GameCanvas({ state, size }: Props) {
+type ObjectPlacement = { x: number; y: number };
+
+const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
+  bed: { x: 16, y: 105 },
+  slippers: { x: 32, y: 105 },
+  'alarm-clock': { x: 48, y: 101 },
+  wardrobe: { x: 68, y: 105 },
+  keys: { x: 88, y: 101 },
+  window: { x: 108, y: 66 },
+};
+
+export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
   const scale = size / LOGICAL_SIZE;
-  const px = (value: number) => value * scale;
+  const px = (value: number) => Math.round(value * scale);
+  const wallyImage = useImage(WALLY_ATLAS_SOURCE);
+  const objectImage = useImage(BEDROOM_OBJECTS_ATLAS_SOURCE);
+  const fxImage = useImage(DOMESTIC_FX_ATLAS_SOURCE);
+  const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
+  const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
+    objectId,
+    visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
+    placement: OBJECT_PLACEMENTS[objectId],
+  }));
+  const fx = resolveFxFrames(state, activeVisualEvents, nowMs);
+  const shake = resolveScreenShake(activeVisualEvents, nowMs);
+
   return (
     <Canvas style={{ width: size, height: size }}>
-      <BedroomBackdrop px={px} />
-      <BedroomAtmosphere px={px} windowOpen={state.flags.windowOpen} />
-      <BedroomObjects state={state} px={px} />
-      <HeroContactShadow x={state.player.x} y={PLAYER_GROUND_Y} px={px} />
-      <Wally state={state} px={px} />
+      <Group transform={[{ translateX: px(shake.x) }, { translateY: px(shake.y) }]}>
+        <BedroomEnvironment state={state} px={px} />
+        <RoomContactShadows state={state} px={px} />
+        {objects.map(({ objectId, visual, placement }) => (
+          <AtlasSprite
+            key={objectId}
+            image={objectImage}
+            frame={visual.frame}
+            x={px(placement.x)}
+            y={px(placement.y)}
+            scale={scale}
+          />
+        ))}
+        <Rect x={px(state.player.x - 8)} y={px(PLAYER_GROUND_Y + 1)} width={px(16)} height={px(2)} color="rgba(5,5,9,0.48)" />
+        <AtlasSprite
+          image={wallyImage}
+          frame={wally.frame}
+          x={px(state.player.x)}
+          y={px(PLAYER_GROUND_Y)}
+          scale={scale}
+          facing={state.player.facing}
+        />
+        {fx.map((item) => (
+          <AtlasSprite key={item.key} image={fxImage} frame={item.frame} x={px(item.x)} y={px(item.y)} scale={scale} />
+        ))}
+        <ForegroundVignette px={px} />
+      </Group>
     </Canvas>
   );
 }
 
-function BedroomBackdrop({ px }: { px: ScaleFn }) {
-  const dither: PixelBlock[] = [
-    { x: 8, y: 111, width: 10, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 31, y: 120, width: 14, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 58, y: 109, width: 8, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 83, y: 122, width: 12, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 108, y: 113, width: 9, height: 2, color: RETRO_PALETTE.blueDark },
-  ];
+function BedroomEnvironment({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
+  const windowGlow = state.flags.windowOpen ? VISUAL_TOKENS.feedback.quietDark : VISUAL_TOKENS.environment.floorDeep;
   return (
     <>
-      <Rect x={0} y={0} width={px(128)} height={px(128)} color={RETRO_PALETTE.void} />
-      <Rect x={px(4)} y={px(8)} width={px(120)} height={px(96)} color={RETRO_PALETTE.panelRaised} />
-      <Rect x={px(4)} y={px(100)} width={px(120)} height={px(4)} color={RETRO_PALETTE.cyan} />
-      <Rect x={0} y={px(104)} width={px(128)} height={px(24)} color={RETRO_PALETTE.blue} />
-      <Rect x={0} y={px(104)} width={px(128)} height={px(2)} color={RETRO_PALETTE.yellow} />
-      <PixelBlocks blocks={dither} px={px} prefix="floor-dither" />
+      <Rect x={0} y={0} width={px(128)} height={px(128)} color={VISUAL_TOKENS.environment.void} />
+      <Rect x={px(3)} y={px(5)} width={px(122)} height={px(91)} color={VISUAL_TOKENS.environment.wallDeep} />
+      <Rect x={px(5)} y={px(7)} width={px(118)} height={px(87)} color={VISUAL_TOKENS.environment.wall} />
+      <Rect x={px(5)} y={px(80)} width={px(118)} height={px(14)} color={VISUAL_TOKENS.environment.wallLight} />
+      <Rect x={0} y={px(94)} width={px(128)} height={px(34)} color={VISUAL_TOKENS.environment.floorDeep} />
+      <Rect x={0} y={px(99)} width={px(128)} height={px(29)} color={VISUAL_TOKENS.environment.floor} />
+      <Rect x={0} y={px(99)} width={px(128)} height={px(2)} color={VISUAL_TOKENS.environment.floorLight} />
+      <Rect x={px(84)} y={px(18)} width={px(34)} height={px(3)} color={VISUAL_TOKENS.environment.wallDeep} />
+      <Rect x={px(88)} y={px(22)} width={px(26)} height={px(2)} color={VISUAL_TOKENS.environment.wallLight} />
+      <Rect x={px(90)} y={px(28)} width={px(4)} height={px(4)} color={VISUAL_TOKENS.interactive.shadow} />
+      <Rect x={px(98)} y={px(28)} width={px(7)} height={px(4)} color={VISUAL_TOKENS.environment.floorLight} />
+      <Rect x={px(8)} y={px(18)} width={px(22)} height={px(18)} color={VISUAL_TOKENS.environment.wallDeep} />
+      <Rect x={px(10)} y={px(20)} width={px(18)} height={px(14)} color={VISUAL_TOKENS.environment.floorDeep} />
+      <Rect x={px(13)} y={px(23)} width={px(12)} height={px(2)} color={VISUAL_TOKENS.environment.moon} />
+      <Rect x={px(16)} y={px(27)} width={px(6)} height={px(4)} color={VISUAL_TOKENS.interactive.shadow} />
+      <Rect x={px(94)} y={px(68)} width={px(29)} height={px(2)} color={windowGlow} />
+      <Rect x={px(96)} y={px(70)} width={px(24)} height={px(10)} color={state.flags.windowOpen ? 'rgba(85,182,106,0.10)' : 'rgba(52,81,143,0.08)'} />
+      <Rect x={px(42)} y={px(109)} width={px(36)} height={px(12)} color={VISUAL_TOKENS.environment.floorDeep} />
+      <Rect x={px(46)} y={px(111)} width={px(28)} height={px(8)} color={VISUAL_TOKENS.environment.wallDeep} />
+      <Rect x={px(50)} y={px(113)} width={px(20)} height={px(4)} color={VISUAL_TOKENS.environment.floorLight} />
     </>
   );
 }
 
-function BedroomAtmosphere({ px, windowOpen }: { px: ScaleFn; windowOpen: boolean }) {
-  const blocks: PixelBlock[] = [
-    { x: 12, y: 44, width: 8, height: 20, color: '#1e2b52' },
-    { x: 20, y: 44, width: 8, height: 30, color: '#1b274a' },
-    { x: 28, y: 44, width: 8, height: 40, color: '#182342' },
-    { x: 18, y: 16, width: 1, height: 1, color: RETRO_PALETTE.moon },
-    { x: 31, y: 19, width: 1, height: 1, color: RETRO_PALETTE.yellow },
-    { x: 39, y: 14, width: 1, height: 1, color: RETRO_PALETTE.cyan },
-    { x: 12, y: 22, width: 28, height: 22, color: RETRO_PALETTE.cyanDark },
-    { x: 14, y: 24, width: 24, height: 18, color: RETRO_PALETTE.cyan },
-    { x: 16, y: 26, width: 20, height: 14, color: windowOpen ? RETRO_PALETTE.greenDark : RETRO_PALETTE.blueDark },
-    { x: 25, y: 26, width: 2, height: 14, color: RETRO_PALETTE.cyan },
-    { x: 16, y: 32, width: 20, height: 2, color: RETRO_PALETTE.cyan },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="bedroom-atmosphere" />;
-}
-
-function BedroomObjects({ state, px }: { state: SystemicRunState; px: ScaleFn }) {
-  const wardrobePrimary = state.flags.dressed ? RETRO_PALETTE.green : RETRO_PALETTE.orange;
-  const wardrobeShade = state.flags.dressed ? RETRO_PALETTE.greenDark : RETRO_PALETTE.orangeDark;
-  const blocks: PixelBlock[] = [
-    { x: 7, y: 81, width: 30, height: 16, color: RETRO_PALETTE.magentaDark },
-    { x: 8, y: 82, width: 28, height: 14, color: RETRO_PALETTE.magenta },
-    { x: 9, y: 91, width: 26, height: 5, color: RETRO_PALETTE.magentaDark },
-    { x: 8, y: 96, width: 4, height: 8, color: RETRO_PALETTE.yellowDark },
-    { x: 32, y: 96, width: 4, height: 8, color: RETRO_PALETTE.yellowDark },
-    { x: 28, y: 99, width: 9, height: 4, color: RETRO_PALETTE.shadow },
-    { x: 29, y: 100, width: 7, height: 2, color: state.equipped.includes('slippers') ? RETRO_PALETTE.green : RETRO_PALETTE.cyan },
-    { x: 43, y: 87, width: 12, height: 14, color: RETRO_PALETTE.orangeDark },
-    { x: 44, y: 88, width: 10, height: 12, color: RETRO_PALETTE.orange },
-    { x: 46, y: 84, width: 6, height: 5, color: state.interactionCounts['alarm-clock'] > 1 ? RETRO_PALETTE.red : RETRO_PALETTE.yellow },
-    { x: 51, y: 89, width: 2, height: 9, color: RETRO_PALETTE.orangeDark },
-    { x: 58, y: 41, width: 24, height: 63, color: wardrobeShade },
-    { x: 59, y: 42, width: 22, height: 62, color: wardrobePrimary },
-    { x: 62, y: 47, width: 16, height: 24, color: RETRO_PALETTE.redDark },
-    { x: 63, y: 48, width: 14, height: 22, color: '#6d3c3c' },
-    { x: 62, y: 75, width: 16, height: 25, color: RETRO_PALETTE.redDark },
-    { x: 63, y: 76, width: 14, height: 23, color: '#6d3c3c' },
-    { x: 76, y: 72, width: 1, height: 1, color: RETRO_PALETTE.yellow },
-  ];
+function RoomContactShadows({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
   return (
     <>
-      <PixelBlocks blocks={blocks} px={px} prefix="bedroom" />
-      {!state.collected.includes('keys') && <KeySprite x={88} y={96} px={px} />}
+      <Rect x={px(2)} y={px(103)} width={px(29)} height={px(3)} color="rgba(5,5,9,0.38)" />
+      <Rect x={px(55)} y={px(103)} width={px(27)} height={px(3)} color="rgba(5,5,9,0.42)" />
+      {!state.equipped.includes('slippers') && <Rect x={px(27)} y={px(103)} width={px(10)} height={px(2)} color="rgba(5,5,9,0.36)" />}
+      {!state.collected.includes('keys') && <Rect x={px(84)} y={px(102)} width={px(9)} height={px(2)} color="rgba(5,5,9,0.34)" />}
     </>
   );
 }
 
-function Wally({ state, px }: { state: SystemicRunState; px: ScaleFn }) {
-  const x = state.player.x;
-  const y = PLAYER_GROUND_Y;
-  const facingRight = state.player.facing === 'right';
-  const body = state.wallyState === 'sleepy'
-    ? RETRO_PALETTE.cyan
-    : state.wallyState === 'normal'
-      ? RETRO_PALETTE.green
-      : state.wallyState === 'rushed'
-        ? RETRO_PALETTE.yellow
-        : RETRO_PALETTE.red;
-  const bodyShade = state.wallyState === 'sleepy'
-    ? RETRO_PALETTE.cyanDark
-    : state.wallyState === 'normal'
-      ? RETRO_PALETTE.greenDark
-      : state.wallyState === 'rushed'
-        ? RETRO_PALETTE.yellowDark
-        : RETRO_PALETTE.redDark;
-  const eyeX = facingRight ? x + 5 : x + 2;
-  const blocks: PixelBlock[] = [
-    { x: x + 1, y, width: 5, height: 2, color: RETRO_PALETTE.magenta },
-    { x: x + 1, y: y + 2, width: 6, height: 4, color: RETRO_PALETTE.ink },
-    { x: eyeX, y: y + 3, width: 1, height: 1, color: RETRO_PALETTE.shadow },
-    { x: x + 1, y: y + 6, width: 6, height: 6, color: body },
-    { x: x + 5, y: y + 6, width: 2, height: 6, color: bodyShade },
-    { x: x + 1, y: y + 12, width: 2, height: 4, color: body },
-    { x: x + 5, y: y + 12, width: 2, height: 4, color: bodyShade },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="wally" />;
+function ForegroundVignette({ px }: { px: (value: number) => number }) {
+  return (
+    <>
+      <Rect x={0} y={0} width={px(3)} height={px(128)} color="rgba(5,5,9,0.68)" />
+      <Rect x={px(125)} y={0} width={px(3)} height={px(128)} color="rgba(5,5,9,0.68)" />
+      <Rect x={0} y={px(125)} width={px(128)} height={px(3)} color="rgba(5,5,9,0.72)" />
+    </>
+  );
 }
