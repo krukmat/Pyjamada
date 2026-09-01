@@ -1,1 +1,0 @@
-Temporary note: binary atlas PNGs are generated as original pixel assets and will be committed as binary blobs once the source tree commit is assembled. Any `.png.b64` files on this feature branch are staging artifacts and must not survive Gate D.
