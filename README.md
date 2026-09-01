@@ -15,12 +15,13 @@ move → interact → consequence → adapt → succeed / fail → retry
 Pyjamada is also a compact game-architecture playground:
 
 - **React Native owns the app shell.**
-- **TypeScript owns the game rules and state.**
-- **Skia owns the pixels.**
+- **TypeScript owns deterministic gameplay.**
+- **A semantic presentation layer owns transient reactions.**
+- **Skia owns rendering and sprite atlases.**
 - **AsyncStorage owns persistence.**
 - **Maestro owns the Android visual tour.**
 
-The goal is to see how much emergent gameplay can come from a very small deterministic model before adding more rooms, progression or monetization.
+The goal is to see how much emergent gameplay and visual causality can come from a very small deterministic model before adding more rooms, progression or monetization.
 
 ## The current game
 
@@ -28,13 +29,19 @@ The bedroom contains six interactive objects:
 
 `bed · slippers · alarm clock · wardrobe · keys · window`
 
-Wally can be `sleepy`, `normal`, `rushed` or `startled`. Ten ordered rules connect those states with object interactions and movement, producing different routes through the same room: efficient escapes, near misses and full domestic chaos.
-
-The objective is simple:
+Wally can be `sleepy`, `normal`, `rushed` or `startled`. Ten ordered rules connect those states with object interactions and movement, producing efficient escapes, near misses and full domestic chaos.
 
 > **Get dressed + find the keys before the house wakes up, Wally runs out of energy, or time runs out.**
 
 There is one active gameplay path and one save model.
+
+## Expressive arcade presentation
+
+The active visual direction uses original arcade-inspired pixel assets without copying any existing game's characters, sprite sheets or compositions. The design principle is:
+
+> **Restrained world + expressive actors + exaggerated consequences.**
+
+Wally, all six objects and reusable domestic FX are rendered from sprite atlases with deterministic animation clips. Gameplay does not wait for decorative animation and presentation state is never persisted.
 
 ## Architecture
 
@@ -47,37 +54,41 @@ There is one active gameplay path and one save model.
              ▼              ▼              ▼
          MainMenu      SettingsScreen   GameScreen
                                            │
-                              input ────────┼──────── render
+                                           ▼
+                                    SystemicRuntime
+                                      pure TypeScript
                                            │
-                         ┌─────────────────┴─────────────────┐
-                         ▼                                   ▼
-                 SystemicRuntime                         GameCanvas
-                  pure TypeScript                           Skia
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
-           Objects      Rules    Objectives
-              └──────────┼──────────┘
-                         ▼
-                       State
-                         │
-                 ┌───────┴────────┐
-                 ▼                ▼
-             Persistence       Telemetry
+                                  completed state/update
+                                           │
+                                           ▼
+                                    VisualEventMapper
+                                           │
+                                           ▼
+                                  PresentationRuntime
+                              ┌────────────┼────────────┐
+                              ▼            ▼            ▼
+                        WallyAnimator ObjectAnimator  FxSystem
+                              └────────────┼────────────┘
+                                           ▼
+                                     GameCanvas / Skia
+                                           │
+                                    sprite atlases +
+                                  procedural environment
+
+Persistence stores gameplay state only; transient presentation is rebuilt from state/events.
 ```
 
-The `systemic` folder describes the architecture of the gameplay engine; it is not a separate game mode.
+The `systemic` folder describes the gameplay architecture; it is not a second game mode.
 
 ## Stack
 
 - React Native 0.86 + Expo 57
 - TypeScript
-- React Native Skia
+- React Native Skia 2.6
+- React Native Reanimated 4.5
 - AsyncStorage
 - Maestro
 - Android-first development
-
-Gameplay logic is UI-independent and deterministic, which keeps the interesting behavior testable without rendering a frame.
 
 ## Run it
 
@@ -96,12 +107,20 @@ npm start
 
 ## Validate it
 
+Normal validation:
+
 ```bash
 npm run test:all
 npm run typecheck
 ```
 
-The test suite covers the game rules, object interactions, success / near-miss / chaos paths, restart behavior, persistence validation, telemetry and settings.
+Pre-merge/audit evidence package:
+
+```bash
+npm run audit:premerge
+```
+
+That command adds static architecture checks for the gameplay→presentation boundary, legacy-renderer removal and screenshot-tour contract.
 
 ## Generate the Android visual tour
 
@@ -117,29 +136,46 @@ If the release APK is already built:
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The tour exercises the real game flow and writes its screenshots to:
+The prepared expressive-arcade tour writes eleven checkpoints to:
 
 ```text
 artifacts/android-screenshots/
 ```
 
+The GitHub execution environment does **not** claim to have performed the visual review; screenshots/device performance remain local audit evidence.
+
 ## Useful entry points
 
 ```text
-App.tsx                         application composition + navigation
-src/app/GameScreen.tsx          HUD, feedback and touch controls
-src/game/systemic/              state, objects, rules, runtime and telemetry
-src/game/render/GameCanvas.tsx  Skia bedroom renderer
-src/platform/storage/           game persistence
-src/settings/                   settings domain
-maestro/screenshots.yaml        Android screenshot journey
-tests/game.test.ts              deterministic gameplay coverage
+App.tsx                                  application composition + navigation
+src/app/GameScreen.tsx                   HUD, feedback, controls + presentation cadence
+src/game/systemic/                       deterministic gameplay domain
+src/game/presentation/                   visual events, runtime, animators and FX
+src/game/presentation/atlas/             atlas contracts/manifests/renderer
+src/game/render/GameCanvas.tsx            Skia room composition
+assets/game/                              original Wally/object/FX sprite sheets
+src/platform/storage/                    game persistence
+maestro/screenshots.yaml                 eleven-step Android visual journey
+tests/game.test.ts                        gameplay coverage
+tests/presentation.test.ts                presentation/restore/atlas coverage
+scripts/audit-static.sh                   architecture invariants
 ```
+
+## Audit status
+
+The expressive arcade refactor is maintained on `feat/expressive-arcade-visual-refactor` until team audit disposition. Start with:
+
+- `docs/AUDIT_READINESS.md`
+- `docs/AUDIT_REVIEW_GUIDE.md`
+- `docs/VISUAL_REFACTOR_INCIDENTS.md`
+- `docs/PERFORMANCE_REVIEW_NOTES.md`
+
+CI success is necessary but not sufficient for merge approval; Android visual quality and the known presentation-cadence performance question require explicit human disposition.
 
 ## Current scope
 
 Pyjamada is intentionally small. The current question is not **“how much content can we add?”** but **“does this tiny room make players curious enough to experiment and retry?”**
 
-The next expansion gate is human playtesting: objective comprehension, understandable cause/effect, at least one unexpected-but-logical consequence, and voluntary retry.
+The next product-expansion gate remains human playtesting: objective comprehension, understandable cause/effect, at least one unexpected-but-logical consequence, and voluntary retry.
 
-See [`docs/GAMEPLAY.md`](docs/GAMEPLAY.md) for the active gameplay contract and [`docs/ANDROID_SMOKE_TEST.md`](docs/ANDROID_SMOKE_TEST.md) for device validation.
+See `docs/GAMEPLAY.md` for the gameplay contract and `docs/ANDROID_SMOKE_TEST.md` for device validation.
