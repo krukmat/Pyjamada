@@ -1,8 +1,9 @@
 appId: com.krukmat.pyjamada
-name: Android Screenshot Tour
+name: Expressive Arcade Android Screenshot Tour
 tags:
   - android
   - screenshots
+  - expressive-arcade
 ---
 - launchApp:
     clearState: true
@@ -22,8 +23,25 @@ tags:
     visible:
       id: main-menu-screen
     timeout: 20000
+- assertVisible: PYJAMADA
 - takeScreenshot:
     path: 01_main_menu
+
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible:
+      id: settings-screen
+    timeout: 10000
+- assertVisible: SETTINGS
+- takeScreenshot:
+    path: 02_settings
+- tapOn:
+    id: settings-back-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
 
 - tapOn:
     id: new-game-button
@@ -32,8 +50,9 @@ tags:
       id: game-screen
     timeout: 20000
 - assertVisible: GET DRESSED + FIND KEYS
+- assertVisible: "Wally is barely functional.*"
 - takeScreenshot:
-    path: 02_run_start
+    path: 03_run_start_sleepy
 
 - repeat:
     times: 2
@@ -42,9 +61,9 @@ tags:
           id: move-left-button
 - tapOn:
     id: action-button
-- assertVisible: NORMAL
+- assertVisible: "Five more minutes.*"
 - takeScreenshot:
-    path: 03_bed_wake
+    path: 04_bed_wake
 
 - repeat:
     times: 4
@@ -53,9 +72,9 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible: "Stealth slippers equipped.*"
+- assertVisible: "Soft steps unlocked.*"
 - takeScreenshot:
-    path: 04_slippers
+    path: 05_slippers
 
 - repeat:
     times: 4
@@ -64,26 +83,15 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible: "Awake instantly.*"
+- assertVisible: "Awake. Quiet.*"
 - takeScreenshot:
-    path: 05_alarm
+    path: 06_alarm
 
 - tapOn:
     id: action-button
-- assertVisible: "THE ALARM AGAIN.*"
+- assertVisible: "Again.*Panic mode engaged.*"
 - takeScreenshot:
-    path: 06_startled
-
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: move-right-button
-- tapOn:
-    id: action-button
-- assertVisible: "Dressed.*"
-- takeScreenshot:
-    path: 07_wardrobe
+    path: 07_startled
 
 - repeat:
     times: 5
@@ -92,15 +100,54 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible:
-    id: restart-button
+- assertVisible: "Dressed. Coordination optional.*"
+- takeScreenshot:
+    path: 08_wardrobe_fumble
+
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
 - assertVisible: "READY!.*"
 - takeScreenshot:
-    path: 08_success
+    path: 09_success
 
 - tapOn:
     id: restart-button
 - assertVisible: GET DRESSED + FIND KEYS
-- assertVisible: SLEEPY
+- assertVisible: "Wally is barely functional.*"
 - takeScreenshot:
-    path: 09_restart
+    path: 10_restart
+
+# Restore contract: persist a stable post-bed state, leave the game, then reconstruct
+# presentation from gameplay state without persisting transient animation frames.
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: move-left-button
+- tapOn:
+    id: action-button
+- assertVisible: "Five more minutes.*"
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: continue-button
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 10000
+- assertVisible: "Five more minutes.*"
+- takeScreenshot:
+    path: 11_continue_restore
