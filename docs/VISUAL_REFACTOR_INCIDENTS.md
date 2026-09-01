@@ -25,11 +25,11 @@ This log records implementation incidents, constraints, deviations and decisions
 
 - **Phase:** AR-02
 - **Severity:** S3
-- **Status:** Accepted
+- **Status:** Resolved
 - **Observation:** GitHub source edits are text-first, while production sprite sheets are binary assets.
-- **Impact:** atlas/animation contracts must not depend on the mechanism used to author the PNG files.
-- **Decision:** implement atlas manifests, deterministic clips, anchor rules and the Skia atlas renderer first. Original binary assets are delivered during AR-04/AR-05 and remain replaceable without gameplay changes.
-- **Evaluation:** confirm final assets are original, nearest-neighbour safe and validated by manifests.
+- **Resolution:** production PNGs are stored as real Git blobs and referenced through typed asset sources; manifests remain text and independently validated.
+- **Result:** Wally, bedroom objects and domestic FX can be replaced without touching gameplay semantics or animation contracts.
+- **Evaluation:** final visual review still needs to confirm original-art quality and nearest-neighbour rendering on Android.
 
 ### INC-003 — `Systemic*` remains the internal gameplay vocabulary
 
@@ -40,3 +40,20 @@ This log records implementation incidents, constraints, deviations and decisions
 - **Impact:** presentation code must not interpret this naming as a second product mode.
 - **Decision:** do not rename the gameplay engine during an art refactor; presentation modules use neutral visual/animation terminology.
 - **Evaluation:** consider a separate naming cleanup only if the internal terminology becomes confusing to contributors.
+
+### INC-004 — Low-frequency screen ticker temporarily advances sprite animation
+
+- **Phase:** AR-04 / AR-10
+- **Severity:** S3
+- **Status:** Open until AR-11 performance pass
+- **Observation:** stable idle clips and transient reactions must advance even when gameplay state is not changing. The first integrated implementation uses one screen-level animation tick rather than timers inside sprites or gameplay state.
+- **Impact:** React re-renders at the chosen arcade animation cadence while the game screen is mounted.
+- **Decision:** acceptable through Gate C because it preserves a clean gameplay/presentation boundary and keeps all leaf sprites timer-free.
+- **Evaluation:** AR-11 must either move cadence to a Skia/shared-value driver or demonstrate that the current cadence is cheap enough on the Android target.
+
+## Review rules
+
+- Do not close an incident just because its surrounding milestone completes.
+- S1/S2 incidents must be resolved before merge.
+- S3 incidents are re-evaluated at Gate D.
+- Manual visual quality and human-fun observations are never inferred from CI.
