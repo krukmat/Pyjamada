@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Rect } from '@shopify/react-native-skia';
 import { RETRO_PALETTE } from './VisualLanguage';
 
@@ -48,15 +48,9 @@ export function HeroContactShadow({ x, y, px, width = 10 }: { x: number; y: numb
   );
 }
 
+// Legacy procedural key retained only for compatibility with non-game consumers.
+// The active game uses the atlas-driven `keys_pulse` animation from ObjectAnimator.
 export function KeySprite({ x, y, px, pulse = true }: { x: number; y: number; px: ScaleFn; pulse?: boolean }) {
-  const [bright, setBright] = useState(true);
-
-  useEffect(() => {
-    if (!pulse) return undefined;
-    const timer = setInterval(() => setBright((current) => !current), 650);
-    return () => clearInterval(timer);
-  }, [pulse]);
-
   const blocks: PixelBlock[] = [
     { x, y, width: 5, height: 1, color: RETRO_PALETTE.yellow },
     { x, y: y + 1, width: 1, height: 4, color: RETRO_PALETTE.yellow },
@@ -70,7 +64,7 @@ export function KeySprite({ x, y, px, pulse = true }: { x: number; y: number; px
 
   return (
     <>
-      <PixelHalo x={x} y={y} width={10} height={6} px={px} active={pulse && bright} />
+      <PixelHalo x={x} y={y} width={10} height={6} px={px} active={pulse} />
       <PixelBlocks blocks={blocks} px={px} prefix="key" />
     </>
   );
