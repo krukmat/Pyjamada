@@ -52,6 +52,17 @@ This log records implementation incidents, constraints, deviations and decisions
 - **Decision needed:** measure on Android and choose ACCEPT, FIX BEFORE MERGE, or FOLLOW-UP as described in `docs/PERFORMANCE_REVIEW_NOTES.md`.
 - **Evaluation:** focus on JS-thread work, touch responsiveness and stacked-noise FX rather than generic FPS assumptions.
 
+### INC-005 — Wally PNG atlas committed with corrupt IDAT data
+
+- **Phase:** AR-02 / audit remediation
+- **Severity:** S2
+- **Status:** Resolved in branch; Android visual inspection remains external
+- **Observation:** strict audit inspection found `assets/game/wally/wally.png` had a mismatched IDAT CRC and zlib checksum. Raw-deflate recovery also exposed corrupted scanline data in the sixth atlas row; the defect was broader than a missing final physical scanline.
+- **Root cause evidence:** the historical `wally.png.b64` in commit `94b53ec4` decodes to the same corrupt binary, so Git history does not contain an independent complete source.
+- **Recovery:** frames 0..49 were preserved pixel-for-pixel. Frames 50..56 were reconstructed from recoverable pixels and intact frame relationships inside the same atlas. Exact evidence and transformations are documented in `docs/WALLY_ATLAS_RECONSTRUCTION.md`.
+- **Prevention:** `npm run assets:validate` now performs PNG chunk CRC, strict zlib, scanline length/filter and expected-dimension checks on all three production atlases and runs in CI / `audit:premerge`.
+- **Evaluation:** the reconstructed `fail_exhausted` and `fail_late` clips should be inspected during local Android visual QA; binary integrity itself is no longer an open blocker once CI passes.
+
 ## Review rules
 
 - Do not close an incident just because its surrounding milestone completes.

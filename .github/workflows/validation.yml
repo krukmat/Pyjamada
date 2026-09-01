@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Validate PNG sprite assets
+        run: npm run assets:validate
+
       - name: Game, settings and presentation tests
         run: npm run test:all
 
