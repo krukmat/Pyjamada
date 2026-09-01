@@ -11,7 +11,9 @@
     "test:game": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/game.test.js",
     "test:settings": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/settings.test.js",
     "test:presentation": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/presentation.test.js",
-    "test:all": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/game.test.js && node .test-dist/tests/settings.test.js && node .test-dist/tests/presentation.test.js"
+    "test:all": "rm -rf .test-dist && tsc -p tsconfig.test.json && node .test-dist/tests/game.test.js && node .test-dist/tests/settings.test.js && node .test-dist/tests/presentation.test.js",
+    "audit:static": "bash scripts/audit-static.sh",
+    "audit:premerge": "npm run test:all && npm run typecheck && npm run audit:static"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
