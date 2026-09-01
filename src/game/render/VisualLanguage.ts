@@ -88,30 +88,3 @@ export const FX_GRAMMAR = [
   'motion-streak',
   'impact',
 ] as const;
-
-// Compatibility aliases while the old renderer is progressively removed.
-// New presentation code should prefer VISUAL_TOKENS.
-export const RETRO_PALETTE = {
-  void: VISUAL_TOKENS.environment.void,
-  panel: VISUAL_TOKENS.ui.panel,
-  panelRaised: VISUAL_TOKENS.ui.panelRaised,
-  ink: VISUAL_TOKENS.ui.ink,
-  cyan: VISUAL_TOKENS.ui.cyan,
-  cyanDark: VISUAL_TOKENS.ui.cyanDark,
-  blue: VISUAL_TOKENS.environment.floor,
-  blueDark: VISUAL_TOKENS.environment.floorDeep,
-  magenta: VISUAL_TOKENS.ui.magenta,
-  magentaDark: VISUAL_TOKENS.ui.magentaDark,
-  purple: '#774e9e',
-  purpleDark: VISUAL_TOKENS.ui.panelEdge,
-  yellow: VISUAL_TOKENS.ui.yellow,
-  yellowDark: VISUAL_TOKENS.ui.yellowDark,
-  red: VISUAL_TOKENS.feedback.noise,
-  redDark: VISUAL_TOKENS.feedback.noiseDark,
-  green: VISUAL_TOKENS.feedback.quiet,
-  greenDark: VISUAL_TOKENS.feedback.quietDark,
-  orange: '#df8847',
-  orangeDark: '#844f2c',
-  shadow: VISUAL_TOKENS.actor.outline,
-  moon: VISUAL_TOKENS.environment.moon,
-} as const;
