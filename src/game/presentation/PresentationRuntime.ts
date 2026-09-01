@@ -1,5 +1,5 @@
 import type { AnimationClock } from './AnimationClock';
-import { visualEventLifetimeMs, type VisualEvent } from './VisualEvent';
+import { visualEventChannel, visualEventLifetimeMs, visualEventSupersedesChannel, type VisualEvent } from './VisualEvent';
 
 export type ActiveVisualEvent = {
   id: number;
@@ -22,19 +22,25 @@ export class PresentationRuntime {
     }
 
     this.prune(now);
-    const created = events
-      .filter((event) => visualEventLifetimeMs(event) > 0)
-      .map((event) => {
-        const lifetime = visualEventLifetimeMs(event);
-        const entry: ActiveVisualEvent = {
-          id: ++this.sequence,
-          event,
-          startedAtMs: now,
-          expiresAtMs: now + lifetime,
-        };
-        this.active.push(entry);
-        return entry;
-      });
+    const created: ActiveVisualEvent[] = [];
+    events.forEach((event) => {
+      const lifetime = visualEventLifetimeMs(event);
+      if (lifetime <= 0) return;
+
+      const channel = visualEventChannel(event);
+      if (channel && visualEventSupersedesChannel(event)) {
+        this.active = this.active.filter((entry) => visualEventChannel(entry.event) !== channel);
+      }
+
+      const entry: ActiveVisualEvent = {
+        id: ++this.sequence,
+        event,
+        startedAtMs: now,
+        expiresAtMs: now + lifetime,
+      };
+      this.active.push(entry);
+      created.push(entry);
+    });
     return created;
   }
 
