@@ -158,6 +158,9 @@ src/platform/storage/                    game persistence
 maestro/screenshots.yaml                 eleven-step Android visual journey
 tests/game.test.ts                        gameplay coverage
 tests/presentation.test.ts                presentation/restore/atlas coverage
+docs/workflow/AGENT_WORKFLOW_GUIDE.md     AI task workflow, RRI/HITL and model routing
+scripts/rri.mjs                           deterministic RRI v2 calculator
+scripts/sync-agent-instructions.mjs       Codex/Claude startup instruction projection
 scripts/audit-static.sh                   architecture invariants
 ```
 

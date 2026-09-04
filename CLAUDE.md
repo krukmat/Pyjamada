@@ -1,5 +1,13 @@
 # CLAUDE.md
 
+<!-- BEGIN GENERATED STARTUP IMPORTS: npm run agent:sync -->
+@AGENTS.md
+@docs/workflow/AGENT_WORKFLOW_GUIDE.md
+@docs/workflow/HITL_AUTONOMY_POLICY.md
+@docs/workflow/RRI_POLICY.md
+@docs/workflow/TASK_CARD_TEMPLATE.md
+<!-- END GENERATED STARTUP IMPORTS -->
+
 ## Project
 
 Pyjamada is an Android-first React Native/TypeScript game experiment. The active product has a single gameplay path: the systemic bedroom run. The old Classic V1 three-room slice was intentionally removed; Git history is the archive.
@@ -18,6 +26,9 @@ npm run test:all
 npm run typecheck
 npm run audit:premerge
 npm run screenshots:android
+npm run rri -- --help
+npm run agent:sync
+npm run agent:check
 ```
 
 ## Architecture
@@ -85,6 +96,23 @@ Settings remain a separate persistence domain.
 `npm run audit:premerge` is the canonical pre-audit/pre-merge evidence command. It runs game/settings/presentation tests, TypeScript typecheck and static architecture checks.
 
 Android screenshots and device performance are **manual/local evidence**. Do not claim they passed unless `npm run screenshots:android` and any performance checks were actually run on an Android target.
+
+## Agent workflow
+
+AI-assisted tasks use the compact workflow in
+`docs/workflow/AGENT_WORKFLOW_GUIDE.md`. RRI v2 scoring and model routing live in
+`docs/workflow/RRI_POLICY.md`; approval boundaries live in
+`docs/workflow/HITL_AUTONOMY_POLICY.md`. Use
+`docs/workflow/TASK_CARD_TEMPLATE.md` for task presentation and human decisions.
+
+The workflow keeps risk, model capability and execution surface separate. Local
+developer adapters are optional, but every task must state their eligibility and
+the actual repository tooling, device or external environment it needs. No
+runner name or project criterion is inherited from Dubbridge.
+
+Claude Code expands the generated `@...` imports at session start. Keep the
+block synchronized with `npm run agent:sync`; verify it with
+`npm run agent:check` or Claude's `/memory` command.
 
 ## Audit handoff
 
