@@ -10,10 +10,30 @@ echo "[audit] checking shell script syntax"
 bash -n scripts/audit-static.sh
 bash -n scripts/android-screenshots.sh
 
-echo "[audit] checking gameplay -> presentation dependency boundary"
-if grep -R -n -E "from ['\"]\.\./presentation|from ['\"][^'\"]*presentation" src/game/systemic --include='*.ts' --include='*.tsx'; then
-  fail "gameplay modules must not import presentation modules"
+echo "[audit] checking gameplay -> presentation/render/react-native/app-screen dependency boundary"
+GAMEPLAY_BOUNDARY_PATTERN="from ['\"]\.\./presentation|from ['\"][^'\"]*presentation|from ['\"]\.\./render|from ['\"][^'\"]*render|from ['\"]react['\"]|from ['\"]react-native|from ['\"]@shopify/react-native-skia|from ['\"][^'\"]*/app/|from ['\"]\.\./\.\./App['\"]|from ['\"]\.\./App['\"]"
+if grep -R -n -E "$GAMEPLAY_BOUNDARY_PATTERN" src/game/systemic --include='*.ts' --include='*.tsx'; then
+  fail "gameplay modules must not import presentation, renderer, React/React Native/Skia, or app-screen modules"
 fi
+
+echo "[audit] verifying the dependency boundary rejects a fixture import from each forbidden layer"
+cleanup_boundary_fixtures() { rm -f src/game/systemic/__boundary_fixture_*.ts; }
+trap cleanup_boundary_fixtures EXIT
+cleanup_boundary_fixtures
+
+printf "import type { VisualEvent } from '../presentation/VisualEvent';\nexport const _fixture: VisualEvent | undefined = undefined;\n" > src/game/systemic/__boundary_fixture_presentation.ts
+printf "import type { Props } from '../render/GameCanvas';\nexport type _Fixture = Props;\n" > src/game/systemic/__boundary_fixture_render.ts
+printf "import React from 'react';\nexport const _fixture = React;\n" > src/game/systemic/__boundary_fixture_react.ts
+printf "import { GameScreen } from '../../app/GameScreen';\nexport const _fixture = GameScreen;\n" > src/game/systemic/__boundary_fixture_app.ts
+
+for fixture in presentation render react app; do
+  if ! grep -n -E "$GAMEPLAY_BOUNDARY_PATTERN" "src/game/systemic/__boundary_fixture_${fixture}.ts" > /dev/null; then
+    fail "boundary self-test: a $fixture import fixture was not rejected by the dependency boundary check"
+  fi
+done
+
+cleanup_boundary_fixtures
+trap - EXIT
 
 echo "[audit] checking legacy renderer removal"
 if grep -R -n -E "RETRO_PALETTE|PixelArtKit|PixelBlocks|KeySprite" src --include='*.ts' --include='*.tsx'; then
@@ -21,14 +41,7 @@ if grep -R -n -E "RETRO_PALETTE|PixelArtKit|PixelBlocks|KeySprite" src --include
 fi
 
 echo "[audit] checking screenshot audit contract"
-grep -q "01_main_menu" maestro/screenshots.yaml || fail "screenshot tour is missing menu baseline"
-grep -q "09_success" maestro/screenshots.yaml || fail "screenshot tour is missing success state"
-grep -q "10_restart" maestro/screenshots.yaml || fail "screenshot tour is missing restart state"
-grep -q "11_continue_restore" maestro/screenshots.yaml || fail "screenshot tour is missing continue/restore state"
-grep -q "11_continue_restore.png" scripts/android-screenshots.sh || fail "screenshot runner does not expect continue/restore evidence"
-
-EXPECTED_COUNT="$(grep -c '^[[:space:]]*"[0-9][0-9]_.*\.png"$' scripts/android-screenshots.sh)"
-[[ "$EXPECTED_COUNT" -eq 11 ]] || fail "screenshot runner must require exactly 11 named evidence files"
+node scripts/validate-screenshot-contract.mjs || fail "screenshot flow and runner expectations disagree (see above)"
 
 echo "[audit] checking presentation policy and incident log"
 test -f docs/PRESENTATION_POLICY.md || fail "presentation policy is missing"

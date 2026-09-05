@@ -1,19 +1,10 @@
 import { resolveAnimationFrame } from './AnimationTypes';
 import type { ActiveVisualEvent } from './PresentationRuntime';
-import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { createSpriteAtlasIndex, requireAtlasClip, requireAtlasFrame, type AtlasFrame } from './atlas/SpriteAtlas';
 import { DOMESTIC_FX_ATLAS } from './atlas/manifests';
+import { OBJECT_VISUAL_ORIGINS, type VisualOrigin } from './VisualEvent';
 
 const FX_INDEX = createSpriteAtlasIndex(DOMESTIC_FX_ATLAS);
-
-const OBJECT_ORIGINS: Record<SystemicObjectId, { x: number; y: number }> = {
-  bed: { x: 16, y: 87 },
-  slippers: { x: 32, y: 101 },
-  'alarm-clock': { x: 48, y: 87 },
-  wardrobe: { x: 68, y: 74 },
-  keys: { x: 88, y: 91 },
-  window: { x: 108, y: 48 },
-};
 
 export type FxVisualFrame = {
   key: string;
@@ -23,12 +14,31 @@ export type FxVisualFrame = {
   frame: AtlasFrame;
 };
 
-function originFor(state: SystemicRunState, entry: ActiveVisualEvent): { x: number; y: number } {
+// FINDING-003 / F-04: every FX-capable event either owns a fixed object
+// origin or carries the immutable `origin` captured when the mapper created
+// it (see VisualEventMapper.actionOrigin). Nothing here re-derives a
+// position from the runtime's current/latest gameplay state.
+function originFor(entry: ActiveVisualEvent): VisualOrigin {
   const event = entry.event;
-  if (event.type === 'OBJECT_INTERACT' || event.type === 'OBJECT_COLLECT' || event.type === 'EQUIPMENT_CHANGED') return OBJECT_ORIGINS[event.objectId];
-  if (event.type === 'WINDOW_OPENED' || event.type === 'WINDOW_CLOSED') return OBJECT_ORIGINS.window;
-  if (state.lastAction?.objectId) return OBJECT_ORIGINS[state.lastAction.objectId];
-  return { x: state.player.x, y: 88 };
+  switch (event.type) {
+    case 'OBJECT_INTERACT':
+    case 'OBJECT_COLLECT':
+    case 'EQUIPMENT_CHANGED':
+      return OBJECT_VISUAL_ORIGINS[event.objectId];
+    case 'WINDOW_OPENED':
+      return OBJECT_VISUAL_ORIGINS.window;
+    case 'WALLY_STARTLE':
+    case 'WALLY_FUMBLE':
+    case 'WALLY_RUSH':
+    case 'WALLY_MOVE':
+    case 'NOISE_BURST':
+    case 'ENERGY_GAIN':
+    case 'OBJECTIVE_SUCCESS':
+    case 'OBJECTIVE_FAILURE':
+      return event.origin;
+    default:
+      return { x: 0, y: 88 };
+  }
 }
 
 function clipFor(entry: ActiveVisualEvent): string | undefined {
@@ -50,14 +60,14 @@ function clipFor(entry: ActiveVisualEvent): string | undefined {
   }
 }
 
-export function resolveFxFrames(state: SystemicRunState, active: readonly ActiveVisualEvent[], nowMs: number): FxVisualFrame[] {
+export function resolveFxFrames(active: readonly ActiveVisualEvent[], nowMs: number): FxVisualFrame[] {
   return active.flatMap((entry) => {
     const clipId = clipFor(entry);
     if (!clipId) return [];
     const clip = requireAtlasClip(FX_INDEX, clipId);
     const animation = resolveAnimationFrame(clip, Math.max(0, nowMs - entry.startedAtMs));
     if (animation.completed && clip.loop === 'once') return [];
-    const origin = originFor(state, entry);
+    const origin = originFor(entry);
     const yOffset = clipId === 'quiet_footsteps' ? 14 : clipId === 'sleep_z' ? -8 : clipId === 'shock' ? -9 : 0;
     return [{
       key: `${entry.id}:${clipId}`,

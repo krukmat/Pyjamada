@@ -3,6 +3,7 @@ import type { ActiveVisualEvent } from './PresentationRuntime';
 import type { SystemicRunState } from '../systemic/SystemicState';
 import { createSpriteAtlasIndex, requireAtlasClip, requireAtlasFrame, type AtlasFrame } from './atlas/SpriteAtlas';
 import { WALLY_ATLAS } from './atlas/manifests';
+import { ACTOR_WALLY_CHANNEL, OBJECTIVE_CHANNEL, visualEventChannel } from './VisualEvent';
 
 const WALLY_INDEX = createSpriteAtlasIndex(WALLY_ATLAS);
 
@@ -16,9 +17,9 @@ export type WallyVisualFrame = WallyVisualSelection & {
   animation: ResolvedAnimationFrame;
 };
 
-function newest(events: readonly ActiveVisualEvent[], types: readonly ActiveVisualEvent['event']['type'][]): ActiveVisualEvent | undefined {
+function newestOnChannel(events: readonly ActiveVisualEvent[], channel: string): ActiveVisualEvent | undefined {
   return [...events]
-    .filter((entry) => types.includes(entry.event.type))
+    .filter((entry) => visualEventChannel(entry.event) === channel)
     .sort((a, b) => b.startedAtMs - a.startedAtMs || b.id - a.id)[0];
 }
 
@@ -30,8 +31,19 @@ function movementClip(state: SystemicRunState): string {
   return `walk_${state.wallyState}`;
 }
 
+function reactionClip(cause: 'bed' | 'alarm-clock' | 'wardrobe' | 'keys' | 'window' | 'slippers'): string {
+  switch (cause) {
+    case 'bed': return 'rest';
+    case 'alarm-clock': return 'alarm_recoil';
+    case 'wardrobe': return 'wardrobe_change';
+    case 'keys': return 'collect_keys';
+    case 'window': return 'window_react';
+    case 'slippers': return 'equip_slippers';
+  }
+}
+
 export function selectWallyVisual(state: SystemicRunState, active: readonly ActiveVisualEvent[], nowMs: number): WallyVisualSelection {
-  const objective = newest(active, ['OBJECTIVE_SUCCESS', 'OBJECTIVE_FAILURE']);
+  const objective = newestOnChannel(active, OBJECTIVE_CHANNEL);
   if (objective?.event.type === 'OBJECTIVE_SUCCESS') return { clipId: 'success', startedAtMs: objective.startedAtMs };
   if (objective?.event.type === 'OBJECTIVE_FAILURE') {
     const clipId = objective.event.reason === 'house-awake'
@@ -42,26 +54,15 @@ export function selectWallyVisual(state: SystemicRunState, active: readonly Acti
     return { clipId, startedAtMs: objective.startedAtMs };
   }
 
-  const reaction = newest(active, ['WALLY_FUMBLE', 'WALLY_STARTLE', 'WALLY_WAKE', 'EQUIPMENT_CHANGED', 'OBJECT_COLLECT', 'WINDOW_OPENED', 'WINDOW_CLOSED', 'OBJECT_INTERACT']);
-  if (reaction) {
-    const event = reaction.event;
-    if (event.type === 'WALLY_FUMBLE') return { clipId: 'fumble', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'WALLY_STARTLE') return { clipId: 'alarm_recoil', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'WALLY_WAKE') return { clipId: 'wake', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'EQUIPMENT_CHANGED' && event.objectId === 'slippers') return { clipId: 'equip_slippers', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'OBJECT_COLLECT' && event.objectId === 'keys') return { clipId: 'collect_keys', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'WINDOW_OPENED' || event.type === 'WINDOW_CLOSED') return { clipId: 'window_react', startedAtMs: reaction.startedAtMs };
-    if (event.type === 'OBJECT_INTERACT') {
-      if (event.objectId === 'bed') return { clipId: 'rest', startedAtMs: reaction.startedAtMs };
-      if (event.objectId === 'alarm-clock') return { clipId: 'alarm_recoil', startedAtMs: reaction.startedAtMs };
-      if (event.objectId === 'wardrobe') return { clipId: 'wardrobe_change', startedAtMs: reaction.startedAtMs };
-      if (event.objectId === 'keys') return { clipId: 'collect_keys', startedAtMs: reaction.startedAtMs };
-      if (event.objectId === 'window') return { clipId: 'window_react', startedAtMs: reaction.startedAtMs };
-    }
+  const actor = newestOnChannel(active, ACTOR_WALLY_CHANNEL);
+  if (actor) {
+    const event = actor.event;
+    if (event.type === 'WALLY_FUMBLE') return { clipId: 'fumble', startedAtMs: actor.startedAtMs };
+    if (event.type === 'WALLY_STARTLE') return { clipId: 'alarm_recoil', startedAtMs: actor.startedAtMs };
+    if (event.type === 'WALLY_WAKE') return { clipId: 'wake', startedAtMs: actor.startedAtMs };
+    if (event.type === 'WALLY_REACT') return { clipId: reactionClip(event.cause), startedAtMs: actor.startedAtMs };
+    if (event.type === 'WALLY_MOVE') return { clipId: movementClip(state), startedAtMs: actor.startedAtMs };
   }
-
-  const move = newest(active, ['WALLY_MOVE']);
-  if (move) return { clipId: movementClip(state), startedAtMs: move.startedAtMs };
 
   return { clipId: idleClip(state), startedAtMs: 0 };
 }

@@ -1,5 +1,5 @@
 import type { AnimationClock } from './AnimationClock';
-import { visualEventChannel, visualEventLifetimeMs, visualEventSupersedesChannel, type VisualEvent } from './VisualEvent';
+import { visualEventChannel, visualEventLifetimeMs, type VisualEvent } from './VisualEvent';
 
 export type ActiveVisualEvent = {
   id: number;
@@ -28,7 +28,7 @@ export class PresentationRuntime {
       if (lifetime <= 0) return;
 
       const channel = visualEventChannel(event);
-      if (channel && visualEventSupersedesChannel(event)) {
+      if (channel) {
         this.active = this.active.filter((entry) => visualEventChannel(entry.event) !== channel);
       }
 

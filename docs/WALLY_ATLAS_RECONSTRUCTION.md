@@ -70,14 +70,17 @@ Strict local validation of the repaired PNG confirmed:
 
 ## Preventing recurrence
 
-`scripts/validate-png-assets.mjs` validates all committed game atlas PNGs in CI. It checks:
+`scripts/audit-assets.mjs` validates all committed game atlas PNGs in CI. It checks:
 
 - PNG signature and chunk boundaries;
 - chunk CRCs;
 - strict zlib decompression;
 - expected inflated scanline length;
 - legal PNG filter bytes;
-- expected atlas dimensions.
+- the real, decoded PNG dimensions against the same atlas manifest the game renders from (not a separately maintained expected-dimensions table);
+- frame bounds, clip frame references, and duplicate frame/clip IDs in that manifest (`validateSpriteAtlasManifest`).
+
+A manifest/PNG mismatch or an invalid frame fails with the asset path in the diagnostic (A-04).
 
 Run locally with:
 

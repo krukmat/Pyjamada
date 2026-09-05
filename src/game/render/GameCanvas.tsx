@@ -41,7 +41,7 @@ export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
     visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
     placement: OBJECT_PLACEMENTS[objectId],
   }));
-  const fx = resolveFxFrames(state, activeVisualEvents, nowMs);
+  const fx = resolveFxFrames(activeVisualEvents, nowMs);
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
 
   return (

@@ -12,6 +12,7 @@
   "include": [
     "src/game/**/*.ts",
     "src/settings/**/*.ts",
+    "src/app/**/*.ts",
     "tests/**/*.ts"
   ]
 }

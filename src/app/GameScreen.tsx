@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
+import { selectWallyVisual } from '../game/presentation/WallyAnimator';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { PixelMeter } from './RetroUiKit';
+import { isTestHooksEnabled } from './testHooks';
 
 type Props = {
   state: SystemicRunState;
@@ -34,6 +36,11 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
 
   return (
     <View testID="game-screen" style={styles.container}>
+      {isTestHooksEnabled() && (
+        <Text testID="debug-wally-clip" style={styles.debugHidden} pointerEvents="none">
+          {selectWallyVisual(state, activeVisualEvents, nowMs).clipId}
+        </Text>
+      )}
       <View style={[styles.gameFrame, { width: viewport + 8 }]}>
         <View style={styles.hud}>
           <ArcadeStat label="TIME" value={String(state.timeSpent).padStart(2, '0')} accent={VISUAL_TOKENS.ui.yellow} />
@@ -153,6 +160,11 @@ function signed(value: number): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: VISUAL_TOKENS.environment.void, padding: 12 },
+  // T-05: real (non-zero) footprint so Android's accessibility layer still
+  // reports it as visible — a literally zero-size element risks being
+  // reported as not-visible, which would break the Maestro wait this exists
+  // to serve. opacity:0 keeps it invisible to a human without affecting that.
+  debugHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0 },
   gameFrame: { position: 'relative', alignItems: 'center', overflow: 'hidden', backgroundColor: VISUAL_TOKENS.environment.void, borderWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge },
   hud: { width: '100%', minHeight: 50, flexDirection: 'row', backgroundColor: VISUAL_TOKENS.ui.panel, borderBottomWidth: 3, borderBottomColor: VISUAL_TOKENS.ui.magentaDark },
   stat: { flex: 1, justifyContent: 'center', paddingHorizontal: 7, paddingVertical: 5, borderRightWidth: 1, borderRightColor: VISUAL_TOKENS.ui.panelEdge },

@@ -3,6 +3,7 @@ import type { ActiveVisualEvent } from './PresentationRuntime';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { createSpriteAtlasIndex, requireAtlasClip, requireAtlasFrame, type AtlasFrame } from './atlas/SpriteAtlas';
 import { BEDROOM_OBJECTS_ATLAS } from './atlas/manifests';
+import { objectChannel, visualEventChannel } from './VisualEvent';
 
 const OBJECT_INDEX = createSpriteAtlasIndex(BEDROOM_OBJECTS_ATLAS);
 
@@ -15,13 +16,9 @@ export type ObjectVisualFrame = {
 };
 
 function newestForObject(active: readonly ActiveVisualEvent[], objectId: SystemicObjectId): ActiveVisualEvent | undefined {
+  const channel = objectChannel(objectId);
   return [...active]
-    .filter((entry) => {
-      const event = entry.event;
-      if (event.type === 'OBJECT_INTERACT' || event.type === 'OBJECT_COLLECT' || event.type === 'EQUIPMENT_CHANGED') return event.objectId === objectId;
-      if (objectId === 'window') return event.type === 'WINDOW_OPENED' || event.type === 'WINDOW_CLOSED';
-      return objectId === 'wardrobe' && event.type === 'WALLY_FUMBLE';
-    })
+    .filter((entry) => visualEventChannel(entry.event) === channel)
     .sort((a, b) => b.startedAtMs - a.startedAtMs || b.id - a.id)[0];
 }
 
@@ -38,7 +35,6 @@ function stableClip(state: SystemicRunState, objectId: SystemicObjectId): string
 
 function reactionClip(state: SystemicRunState, objectId: SystemicObjectId, entry: ActiveVisualEvent): string | undefined {
   const event = entry.event;
-  if (event.type === 'WALLY_FUMBLE' && objectId === 'wardrobe') return 'wardrobe_fumble';
   if (event.type === 'WINDOW_OPENED' && objectId === 'window') return 'window_opening';
   if (event.type === 'WINDOW_CLOSED' && objectId === 'window') return 'window_closing';
   if (event.type === 'OBJECT_COLLECT' && objectId === 'keys') return 'keys_collect';

@@ -62,6 +62,16 @@ tags:
 - tapOn:
     id: action-button
 - assertVisible: "Five more minutes.*"
+# T-05: wait for the transient reaction pose to actually be rendering before
+# the screenshot fires, instead of blindly tapping then screenshotting with
+# no readiness signal (see docs/ANDROID_SMOKE_TEST.md, T-04/T-05). Ground
+# truth for this clip id comes from the existing selectWallyVisual assertion
+# in tests/presentation.test.ts ("bed selects wake clip"), not a guess.
+- extendedWaitUntil:
+    visible:
+      id: debug-wally-clip
+      text: "wake"
+    timeout: 5000
 - takeScreenshot:
     path: 04_bed_wake
 
@@ -73,6 +83,11 @@ tags:
 - tapOn:
     id: action-button
 - assertVisible: "Soft steps unlocked.*"
+- extendedWaitUntil:
+    visible:
+      id: debug-wally-clip
+      text: "equip_slippers"
+    timeout: 5000
 - takeScreenshot:
     path: 05_slippers
 
@@ -84,12 +99,27 @@ tags:
 - tapOn:
     id: action-button
 - assertVisible: "Awake. Quiet.*"
+- extendedWaitUntil:
+    visible:
+      id: debug-wally-clip
+      text: "alarm_recoil"
+    timeout: 5000
 - takeScreenshot:
     path: 06_alarm
 
 - tapOn:
     id: action-button
 - assertVisible: "Again.*Panic mode engaged.*"
+# Startled resolves to the same "alarm_recoil" clip id as the first press
+# (see docs/ANDROID_SMOKE_TEST.md T-04/T-05 notes) — the wait still proves the
+# recoil pose is actually rendering now, which is what this screenshot needs;
+# the preceding tapOn + assertVisible already guarantee the second press has
+# been sent by this point in the sequential tour.
+- extendedWaitUntil:
+    visible:
+      id: debug-wally-clip
+      text: "alarm_recoil"
+    timeout: 5000
 - takeScreenshot:
     path: 07_startled
 
@@ -101,6 +131,11 @@ tags:
 - tapOn:
     id: action-button
 - assertVisible: "Dressed. Coordination optional.*"
+- extendedWaitUntil:
+    visible:
+      id: debug-wally-clip
+      text: "fumble"
+    timeout: 5000
 - takeScreenshot:
     path: 08_wardrobe_fumble
 
@@ -151,3 +186,111 @@ tags:
 - assertVisible: "Five more minutes.*"
 - takeScreenshot:
     path: 11_continue_restore
+
+# Failure outcomes: each of the three failure conditions is deterministic from
+# a fresh run (see src/game/systemic/SystemicRuleEngine.ts and SYSTEMIC_LIMITS
+# in SystemicState.ts) and terminal, so each needs its own fresh run reached
+# via exit + new game rather than the mid-run restart-button.
+
+# house-awake: three alarm-clock presses from a fresh run push noise to 92,
+# past the noiseFailure threshold of 85.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: move-right-button
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "HOUSE AWAKE!"
+- assertVisible: "Too loud. The whole house knows.*"
+- takeScreenshot:
+    path: 12_fail_house_awake
+
+# exhausted: five wardrobe interactions from a fresh run drain energy from 35
+# to 0, the minEnergy floor.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 11
+    commands:
+      - tapOn:
+          id: move-right-button
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "OUT OF ENERGY!"
+- assertVisible: "No energy left. Heroics were a mistake.*"
+- takeScreenshot:
+    path: 13_fail_exhausted
+
+# too-late: equip slippers first so every subsequent move is quiet (noise +2
+# base, -2 from the slippers-quiet-step rule nets to zero), then move well
+# past the deadline of 50 without ever risking the noise or energy floors.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- assertVisible: "Soft steps unlocked.*"
+- repeat:
+    times: 46
+    commands:
+      - tapOn:
+          id: move-right-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "TOO LATE!"
+- assertVisible: "Morning won. Try a sharper route.*"
+- takeScreenshot:
+    path: 14_fail_too_late
