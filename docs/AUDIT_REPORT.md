@@ -41,8 +41,11 @@ Android context: `sdk_gphone64_arm64`, Android 14 / API 34, `arm64-v8a`, release
 | FINDING-003 | Medium | presentation / rendering | fix-before-merge | No, but must be dispositioned |
 | FINDING-004 | Medium | tests / tooling | fix-before-merge | No, but must be dispositioned |
 | FINDING-005 | Low | presentation / dead code | follow-up-issue | No |
+| FINDING-006 | Medium | UX / persistence | fix-before-merge | No, but must be dispositioned |
 
-Totals: **0 Critical, 2 High, 2 Medium, 1 Low**.
+Totals: **0 Critical, 2 High, 3 Medium, 1 Low**.
+
+FINDING-006 was found during V-02 (Android screenshot evidence execution) on 2026-09-06, after this report's original 2026-09-01 audit date; it is appended under the same disposition rules rather than reopening the original review.
 
 ## Defects
 
@@ -225,6 +228,45 @@ Either connect each semantic/clip to an intentional behavior and test it, or rem
 ### Resolution / owner decision
 
 Open; suitable for a follow-up cleanup if it is not addressed with the channel fix.
+
+## FINDING-006 — New Game silently blocks on an unhandled native confirmation once a save exists
+
+- Severity: Medium
+- Area: UX / persistence
+- Status: resolved (test-blocking portion) / accepted-debt (UX portion)
+- Recommended disposition: fix-before-merge
+
+### Observation
+
+`App.tsx` `handleNewGame` shows a native `Alert.alert('Replace saved game?', ...)` confirmation and returns immediately, without changing `view` or `gameState`, whenever `canContinue` is `true` and the call is not already an explicit overwrite. `canContinue` becomes `true` after the very first successful save read/write in a session (including the initial mount read and every `handleContinue`/`handleInput`/`handleRestart` save) and is never reset to `false` while a valid save exists. In practice this means every `new-game-button` interaction after the first game of a session — including the common exit → continue → exit → new-game sequence — opens this confirmation instead of starting a new run directly. Discovered via `npm run screenshots:android` (V-02): the Maestro tour's `house-awake` failure-scenario block taps `new-game-button` after an earlier continue/exit cycle and then waits for `id: game-screen`, which never becomes visible because the app is sitting on the unhandled native alert; the wait times out and the tour fails.
+
+### Evidence
+
+- `App.tsx:70-92` (`handleNewGame`)
+- `App.tsx:45` (`canContinue` set `true` from the initial `saves.read()`), `App.tsx:85` (set `true` after new game), `App.tsx:94-116` (`handleContinue` never resets it)
+- `maestro/screenshots.yaml:137-188` (restart → exit → continue → exit → new-game sequence; the second `new-game-button` tap at line 184 times out waiting for `id: game-screen` at line 185-188)
+- Reproduced twice independently: once via the failed `npm run screenshots:android` run (2026-09-06), once via independent code-path tracing without running the app.
+
+### Impact
+
+Blocks the Android screenshot evidence tour (V-02) from completing every scripted scenario, specifically the three failure-outcome checkpoints (`house-awake`, `exhausted`, `too-late`) that each start a fresh run via exit + new game rather than the mid-run restart button. Independent of tooling, this is also a real product UX gap: a player who exits and chooses "New Game" again mid-session gets an unexpected confirmation dialog with no indication beforehand that one is coming, on every subsequent attempt rather than only when it matters (e.g., discarding meaningful progress).
+
+### Recommendation
+
+Scope a small, separately authorized fix (either evidence-tooling-only — teach the Maestro flow to dismiss the confirmation — or product-level — narrow when the confirmation appears, e.g. only when the existing run has not already reached a terminal/idle state worth protecting). Do not conflate the two: the tooling fix does not require touching `App.tsx`; a product-level fix touches user-visible orchestration and needs its own RRI under the `src/app/**` path floor.
+
+### Resolution / owner decision
+
+Test-flow impact resolved by task V-02b (`docs/AUDIT_REMEDIATION_PLAN.md`,
+closed 2026-09-06, RRI 22 Low): `maestro/screenshots.yaml` now dismisses the
+native confirmation before each affected `new-game-button` wait; `App.tsx`
+was explicitly not modified. 1st and 2nd Reviewer both PASS (fresh-context
+subagents). The underlying player-facing UX gap — a real player exiting and
+tapping "New Game" again mid-session gets an unwarned confirmation dialog on
+every subsequent attempt, not only when discarding meaningful progress —
+remains open as accepted debt, not fixed by this task. Status updated to
+**accepted-debt** for the UX portion; **resolved** for the test-blocking
+portion. See `docs/AUDIT_ANDROID_EVIDENCE.md` for the re-run evidence.
 
 ## Risks — not established defects
 

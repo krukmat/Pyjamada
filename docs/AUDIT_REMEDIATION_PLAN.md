@@ -86,8 +86,9 @@ Capability keys used by the routing ledger:
 | HS | `gpt-5.6-sol` / high | Same High gates; promoted because repository-wide context dominates. |
 
 Planned distribution: **12 Low, 18 Moderate and 11 High** tasks (T-05 is
-provisionally High), with no Complex aggregate task. This distribution is a
-result of the task boundaries and evidence requirements, not the XS/S labels.
+provisionally High), with no Complex aggregate task, plus V-02b added
+2026-09-06 and not yet scored. This distribution is a result of the task
+boundaries and evidence requirements, not the XS/S labels.
 
 ## Complexity assessment of the original plan
 
@@ -107,7 +108,7 @@ result of the task boundaries and evidence requirements, not the XS/S labels.
 | R-11 Measure and disposition INC-004 | L | Protocol design, profiling, interpretation, and possibly unknown optimization | P-01–P-03 plus conditional replanning |
 | R-12 Final verification and re-audit | M | Automated verification, review, and report decision | Z-01–Z-03 |
 
-The revised plan contains only XS and S tasks. The former 13 work packages are now 41 independently verifiable tasks. T-04 is intentionally a decision task and T-05 is its separately approved implementation boundary.
+The revised plan contains only XS and S tasks. The former 13 work packages were 41 independently verifiable tasks; V-02b was added on 2026-09-06 after V-02 execution surfaced FINDING-006, bringing the total to 42. T-04 is intentionally a decision task and T-05 is its separately approved implementation boundary.
 
 ## Finding disposition
 
@@ -121,6 +122,7 @@ The revised plan contains only XS and S tasks. The former 13 work packages are n
 | INC-004 — React-level presentation ticker | S3 risk | Measure, then explicitly disposition | Decision required |
 | Screenshot repeatability | Risk | Harden the evidence workflow | Required before final visual tour |
 | Cold image readiness / visual readability | Unverified risk | Execute Android QA | Evidence required |
+| FINDING-006 — New Game blocks on unhandled native confirmation once a save exists | Medium | Found during V-02 execution on 2026-09-06; test-flow impact fixed by V-02b (YAML-only, closed). The underlying player-facing UX gap is accepted debt, not fixed by V-02b | Required disposition recorded; UX gap deferred |
 
 ## Dependency map
 
@@ -152,11 +154,11 @@ Q-05 → C-01 ─┐                          │
 Q-05 → C-02 ─┴→ C-03 ──────────────────┤
                                         │
 A-03 + A-05 + Q-05 + C-03 + T-02 + T-03 + T-05
-└── V-01 → V-02 ─┬→ V-03 ─┐
-                  └→ V-04 ─┴→ V-05
+└── V-01 → V-02 → V-02b ─┬→ V-03 ─┐
+                          └→ V-04 ─┴→ V-05
 
 V-01 → P-01
-V-02 + P-01 → P-02 → P-03
+V-02b + P-01 → P-02 → P-03
 
 V-05 + P-03 → Z-01 → Z-02 → Z-03
 ```
@@ -237,12 +239,13 @@ All tasks start with status **pending**. A task is complete only when its stated
 | ID | Size | Depends on | Task and single output | Acceptance criterion |
 |---|---:|---|---|---|
 | V-01 | XS | A-03, A-05, Q-05, C-03, T-02, T-03, T-05 | Build the final candidate release APK and record revision, target, ABI, Android version, and build type. | Clean release build passes on the exact recorded candidate HEAD. |
-| V-02 | S | V-01 | Execute `npm run screenshots:android` without modifying the candidate during the run. | The complete tour succeeds and every expected screenshot is present; otherwise status is NOT EXECUTED/FAILED, never inferred. |
-| V-03 | S | V-02 | Review atlas readiness, Wally readability, six objects, reaction causality, stacked FX, and screen shake. | Each checkpoint has a recorded pass or concrete defect; no blank-atlas or misplaced-reaction issue is unresolved. |
-| V-04 | S | V-02 | Review HUD hierarchy, controls, settings, new game, restart, continue, success, and three failures. | Each flow has a recorded pass or concrete defect; subjective preferences are separated from policy/usability defects. |
+| V-02 | S | V-01 | **done** — Execute `npm run screenshots:android` without modifying the candidate during the run. | Initial 2026-09-06 run FAILED (FINDING-006); re-run after V-02b closed PASSED with all 14 screenshots present. See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
+| V-02b | XS | V-02 (blocks re-run) | **done** — Disposition FINDING-006 (New Game blocks on an unhandled native "Replace saved game?" confirmation once a save exists) by teaching `maestro/screenshots.yaml` to dismiss the confirmation before any `new-game-button` wait that may follow an existing save. `App.tsx` is explicitly out of scope for this task; the real player-facing UX gap stays open in FINDING-006 as accepted debt. | Closed 2026-09-06. Full tour re-run PASSED (14/14 screenshots). 1st Reviewer PASS, 2nd Reviewer PASS (fresh-context subagents, degraded-independence substitute per this session's local-bundle exclusion). See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
+| V-03 | S | V-02b | Review atlas readiness, Wally readability, six objects, reaction causality, stacked FX, and screen shake. | Each checkpoint has a recorded pass or concrete defect; no blank-atlas or misplaced-reaction issue is unresolved. |
+| V-04 | S | V-02b | Review HUD hierarchy, controls, settings, new game, restart, continue, success, and three failures. | Each flow has a recorded pass or concrete defect; subjective preferences are separated from policy/usability defects. |
 | V-05 | XS | V-03, V-04 | Consolidate the immutable Android evidence ledger for the reviewed revision. | Evidence identifies device, revision, scenario, screenshot, reviewer result, and unresolved defect links. |
 
-If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and the branch cannot pass final remediation.
+If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and the branch cannot pass final remediation. V-02 executed on 2026-09-06 and returned **FAILED** (root cause: FINDING-006); V-02b must close before V-02 can be considered passed and before V-03/V-04 proceed.
 
 ### P — INC-004 performance decision
 
@@ -320,9 +323,10 @@ orchestrating Codex/Claude context at the listed capability; `repo tooling`,
 | ID | Planned RRI evidence | Primary execution and planned boundary | Local developer | Environment and verification |
 |---|---|---|---|---|
 | V-01 | `41 H (base 35; native floor) · 0/0/3/1/0/3/3/3` | APK tooling on one recorded candidate HEAD; build only. | Ineligible — native release build. | APK; non-empty release APK and immutable revision ledger. |
-| V-02 | `41 H (base 39; native floor) · 0/1/2/2/1/3/3/3` | Device/GUI + repo tooling on V-01 HEAD; no edits during run. | Ineligible — device execution and native evidence. | DEVICE; `npm run screenshots:android` with exact expected set. |
-| V-03 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary visual review of immutable screenshots and, when needed, live device. | Ineligible — subjective visual/device review. | DEVICE evidence from V-02; checkpoint-by-checkpoint ledger. |
-| V-04 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary UX flow review of immutable evidence. | Ineligible — subjective UX/device review. | DEVICE evidence from V-02; flow-by-flow ledger. |
+| V-02 | `41 H (base 39; native floor) · 0/1/2/2/1/3/3/3` | Device/GUI + repo tooling on V-01 HEAD; no edits during run. | Ineligible — device execution and native evidence. | DEVICE; `npm run screenshots:android` with exact expected set. Executed 2026-09-06: **FAILED** — tour stopped at the `house-awake` scenario's `new-game-button` re-entry; `game-screen` never became visible within 20000ms. Root cause traced to FINDING-006 (unhandled native "Replace saved game?" confirmation), not a tooling/device fault. |
+| V-02b | Scored 2026-09-06: YAML-only mechanism `22 L (base 22) · 0/1/1/2/1/2/1/1`; App.tsx mechanism `43 H (base 43) · 0/1/2/3/2/3/3/2` (`src/app/**` floor D2/P3/K3) was scored but not selected. **Mechanism decision: YAML-only, RRI 22 Low.** The real player-facing UX gap (unscoped confirmation dialog) remains open in FINDING-006 as accepted debt for this task's scope; it is not fixed here. | `maestro/screenshots.yaml` only — add a conditional dismissal of the native "Replace saved game?" confirmation before each `new-game-button` wait that may follow an existing save. No `App.tsx`/product change. | Per this session's fixed restriction: local bundle delegation is excluded for both authoring and review on this task despite Low eligibility. Primary agent authors directly; both reviewer gates use fresh-context general-purpose subagents as a disclosed degraded-independence substitute for the fixed local bundle. | NODE (+APK/DEVICE to re-run `npm run screenshots:android` full tour as acceptance evidence). |
+| V-03 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary visual review of immutable screenshots and, when needed, live device. | Ineligible — subjective visual/device review. | DEVICE evidence from V-02b; checkpoint-by-checkpoint ledger. |
+| V-04 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary UX flow review of immutable evidence. | Ineligible — subjective UX/device review. | DEVICE evidence from V-02b; flow-by-flow ledger. |
 | V-05 | `14 L (base 14) · 0/0/0/1/0/1/1/3` | Primary; `docs/AUDIT_ANDROID_EVIDENCE.md` synthesis only. | Ineligible — broad evidence synthesis, not a bounded code patch. | DOC; all ledger references resolve to V-02 artifacts/revision. |
 | P-01 | `31 M (base 31) · 0/0/1/2/2/2/2/3` | Primary + human reviewer; freeze protocol in `docs/PERFORMANCE_REVIEW_NOTES.md`. | Ineligible — profiling design/ADR-like decision. | DOC; tool/device/scenario/metric/failure fields complete before capture. |
 | P-02 | `43 H (base 43; native floor active) · 0/0/2/3/1/4/3/3` | Device/profile tooling only; one unchanged candidate. | Ineligible — native profiling and device operation. | PROFILE; raw attributable output for every scenario or explicit missing data. |

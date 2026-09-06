@@ -182,6 +182,18 @@ tags:
     timeout: 10000
 - tapOn:
     id: new-game-button
+# App.tsx's handleNewGame shows a native "Replace saved game?" confirmation
+# whenever a save already exists (true for every new-game-button tap past the
+# very first one in this flow) and otherwise never reaches game-screen —
+# see FINDING-006 in docs/AUDIT_REPORT.md. Dismiss it here so the tour can
+# proceed; the underlying player-facing UX gap is tracked separately, not
+# fixed by this flow.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
 - extendedWaitUntil:
     visible:
       id: game-screen
@@ -215,6 +227,13 @@ tags:
     timeout: 10000
 - tapOn:
     id: new-game-button
+# See FINDING-006 note above: dismiss the native replace-save confirmation.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
 - extendedWaitUntil:
     visible:
       id: game-screen
@@ -249,6 +268,13 @@ tags:
     timeout: 10000
 - tapOn:
     id: new-game-button
+# See FINDING-006 note above: dismiss the native replace-save confirmation.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
 - extendedWaitUntil:
     visible:
       id: game-screen
