@@ -85,8 +85,24 @@ test("resolves every delegated Low role to its fixed local model", () => {
   assert.equal(result.route.model, "devstral-small-2:24b-instruct-2512-q4_K_M");
   assert.deepEqual(result.roles, LOW_LOCAL_ROLES);
   assert.equal(result.roles.firstReviewer.model, "gemma4:26b-a4b-it-qat");
-  assert.equal(result.roles.secondReviewer.model, "gpt-oss:20b");
-  assert.equal(result.roles.secondReviewer.num_ctx, 131072);
+  assert.equal(result.roles.secondReviewer.model, "qwen3.6:35b-a3b");
+});
+
+test("offers the optional local architect reviewer for Moderate and High bands", () => {
+  const moderate = evaluateRri(baseInput({ C: 2, D: 2, T: 2, A: 2, K: 2, P: 2, X: 2 }));
+  assert.equal(moderate.band.label, "Moderate");
+  assert.equal(moderate.roles.architect.model, "gpt-oss:20b");
+  assert.equal(moderate.roles.architect.num_ctx, 131072);
+  assert.equal(moderate.roles.architect.optional, true);
+
+  const high = evaluateRri(baseInput({ risks: ["architecture_policy"] }));
+  assert.equal(high.band.label, "High");
+  assert.equal(high.roles.architect.model, "gpt-oss:20b");
+});
+
+test("does not offer the architect reviewer for Low", () => {
+  const result = evaluateRri(baseInput());
+  assert.equal(result.roles.architect, undefined);
 });
 
 test("low-confidence inputs receive a conservative one-point uplift", () => {

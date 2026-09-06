@@ -61,8 +61,14 @@ test("canonical task card exposes both local-developer reviewer gates", () => {
   assert.match(template, /Both\s+reviewers are mandatory when the local developer authors a Low task/);
   assert.match(template, /devstral-small-2:24b-instruct-2512-q4_K_M/);
   assert.match(template, /gemma4:26b-a4b-it-qat/);
+  assert.match(template, /2nd\s+`qwen3\.6:35b-a3b`/);
+});
+
+test("canonical task card exposes the optional local architect reviewer", () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const template = fs.readFileSync(path.join(root, "docs/workflow/TASK_CARD_TEMPLATE.md"), "utf8");
+  assert.match(template, /Architect \(opt\., M\/H\)/);
   assert.match(template, /gpt-oss:20b/);
-  assert.match(template, /num_ctx=131072/);
 });
 
 test("Claude block insertion preserves Claude-specific instructions", () => {

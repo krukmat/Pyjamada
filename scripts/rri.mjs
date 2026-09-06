@@ -33,7 +33,17 @@ const VARIABLES = Object.keys(WEIGHTS);
 export const LOW_LOCAL_ROLES = Object.freeze({
   author: Object.freeze({ model: "devstral-small-2:24b-instruct-2512-q4_K_M", runtime: "ollama" }),
   firstReviewer: Object.freeze({ model: "gemma4:26b-a4b-it-qat", runtime: "ollama", context: "fresh" }),
-  secondReviewer: Object.freeze({ model: "gpt-oss:20b", runtime: "ollama", context: "separate fresh", num_ctx: 131072 }),
+  secondReviewer: Object.freeze({ model: "qwen3.6:35b-a3b", runtime: "ollama", context: "separate fresh" }),
+});
+
+export const ARCHITECT_ROLE = Object.freeze({
+  model: "gpt-oss:20b",
+  runtime: "ollama",
+  context: "fresh, independent of the authoring model",
+  num_ctx: 131072,
+  purpose:
+    "optional local architecture-invariant reviewer for Moderate/High work; checks CLAUDE.md/AGENTS.md " +
+    "boundary invariants before or alongside the required cloud reviewer, it does not replace it",
 });
 
 const BANDS = [
@@ -204,11 +214,15 @@ function resolveRoleRoutes(band, route) {
       secondReviewer: { model: "n/a", reason: "no executable aggregate task" },
     };
   }
-  return {
+  const roles = {
     author: { model: route.model, reasoning: route.reasoning },
     firstReviewer: { model: route.model, reasoning: route.reasoning, context: "fresh" },
     secondReviewer: { model: route.model, reasoning: route.reasoning, context: "separate fresh" },
   };
+  if (band.label === "Moderate" || band.label === "High") {
+    roles.architect = { ...ARCHITECT_ROLE, optional: true };
+  }
+  return roles;
 }
 
 function assertScore(name, value) {
@@ -353,6 +367,9 @@ export function renderMarkdown(result) {
     `**Author model:** ${result.roles.author.model}`,
     `**1st Reviewer model:** ${result.roles.firstReviewer.model}`,
     `**2nd Reviewer model:** ${result.roles.secondReviewer.model}${result.roles.secondReviewer.num_ctx ? ` (num_ctx=${result.roles.secondReviewer.num_ctx})` : ""}`,
+    ...(result.roles.architect
+      ? [`**Architect reviewer (optional, local):** ${result.roles.architect.model} (num_ctx=${result.roles.architect.num_ctx})`]
+      : []),
     "**Execution surface:** classify separately with AGENT_WORKFLOW_GUIDE.md; Low does not imply local-model delegation",
     `**Approval gate:** ${result.band.gate}`,
     `**Review:** ${result.band.review}`,

@@ -16,13 +16,13 @@ a decision; link oversized definitions and RRI evidence.
 | Required environment | `<project commands, runtime/service readiness, device or n/a>` |
 | 1st Reviewer — task analysis | `<model/human, fresh context, required/optional/n/a>` |
 | 2nd Reviewer — solution | `<model/human, separate fresh context, required/optional/n/a>` |
+| Architect (opt., M/H) | `<gpt-oss:20b | n/a> — invariants only` |
 | Escalation | `<capability trigger -> route; operational trigger -> equivalent route/pause>` |
 | RRI evidence | `<base, modifiers, floors, dominant drivers, artifact>` |
 
-For Low local delegation, resolve the placeholders literally as: Author
-`devstral-small-2:24b-instruct-2512-q4_K_M`; 1st Reviewer
-`gemma4:26b-a4b-it-qat`; 2nd Reviewer `gpt-oss:20b` with
-`num_ctx=131072`. All use Ollama in separate contexts.
+For Low local delegation, resolve placeholders as: Author
+`devstral-small-2:24b-instruct-2512-q4_K_M`; 1st `gemma4:26b-a4b-it-qat`; 2nd
+`qwen3.6:35b-a3b`. All use Ollama, separate contexts.
 
 ## 2. Scope and acceptance
 

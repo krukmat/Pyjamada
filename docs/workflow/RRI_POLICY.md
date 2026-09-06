@@ -109,6 +109,10 @@ Decomposition is also required when `F >= 4` together with `K >= 3`, when the
 task mixes independently acceptable behavior changes, or after two failed
 repairs for the same acceptance gap.
 
+Ollama bindings (mechanics: `AGENT_WORKFLOW_GUIDE.md`): Low author
+`devstral-small-2:24b-instruct-2512-q4_K_M`, 1st `gemma4:26b-a4b-it-qat`, 2nd
+`qwen3.6:35b-a3b`; optional Moderate/High architect `gpt-oss:20b`.
+
 ## Using the calculator
 
 Before implementation:

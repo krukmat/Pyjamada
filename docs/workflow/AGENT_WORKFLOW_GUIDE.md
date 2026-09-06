@@ -172,10 +172,11 @@ returns a candidate patch. The orchestrator validates/applies it and runs
 checks; the delegate cannot review or approve its task, expand scope, act
 destructively or claim project verification. Both review gates are required.
 
-Low role bindings are fixed and local: author
-`devstral-small-2:24b-instruct-2512-q4_K_M`; 1st Reviewer
-`gemma4:26b-a4b-it-qat`; 2nd Reviewer `gpt-oss:20b` with
-`num_ctx=131072`. Each role gets a separate invocation/context.
+Low bindings (fixed/local, separate contexts): author
+`devstral-small-2:24b-instruct-2512-q4_K_M`, 1st `gemma4:26b-a4b-it-qat`, 2nd
+`qwen3.6:35b-a3b`. Moderate/High may add the optional **architect reviewer**
+(`gpt-oss:20b` via `agent:local -- --role architect`): invariants only,
+additive, not a substitute.
 
 Local development is ineligible for broad docs/workflow/policy/ADR/plan work,
 investigation, ambiguous design, native/device operations,
@@ -235,6 +236,7 @@ Cards and closure reports use these lines when applicable:
 ```text
 1st Reviewer / task analysis: <reviewer/context> - <PASS|REVISE|BLOCKED|n/a>
 2nd Reviewer / solution: <reviewer/context> - <PASS|REVISE|BLOCKED|n/a>
+Architect (optional): <gpt-oss:20b|n/a> - <PASS|REVISE|BLOCKED|n/a>
 Verification: <commands/manual evidence> - <PASS|FAIL|NOT RUN>
 ```
 
