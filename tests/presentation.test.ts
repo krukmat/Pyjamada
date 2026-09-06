@@ -5,8 +5,9 @@ import { resolveObjectVisualFrame } from '../src/game/presentation/ObjectAnimato
 import { PresentationRuntime } from '../src/game/presentation/PresentationRuntime';
 import { mapSystemicUpdateToVisualEvents } from '../src/game/presentation/VisualEventMapper';
 import { resolveWallyVisualFrame } from '../src/game/presentation/WallyAnimator';
-import { createSpriteAtlasIndex, validateSpriteAtlasManifest, type SpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
+import { createSpriteAtlasIndex, validateSpriteAtlasManifest, type AtlasFrame, type SpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
 import { ALL_GAME_ATLASES } from '../src/game/presentation/atlas/manifests';
+import { resolveSpritePlacement } from '../src/game/presentation/atlas/SpriteTransform';
 import { OBJECT_VISUAL_ORIGINS } from '../src/game/presentation/VisualEvent';
 import { restartSystemicRun, updateSystemicRun } from '../src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicRunState } from '../src/game/systemic/SystemicState';
@@ -368,5 +369,25 @@ presentation.push(rushedVisual);
 const rushedActive = presentation.snapshot();
 equal(resolveWallyVisualFrame(rushedUpdate.state, rushedActive, clock.nowMs()).clipId, 'idle_rushed', 'wally falls back to the wallyState-driven idle_rushed pose; WALLY_RUSH has no dedicated actor clip of its own');
 ok(resolveFxFrames(rushedActive, clock.nowMs()).some((fx) => fx.clipId === 'motion_streak' && fx.x === OBJECT_VISUAL_ORIGINS.keys.x), 'WALLY_RUSH still drives its own motion_streak fx at the captured origin');
+
+// J-05: AtlasSprite had no test coverage at all, which is how a facing:'left'
+// sprite rendering rotated 180 degrees (RSXform with a negative scos flips
+// both axes, not just x) survived — 20 of the 26 inputs on the tour's winning
+// line are 'right', so the broken branch rarely appeared on screen.
+const mirrorFrame: AtlasFrame = { id: 'wally-idle', x: 0, y: 0, width: 12, height: 20, anchorX: 6, anchorY: 19 };
+const facingRight = resolveSpritePlacement(mirrorFrame, 48, 88, 2, 'right');
+equal(facingRight.mirror, false, 'facing right never mirrors');
+equal(facingRight.drawX, 48 - 6 * 2, 'facing right draws at x minus anchorX*scale');
+equal(facingRight.drawY, 88 - 19 * 2, 'facing right draws at y minus anchorY*scale, same formula regardless of facing');
+
+const facingLeft = resolveSpritePlacement(mirrorFrame, 48, 88, 2, 'left');
+ok(facingLeft.mirror, 'facing left requests a mirror');
+equal(facingLeft.drawY, facingRight.drawY, 'mirroring is horizontal only: the vertical draw position must be identical to facing right, never rotated');
+equal(facingLeft.drawX, facingRight.drawX, 'the unmirrored draw position is identical for both facings; only the surrounding Group flips it');
+equal(facingLeft.pivotX, 48, 'the mirror pivots on the sprite\'s own world x, so it flips in place instead of around the canvas origin');
+
+let threw = false;
+try { resolveSpritePlacement(mirrorFrame, 48.5, 88, 2, 'right'); } catch { threw = true; }
+ok(threw, 'a non-integer logical x is rejected for both facings, matching the prior AtlasSprite guard');
 
 console.log('presentation tests passed');
