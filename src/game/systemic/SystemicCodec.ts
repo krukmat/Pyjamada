@@ -103,7 +103,7 @@ function isValidLastAction(value: unknown): boolean {
   if (!Number.isInteger(value.timeDelta) || !Number.isInteger(value.energyDelta) || !Number.isInteger(value.noiseDelta)) return false;
   if (!Array.isArray(value.ruleTrace) || !value.ruleTrace.every((entry) => typeof entry === 'string')) return false;
 
-  if (value.kind === 'interaction') {
+  if (value.kind === 'interaction' && value.objectId !== undefined) {
     return typeof value.objectId === 'string' && (SYSTEMIC_OBJECT_IDS as readonly string[]).includes(value.objectId);
   }
   return value.objectId === undefined;
