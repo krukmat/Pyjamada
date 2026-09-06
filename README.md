@@ -136,13 +136,17 @@ If the release APK is already built:
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The prepared expressive-arcade tour writes eleven checkpoints to:
+The prepared expressive-arcade tour writes fourteen checkpoints to:
 
 ```text
 artifacts/android-screenshots/
 ```
 
 The GitHub execution environment does **not** claim to have performed the visual review; screenshots/device performance remain local audit evidence.
+
+A manually captured 14-step evidence set (main menu through all three failure
+conditions) taken on an arm64-v8a emulator is checked in at
+`docs/screenshots/`, for reference between full Maestro runs.
 
 ## Useful entry points
 
@@ -155,7 +159,8 @@ src/game/presentation/atlas/             atlas contracts/manifests/renderer
 src/game/render/GameCanvas.tsx            Skia room composition
 assets/game/                              original Wally/object/FX sprite sheets
 src/platform/storage/                    game persistence
-maestro/screenshots.yaml                 eleven-step Android visual journey
+maestro/screenshots.yaml                 fourteen-step Android visual journey
+docs/screenshots/                         manually captured evidence set
 tests/game.test.ts                        gameplay coverage
 tests/presentation.test.ts                presentation/restore/atlas coverage
 docs/workflow/AGENT_WORKFLOW_GUIDE.md     AI task workflow, RRI/HITL and model routing
