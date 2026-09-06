@@ -45,6 +45,53 @@ Transient events use wall-clock expiry. If the app spends longer than an event l
 
 At Gate C the game uses one low-frequency screen-level ticker to refresh presentation frames. Leaf sprites contain no timers and gameplay state contains no animation clocks. This is tracked as `INC-004`; AR-11 must profile or replace the ticker before Gate D.
 
+## F-01: visual origin contract
+
+`VisualOrigin` (`src/game/presentation/VisualEvent.ts`) is a presentation-only
+`{ x, y }` point. It is captured exactly once, by `VisualEventMapper`, from
+the specific gameplay update that produced the event — never recomputed later
+from whatever the runtime's current/latest state happens to be when an FX
+actually renders. This is what prevents a queued reaction from silently
+"teleporting" to a different object if further input arrives before it plays.
+
+There are exactly two ways an origin is resolved, and every origin-carrying
+event uses exactly one of them:
+
+- **Fixed object origin** — `OBJECT_VISUAL_ORIGINS[objectId]`, a static table
+  of the six object anchor points. Used when the event is inherently about
+  one named object.
+- **Action origin** — `actionOrigin(after)`: the object this exact action
+  targeted (`after.lastAction.objectId`) if there was one, otherwise the
+  player's own position (`{ x: after.player.x, y: 88 }`) for an untargeted
+  action such as a move. Used when the event is about the actor or a
+  resource/objective consequence of the actor's last action, not a specific
+  object.
+
+| Visual event | Origin rule | Source |
+|---|---|---|
+| `WALLY_MOVE` | Action origin | player position (untargeted) |
+| `WALLY_STARTLE` | Action origin | last action's object, or player position |
+| `WALLY_RUSH` | Action origin | last action's object, or player position |
+| `WALLY_FUMBLE` | Action origin | last action's object, or player position |
+| `NOISE_BURST` | Action origin | last action's object, or player position |
+| `ENERGY_GAIN` | Action origin | last action's object, or player position |
+| `OBJECTIVE_SUCCESS` | Action origin | last action's object, or player position |
+| `OBJECTIVE_FAILURE` | Action origin | last action's object, or player position |
+| `OBJECT_INTERACT` | Fixed object origin | the interacted object's anchor |
+| `OBJECT_COLLECT` | Fixed object origin | the collected object's anchor |
+| `EQUIPMENT_CHANGED` | Fixed object origin | the equipped object's anchor |
+| `WINDOW_OPENED` / `WINDOW_CLOSED` | Fixed object origin | the window anchor |
+| `WALLY_WAKE`, `WALLY_REACT`, `PRESENTATION_RESET` | No origin (not FX-positioned) | n/a |
+
+Every event that carries FX (`FxSystem.originFor`) resolves through one of
+these two rules with no default/fallback case for an origin-carrying event —
+`FxSystem`'s catch-all `{ x: 0, y: 88 }` branch only serves the
+non-origin-carrying event types listed above, which never request an FX
+position in the first place. This is the single unambiguous origin rule per
+event family required by F-01; F-02 adds regression coverage against
+cross-object actions, successive movement, and restart re-deriving these
+origins incorrectly.
+
 ## Invariants
 
 1. Presentation cannot alter time, energy, noise, inventory, Wally gameplay state or objective state.

@@ -90,6 +90,64 @@ npm run assets:validate
 
 The same check is included in `npm run audit:premerge` and GitHub validation.
 
+## A-01: encoder parameters
+
+The repaired atlas was re-encoded with Pillow (`PIL.Image.save`, default
+`compress_level=6`, no `optimize` flag). Verified directly against the
+committed binary rather than trusted from memory:
+
+- container: PNG, IHDR 240x168, 8-bit RGBA, non-interlaced — identical to the
+  corrupted source;
+- zlib stream header `0x78 0x9c` (CM=8 deflate, CINFO=7 → 32K window,
+  FLEVEL=2) — the exact header Pillow's default encoder produces, and
+  distinct from pngcrush/oxipng/zopfli output;
+- inflated payload is exactly 161448 bytes (168 scanlines × (1 filter byte +
+  240×4 RGBA bytes)), matching the pre-corruption expected size noted above;
+- scanline filter bytes present in the encoded stream: `{0, 1, 2, 4}` (None,
+  Sub, Up, Paeth) — consistent with Pillow's per-row adaptive filter
+  selection, not a fixed single filter;
+- no ancillary chunks beyond `IHDR`/`IDAT`/`IEND` (no `tEXt`/`iCCP`/`gAMA`),
+  so the file carries no extra metadata for Android's AAPT2 to strip or
+  choke on.
+
+This is an Android-compatible encoder: AAPT2 accepts standard 8-bit RGBA PNG
+with deflate compression and no exotic ancillary chunks, and A-03 confirms
+`:app:assembleRelease` packages this exact file without a resource-processing
+error.
+
+## A-03: release packaging record
+
+The repaired Wally atlas, object atlas and FX atlas were packaged through
+AAPT2 and a full clean release build, exercised via
+`npm run screenshots:android` (which builds before running the Maestro tour
+unless `SKIP_BUILD=1` is set):
+
+- command: `cd android && ./gradlew :app:assembleRelease` (invoked by
+  `scripts/android-screenshots.sh`);
+- Java: OpenJDK 17.0.19 (Homebrew `openjdk@17`), pinned by the script via
+  `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`
+  regardless of the shell's default `JAVA_HOME`;
+- Android SDK: `compileSdkVersion 36`, `targetSdkVersion 36`,
+  `minSdkVersion 24`, `buildToolsVersion 36.0.0`, `ndkVersion 27.1.12297006`
+  (resolved from Expo SDK 57's `expo-root-project`/autolinking defaults, not
+  a locally pinned value — confirmed live via
+  `./gradlew -q :app:properties`);
+- ABI: single `arm64-v8a` native library set (no ABI splits configured;
+  verified by listing `lib/` entries inside the built APK) — matches the
+  arm64-v8a emulator target used for the manual screenshot evidence;
+- result: `BUILD SUCCESSFUL in 4m 18s`, 419 actionable tasks executed,
+  producing `android/app/build/outputs/apk/release/app-release.apk`
+  (41364511 bytes, versionName `0.3.0`, versionCode 1), plus baseline-profile
+  `.dm` artifacts for API ranges 28–30 and 31+;
+- source revision: `aa29ab9d5119425ed89560eac2b02267a190f329` on
+  `feat/expressive-arcade-visual-refactor`.
+
+No AAPT2 resource-processing error occurred for any of the three atlas PNGs;
+`processReleaseResources` and `optimizeReleaseResources` both completed
+before `packageRelease`/`assembleRelease`. This record is packaging evidence
+only — it makes no visual-quality claim, which remains separate manual
+Android QA (V-series).
+
 ## Audit disposition
 
 The corrupted binary itself is a merge blocker. Once the repaired atlas and asset-integrity validation are green in CI, the binary-integrity blocker is considered remediated.
