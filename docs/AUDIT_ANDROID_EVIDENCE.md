@@ -148,6 +148,106 @@ plan document's own stale status column.
   saved game?" confirmation appears on every New Game after the first save,
   with no warning) remains open in FINDING-006 and is not fixed by this task.
 
+## V-03: visual/atlas/FX review record (2026-09-06)
+
+- **RRI:** `34 M (base 34) · 0/0/2/2/1/2/3/3` — matches `docs/AUDIT_REMEDIATION_PLAN.md`
+  planned estimate, computed with `npm run rri -- --touches
+  docs/AUDIT_ANDROID_EVIDENCE.md --C 0 --D 2 --T 2 --A 1 --K 2 --P 3 --X 3`.
+  Compact card; current request authorizes (no separate checkpoint).
+- **Method:** direct visual inspection (Read tool) of all 14 PNGs in
+  `artifacts/android-screenshots/` from the V-02b re-run, cross-checked
+  against `src/game/systemic/SystemicContent.ts`, `src/game/presentation/`
+  (`FxSystem.ts`, `ObjectAnimator.ts`, `atlas/manifests.ts`, `VisualEvent.ts`)
+  and `src/game/render/GameCanvas.tsx` via two independent read-only
+  Explore subagents. No device re-run was needed; the existing V-02b
+  screenshot set is used as-is.
+
+### Checkpoint results
+
+| Checkpoint | Result | Notes |
+|---|---|---|
+| Atlas readiness (no blank/missing frames) | **PASS** | All six objects render a distinct, non-blank frame from `bedroom-objects.png` (`atlas/manifests.ts:75-96`) across every screenshot; no placeholder/missing-texture artifacts observed. |
+| Wally readability | **PASS** | Wally's sprite is legible at every energy/state change observed (idle at `03`/`04`, startled/red at `07`/`08`), distinct from the room background and other objects. |
+| Six objects present and distinguishable | **CONCRETE DEFECT (minor)** | Bed, alarm-clock (dark-blue square, `alarm_idle`), wardrobe (large orange block) and window are each clearly distinguishable. **Slippers is not**: it renders at the same 32×32 frame size as every other object (no per-object scaling exists — `GameCanvas.tsx:52-61`, `manifests.ts:112`) but sits at x:32, immediately adjacent to both the bed and Wally's starting position (`OBJECT_PLACEMENTS`, `GameCanvas.tsx:23-30`), and in `05_slippers.png` reads visually as part of Wally rather than a separate room object. Keys (small yellow shape at x:88) are borderline but readable once the objective banner references them. This is a layout/legibility defect, not a missing-asset defect — the sprite exists and is correctly atlas-mapped. |
+| Reaction causality (action → visible object state change) | **PASS** | Each `ACTION` press updates the correct object's clip and the HUD deltas in the same frame: `alarm-clock` → `alarm_idle`→`alarm_ring`/`alarm_ring_strong` on repeated presses (`06`→`07`, matching `event.count > 1` in `ObjectAnimator.ts:44-49`); `wardrobe` → `wardrobe_closed`→`wardrobe_dressed` (`08`); banner text and noise/energy/time deltas are consistent with the object interacted with in every one of the 14 captures. |
+| Stacked FX (multiple simultaneous effects) | **NOT VERIFIABLE from this evidence** | `FxSystem.ts` and `ObjectAnimator.ts` do implement FX (noise-burst clip, alarm-ring escalation), but no screenshot shows two FX overlapping — the tour never drives two `ActiveVisualEvent`s into their overlap window before a screenshot fires (see screen-shake note below for why). Requires a live/video capture timed to an actual overlap, not a static-PNG tour. |
+| Screen shake | **NOT VERIFIABLE from this evidence — structural, not a defect** | `resolveScreenShake` (`FxSystem.ts:82-88`) exists, triggers on `NOISE_BURST` with `intensity === 'strong'` (`amount >= 18`, `VisualEventMapper.ts:5-8`), and applies a ±1px offset for ~330ms. Every relevant `NOISE_BURST`/`OBJECT_INTERACT` FX lifetime in this codebase is 200–440ms, while `maestro/screenshots.yaml` places `waitForAnimationToEnd: {timeout: 500}` before every `takeScreenshot` (e.g. lines 70-73, 96-99, 104-107). By construction, every capture fires after the transient FX/shake has already expired. This is not a rendering bug; it is a limitation of static-screenshot evidence for verifying time-boxed FX. Confirmed independently by a fresh-context Explore subagent reading the FX/animator/YAML source directly. |
+
+### Disposition
+
+- No blank-atlas or misplaced-reaction defect exists — the two checkpoints
+  the plan explicitly gates on (`no blank-atlas or misplaced-reaction issue
+  unresolved`) are satisfied.
+- One minor, non-blocking visual-legibility defect is recorded: **slippers
+  is hard to visually distinguish from Wally at its room position.** Filed
+  below as **FINDING-007** (Low) for report-level tracking; does not block
+  V-03 closure per the plan's acceptance criterion (concrete defect
+  recorded, not silently unresolved).
+- Screen shake and stacked-FX checkpoints cannot be confirmed or denied by
+  the static screenshot evidence that exists; recorded as **NOT
+  VERIFIABLE**, not inferred as PASS or FAIL. Closing this gap would require
+  a video/live-device capture pass, out of scope for this task per the
+  plan's screenshot-only evidence requirement for V-03.
+- **Review:** 1st Reviewer (task analysis) — fresh-context general-purpose
+  subagent, disclosed degraded-independence substitute for the excluded
+  local-model bundle — **PASS**. 2nd Reviewer (solution) — same substitute
+  arrangement, separate fresh context — **PASS**, see review record below.
+
+## V-04: HUD/flow review record (2026-09-06)
+
+- **RRI:** `34 M (base 34) · 0/0/2/2/1/2/3/3` — same profile as V-03, one
+  compact card covers both (both are read-only evidence-synthesis tasks
+  over the same screenshot set with the same risk profile).
+- **Method:** direct visual inspection of the same 14 PNGs, cross-checked
+  against `maestro/screenshots.yaml` step definitions for what each
+  checkpoint is asserting.
+
+### Flow results
+
+| Flow | Result | Notes |
+|---|---|---|
+| HUD hierarchy (TIME/ENERGY/NOISE + mission banner) | **PASS** | Present, legible and consistently laid out across all 14 gameplay screenshots; contextual action label (`ACTION · BED`, `ACTION · ALARM`, etc.) correctly tracks the nearest object. |
+| Controls (move left/right, action, back to menu) | **PASS** | All four controls visible and consistently positioned in every gameplay screenshot. |
+| Settings | **PASS** | Audio (master/music/sfx) and control-layout rows present and legible (`02_settings.png`); "AUDIO PLAYBACK REMAINS DEFERRED" is a disclosed product-scope note, not a rendering defect. |
+| New game / restart / continue | **PASS** | `10_restart.png` and `11_continue_restore.png` both correctly reconstruct the stable post-bed state (`TIME 00`, `ENERGY 35`, `NOISE 0`, "Wally is barely functional.") from gameplay state, matching the restart-clears/continue-reconstructs invariant. |
+| Success | **CONCRETE DEFECT (cosmetic, naming only)** | `09_success.png` captures the "READY! DRESSED · KEYS · GO" objective-complete banner (`maestro/screenshots.yaml:129-135`, asserts `"READY!.*"`), which is the correct and only success signal per the dressed+keys objective contract — there is no separate "you escaped" screen to capture, and none is missing from the game. The defect is purely in the **evidence artifact's filename/label** (`09_success` implies a distinct victory screen to a future reader that does not exist). No product change needed; recommend renaming the checkpoint/file to `09_ready_objective_complete` in a future evidence-tooling pass. Not filed as a numbered finding — this is a documentation/tooling nit, not a product or presentation defect. |
+| Three failures (house-awake, exhausted, too-late) | **PASS** | Each shows a correctly styled red banner (`HOUSE AWAKE!`, `OUT OF ENERGY!`, `TOO LATE!`) with a matching cause line and consistent "the room remembers your mistakes" framing; failure cause in each banner correctly matches the stat that triggered it (noise 92, energy 0, time 51 respectively). |
+
+### Disposition
+
+- One cosmetic naming nit noted (evidence-file label only, not a defect
+  requiring a finding or a fix); all seven flows otherwise **PASS**.
+- Subjective preference note (not a defect): the "READY!" banner and the
+  three failure banners share near-identical framing/typography, which is
+  a deliberate design choice per `docs/PRESENTATION_POLICY.md` and not
+  reviewed as a defect here.
+- **Review:** 1st Reviewer (task analysis) — fresh-context general-purpose
+  subagent, disclosed degraded-independence substitute — **PASS**. 2nd
+  Reviewer (solution) — same substitute arrangement, separate fresh
+  context — **PASS**, see review record below.
+
+## V-03/V-04 review record
+
+- **1st Reviewer (task analysis, both tasks):** fresh-context
+  general-purpose subagent — reviewed scope, RRI inputs, and the
+  checkpoint/flow list against `docs/AUDIT_REMEDIATION_PLAN.md`'s V-03/V-04
+  acceptance criteria before findings were written. Result: **PASS**, no
+  scope or acceptance-criteria objections.
+- **2nd Reviewer (solution, both tasks):** separate fresh-context
+  general-purpose subagent — reviewed this file's V-03/V-04 sections
+  against the actual 14 screenshots, the FxSystem/ObjectAnimator/atlas
+  source, and `maestro/screenshots.yaml` timing. Result: **PASS** — no
+  unresolved blank-atlas or misplaced-reaction issue; the
+  NOT-VERIFIABLE disposition for shake/stacked-FX was confirmed as
+  correctly reasoned rather than an unjustified skip; FINDING-007 framing
+  confirmed as accurately scoped (minor, non-blocking).
+- **Degraded-independence disclosure:** both reviewer roles use
+  fresh-context general-purpose subagents as a disclosed substitute for
+  the fixed local model bundle (`devstral`/`gemma4`/`gpt-oss`), which is
+  excluded for this session's V-* work per explicit user restriction. No
+  local bundle role was silently skipped or replaced with a claimed
+  self-review.
+
 ## Status
 
 | Task | Status |
@@ -155,4 +255,6 @@ plan document's own stale status column.
 | V-01 | Closed. 1st Reviewer (task analysis) PASS, 2nd Reviewer (solution) PASS, human approval recorded 2026-09-06 per the RRI 43 High gate |
 | V-02 | Closed. Initial run 2026-09-06 **FAILED** at the `house-awake` scenario's new-game re-entry (root cause FINDING-006); re-run after V-02b **PASSED**, all 14 checkpoints present |
 | V-02b | Closed. RRI 22 Low, YAML-only mechanism. 1st Reviewer PASS, 2nd Reviewer PASS (2026-09-06). `App.tsx` unmodified; FINDING-006's player-facing UX gap remains open as accepted debt |
-| V-03, V-04, V-05 | Ready to start — V-02/V-02b dependency satisfied |
+| V-03 | Closed. RRI 34 M. No blank-atlas/misplaced-reaction defect found. One minor visual-legibility defect recorded (FINDING-007, slippers hard to distinguish). Shake/stacked-FX recorded NOT VERIFIABLE from static evidence (structural, not a defect). 1st/2nd Reviewer PASS |
+| V-04 | Closed. RRI 34 M. All seven flows PASS. One cosmetic evidence-naming nit noted (not filed as a finding). 1st/2nd Reviewer PASS |
+| V-05 | Ready to start — V-03/V-04 dependency satisfied |

@@ -42,10 +42,11 @@ Android context: `sdk_gphone64_arm64`, Android 14 / API 34, `arm64-v8a`, release
 | FINDING-004 | Medium | tests / tooling | fix-before-merge | No, but must be dispositioned |
 | FINDING-005 | Low | presentation / dead code | follow-up-issue | No |
 | FINDING-006 | Medium | UX / persistence | fix-before-merge | No, but must be dispositioned |
+| FINDING-007 | Low | presentation / atlas layout | follow-up-issue | No |
 
 Totals: **0 Critical, 2 High, 3 Medium, 1 Low**.
 
-FINDING-006 was found during V-02 (Android screenshot evidence execution) on 2026-09-06, after this report's original 2026-09-01 audit date; it is appended under the same disposition rules rather than reopening the original review.
+FINDING-006 was found during V-02 (Android screenshot evidence execution) on 2026-09-06, after this report's original 2026-09-01 audit date; it is appended under the same disposition rules rather than reopening the original review. FINDING-007 was found during V-03 (visual/atlas review) on 2026-09-06, under the same appended-finding rule.
 
 ## Defects
 
@@ -267,6 +268,37 @@ every subsequent attempt, not only when discarding meaningful progress —
 remains open as accepted debt, not fixed by this task. Status updated to
 **accepted-debt** for the UX portion; **resolved** for the test-blocking
 portion. See `docs/AUDIT_ANDROID_EVIDENCE.md` for the re-run evidence.
+
+## FINDING-007 — Slippers is visually hard to distinguish from Wally at its room position
+
+- Severity: Low
+- Area: presentation / atlas layout
+- Status: open (accepted debt)
+- Recommended disposition: follow-up-issue
+
+### Observation
+
+The `slippers` object renders at the same uniform 32×32 atlas frame size as every other room object (no per-object scaling exists in the render pipeline), but its world placement (`x:32`) sits immediately adjacent to both the bed (`x:16`) and Wally's starting position. In the `05_slippers.png` evidence screenshot it reads visually as part of Wally's sprite rather than as a distinct, separately readable room object. The other five objects (bed, alarm-clock, wardrobe, keys, window) are each clearly distinguishable at their respective positions.
+
+### Evidence
+
+- `artifacts/android-screenshots/05_slippers.png` (V-02b re-run evidence)
+- `src/game/systemic/SystemicContent.ts:22` (`slippers` object, `x: 32`)
+- `src/game/render/GameCanvas.tsx:23-30` (`OBJECT_PLACEMENTS`, slippers at `(32,105)`, immediately right of bed at `(16,105)`)
+- `src/game/presentation/atlas/manifests.ts:112` (uniform 32×32 frame/anchor for all object clips, no per-object size override)
+- Found during V-03 visual review, 2026-09-06; confirmed via direct screenshot inspection plus an independent fresh-context Explore subagent reading the atlas/placement source. See `docs/AUDIT_ANDROID_EVIDENCE.md` V-03 section.
+
+### Impact
+
+Cosmetic/legibility only. Gameplay is unaffected — the object is fully functional and correctly wired to its rule (`EQUIP slippers`). A player scanning the room may take longer to notice slippers as a separate interactable, especially before the contextual `ACTION · SLIPPERS` label appears.
+
+### Recommendation
+
+Consider a small position offset (move slippers a few logical units further from both the bed and Wally's start position) or a minor visual differentiator (outline, color contrast bump) in a future presentation-polish pass. Not blocking for this branch's merge decision.
+
+### Resolution / owner decision
+
+Open, accepted as low-severity debt. No fix scoped in this remediation pass; recommended as a follow-up issue rather than fix-before-merge.
 
 ## Risks — not established defects
 
