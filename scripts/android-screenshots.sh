@@ -12,10 +12,20 @@ MAESTRO_REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-maestro.XXXXXX")"
 # exports to the Metro/export:embed subprocess it spawns (confirmed by probing
 # System.getenv() inside the Gradle JVM, which does see the var, versus the
 # compiled bundle, which never contains the debug-only string it should gate).
-# Expo's own .env.production.local loading happens inside that subprocess by
-# reading the file from disk, so it is unaffected by Gradle's exec env gap.
-ENV_LOCAL_FILE="$REPO_ROOT/.env.production.local"
-ENV_LOCAL_BACKUP="$(mktemp "${TMPDIR:-/tmp}/pyjamada-env-production-local-backup.XXXXXX")"
+# Expo's own dotenv loading happens inside that subprocess by reading files
+# from disk, so it is unaffected by Gradle's exec env gap.
+#
+# It must be `.env.local`, NOT `.env.production.local`: @expo/env's
+# getEnvFiles() derives the candidate list from process.env.NODE_ENV, and
+# NODE_ENV is lost through the very same ExecOperations gap. Without it the
+# resolver falls back to ['.env.local', '.env'] and never even looks at
+# `.env.production.local`. Verified directly against the installed resolver:
+#   NODE_ENV=production -> ['.env.production.local', '.env.local', ...]
+#   NODE_ENV unset      -> ['.env.local', '.env']
+# `.env.local` is the only candidate present in both lists, so it is the one
+# file that reaches the bundler regardless of whether NODE_ENV survives.
+ENV_LOCAL_FILE="$REPO_ROOT/.env.local"
+ENV_LOCAL_BACKUP="$(mktemp "${TMPDIR:-/tmp}/pyjamada-env-local-backup.XXXXXX")"
 ENV_LOCAL_HAD_BACKUP=0
 EXPECTED_SCREENSHOTS=(
   "01_main_menu.png"
@@ -122,6 +132,14 @@ if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
   # `npm run android` or release build never creates this file and never
   # renders the hook. See src/app/testHooks.ts.
   echo "EXPO_PUBLIC_PYJAMADA_TEST_HOOKS=1" > "$ENV_LOCAL_FILE"
+  # Metro's transform cache keys on file content, not on env var values, so
+  # babel-preset-expo's expoInlineEnvVars can permanently bake in a stale
+  # process.env.EXPO_PUBLIC_PYJAMADA_TEST_HOOKS from a previous build where
+  # this file did not exist yet — confirmed by extracting the built Hermes
+  # bundle and finding isTestHooksEnabled() inlined to a literal `false` with
+  # a warm cache, and `true` after clearing it. Always start cold here so the
+  # value in this run's .env.production.local is the one that gets inlined.
+  rm -rf "${TMPDIR:-/tmp}/metro-cache"
   (
     cd "$REPO_ROOT"
     NODE_ENV=production ./android/gradlew -p android :app:assembleRelease \

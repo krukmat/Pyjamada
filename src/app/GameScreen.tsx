@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { selectWallyVisual } from '../game/presentation/WallyAnimator';
@@ -26,8 +26,28 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
   const target = findSystemicObject(state.player.x);
   const done = state.objective.status !== 'active';
   const activeVisualEvents = presentationRuntime.snapshot();
-  const left = <Control testID="move-left-button" label="◀" onPress={() => onInput('left')} />;
-  const right = <Control testID="move-right-button" label="▶" onPress={() => onInput('right')} />;
+
+  // T-05: transient actor clips (wake, alarm_recoil, fumble, ...) live only
+  // ~300-440ms in PresentationRuntime (see visualEventLifetimeMs), but a
+  // uiautomator/Maestro hierarchy read takes ~2s round-trip on this device —
+  // confirmed by timing five consecutive dumps. No polling interval can win
+  // that race, so the debug hook exposes the latest non-idle clip seen since
+  // the last input rather than the live snapshot, and clears on the next
+  // input. This changes only what this test-only text node reports; it does
+  // not touch PresentationRuntime, gameplay timing or the real render clip.
+  const lastTransientClipRef = useRef<string | null>(null);
+  const liveClipId = isTestHooksEnabled() ? selectWallyVisual(state, activeVisualEvents, nowMs).clipId : null;
+  if (liveClipId !== null && !liveClipId.startsWith('idle')) {
+    lastTransientClipRef.current = liveClipId;
+  }
+  const debugClipId = lastTransientClipRef.current ?? liveClipId;
+
+  const handleInput = (input: SystemicInput) => {
+    lastTransientClipRef.current = null;
+    onInput(input);
+  };
+  const left = <Control testID="move-left-button" label="◀" onPress={() => handleInput('left')} />;
+  const right = <Control testID="move-right-button" label="▶" onPress={() => handleInput('right')} />;
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -37,8 +57,8 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
   return (
     <View testID="game-screen" style={styles.container}>
       {isTestHooksEnabled() && (
-        <Text testID="debug-wally-clip" style={styles.debugHidden} pointerEvents="none">
-          {selectWallyVisual(state, activeVisualEvents, nowMs).clipId}
+        <Text testID="debug-wally-clip" style={styles.debugHidden}>
+          {debugClipId}
         </Text>
       )}
       <View style={[styles.gameFrame, { width: viewport + 8 }]}>
@@ -68,7 +88,7 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
       {!done ? (
         <View style={styles.controls}>
           {touchControlLayout === 'standard' ? left : right}
-          <Control testID="action-button" label="ACTION" wide accent="action" onPress={() => onInput('action')} />
+          <Control testID="action-button" label="ACTION" wide accent="action" onPress={() => handleInput('action')} />
           {touchControlLayout === 'standard' ? right : left}
         </View>
       ) : (
@@ -160,11 +180,10 @@ function signed(value: number): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: VISUAL_TOKENS.environment.void, padding: 12 },
-  // T-05: real (non-zero) footprint so Android's accessibility layer still
-  // reports it as visible — a literally zero-size element risks being
-  // reported as not-visible, which would break the Maestro wait this exists
-  // to serve. opacity:0 keeps it invisible to a human without affecting that.
-  debugHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0 },
+  // T-05: kept fully on-screen with real bounds and near-zero (not exactly
+  // zero) opacity. opacity:0 and off-screen placement were both tried and
+  // both still excluded the node from Maestro's UI hierarchy dump.
+  debugHidden: { position: 'absolute', top: 0, left: 0, width: 4, height: 4, opacity: 0.01 },
   gameFrame: { position: 'relative', alignItems: 'center', overflow: 'hidden', backgroundColor: VISUAL_TOKENS.environment.void, borderWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge },
   hud: { width: '100%', minHeight: 50, flexDirection: 'row', backgroundColor: VISUAL_TOKENS.ui.panel, borderBottomWidth: 3, borderBottomColor: VISUAL_TOKENS.ui.magentaDark },
   stat: { flex: 1, justifyContent: 'center', paddingHorizontal: 7, paddingVertical: 5, borderRightWidth: 1, borderRightColor: VISUAL_TOKENS.ui.panelEdge },
