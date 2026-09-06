@@ -255,11 +255,21 @@ If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and
 
 | ID | Size | Depends on | Task and single output | Acceptance criterion |
 |---|---:|---|---|---|
-| P-01 | S | V-01 | Define a release-profile protocol for idle, movement, first alarm, stacked alarm/wardrobe chaos, and objective beats. | Protocol fixes device/build/tooling and records JS/render work, frame pacing, touch response, cold readiness, and peak FX count. |
+| P-01 | S | V-01 | **done** — Define a release-profile protocol for idle, movement, first alarm, stacked alarm/wardrobe chaos, and objective beats. | Closed 2026-09-06. The frozen protocol fixes the V-01 artifact, Android target, Perfetto/ADB/`gfxinfo`/video tooling, repetitions, metric fields, attribution rules, and explicit `NOT CAPTURED` failure handling. See `docs/PERFORMANCE_REVIEW_NOTES.md`. |
 | P-02 | S | V-02, P-01 | Capture the protocol once on the final candidate without changing code during measurement. | Raw evidence is attributable to one revision/device and covers every scenario; missing data is marked, not invented. |
 | P-03 | S | P-02 | Interpret results and record exactly `ACCEPT`, `FOLLOW-UP`, or `FIX BEFORE MERGE` for INC-004. | The decision cites measured evidence and evaluates the 80 ms ticker against observed behavior rather than a generic target. |
 
 If P-03 returns **FIX BEFORE MERGE**, do not begin an open-ended optimization under P-03. Create a new micro-plan of XS/S tasks from the observed bottleneck, implement only the measured fix, then repeat V-01 through P-03. A likely hybrid—keeping semantic lifetimes in pure TypeScript while moving only continuous clock/frame/shake work—remains a hypothesis until profiling supports it.
+
+P-01 closure used actual RRI `34 Moderate (base 34) ·
+0/2/1/2/2/2/2/3`, compared with planned RRI 31. The band change within
+Moderate is caused only by synchronizing the protocol, this catalogue, and the
+audit-report progress summary across three documentation files. The user's
+explicit approval authorized the bounded task. The optional 1st Reviewer was
+omitted and the 2nd Reviewer is n/a because this is documentation-only and
+changes no behavior; no independent `PASS` is claimed. Local development was
+ineligible because protocol design and audit synthesis are not bounded
+code/test/mechanical work.
 
 ### Z — Closure
 

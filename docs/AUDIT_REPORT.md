@@ -8,8 +8,9 @@ This remains the current decision until Z-03 performs the final report update.
 The paragraphs and evidence table immediately below preserve the original
 2026-09-01 audit snapshot: at that point the Wally atlas and presentation
 channel findings blocked progress and Android QA could not complete. Those
-remediation and Android-evidence tasks have since progressed through V-05; the
-remaining path to a final decision is P-01 through P-03 followed by Z-01
+remediation and Android-evidence tasks have since progressed through V-05, and
+the release-profile protocol is frozen by P-01; the remaining path to a final
+decision is P-02 through P-03 followed by Z-01
 through Z-03, as tracked in `docs/AUDIT_REMEDIATION_PLAN.md`.
 
 ## Scope and reviewed revisions
@@ -315,7 +316,10 @@ Open, accepted as low-severity debt. No fix scoped in this remediation pass; rec
 
 ### INC-004 / React-level presentation ticker
 
-Disposition: **FOLLOW-UP; not independently a merge defect on static evidence.**
+Provisional static disposition at the original audit: **FOLLOW-UP; not
+independently a merge defect on static evidence.** The binding disposition
+remains P-03's evidence-backed choice after the frozen P-01 protocol is
+captured by P-02.
 
 The single 80 ms ticker rerenders `GameScreen`, snapshots/prunes the runtime, resolves six objects and Wally, allocates small atlas transform arrays, and resolves active FX. Against this 128-pixel, six-object scene, the architecture is proportionate enough that a UI-thread rewrite is not justified without measurement. Module-level atlas indexes, three image sources, bounded event lifetimes, and the lack of leaf timers are positive.
 
