@@ -81,7 +81,7 @@ or, with an existing build:
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The prepared tour produces eleven checkpoints:
+The prepared tour produces fourteen checkpoints:
 
 1. main menu
 2. settings
@@ -94,6 +94,9 @@ The prepared tour produces eleven checkpoints:
 9. success
 10. restart
 11. continue/restore
+12. house-awake failure
+13. exhausted failure
+14. too-late failure
 
 ### Performance/frame pacing
 

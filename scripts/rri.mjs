@@ -54,7 +54,7 @@ const BANDS = [
     model: LOW_LOCAL_ROLES.author.model,
     reasoning: "off",
     gate: "bounded execution from a clear request",
-    review: "local Gemma4 task-analysis review plus local GPT-OSS 128K solution review for delegated work",
+    review: "local Gemma4 task-analysis review plus local Qwen3.6 solution review for delegated work",
   },
   {
     upper: 40,

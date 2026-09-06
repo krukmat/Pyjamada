@@ -45,8 +45,9 @@ selects capability, approval and review. Execution surface is resolved a third
 time from the work actually required. A Low task is therefore not automatically
 a local-model task, and a small native build can still be High.
 
-All tasks below are **pending**. Approval to maintain this plan is not approval
-to execute its remediation tasks. Before starting one task, the orchestrator
+Tasks begin **pending** and completed catalogue rows are marked `done` with
+their evidence link. Approval to maintain this plan is not approval to execute
+its remediation tasks. Before starting one task, the orchestrator
 must project its catalogue row and routing-ledger row into blocks 1–3 of
 `docs/workflow/TASK_CARD_TEMPLATE.md`, replace planned paths with the exact
 allowed paths, run `npm run rri -- ...`, and resolve current environment
@@ -55,10 +56,12 @@ need task-analysis review and explicit human approval. Always-approval actions
 in `docs/workflow/HITL_AUTONOMY_POLICY.md` remain separate.
 
 The repository binding for eligible Low work is Ollama with local Devstral
-(author), Gemma4 (1st Reviewer) and GPT-OSS 128K (2nd Reviewer). Each task must
-precheck all three exact models. A missing model/service makes the local route
-`unavailable` and pauses it for explicit rerouting; cloud is not an implicit
-fallback and availability does not change RRI. Other tasks state ineligibility.
+(author), Gemma4 (1st Reviewer) and Qwen3.6 (2nd Reviewer). Each delegated task
+must precheck all three exact models. GPT-OSS 128K is the optional architect
+reviewer for Moderate/High work and never substitutes for a mandatory reviewer.
+A missing model/service makes the local route `unavailable` and pauses it for
+explicit rerouting; cloud is not an implicit fallback and availability does not
+change RRI. Other tasks state ineligibility.
 
 Planned scores use RRI v2 and the factor order `C/F/D/T/A/K/P/X`. There are no
 quality modifiers. `native` means the `dependency_or_native` floor raised the
@@ -80,15 +83,15 @@ Capability keys used by the routing ledger:
 
 | Key | Capability route | Gate and review |
 |---|---|---|
-| L | Ollama: `devstral-small-2:24b-instruct-2512-q4_K_M` author; `gemma4:26b-a4b-it-qat` 1st; `gpt-oss:20b` (`num_ctx=131072`) 2nd | Eligible bounded work uses all three local roles in separate contexts; both reviewers must pass. Missing runtime/model blocks pending explicit reroute. |
+| L | Ollama: `devstral-small-2:24b-instruct-2512-q4_K_M` author; `gemma4:26b-a4b-it-qat` 1st; `qwen3.6:35b-a3b` 2nd | Eligible bounded work uses all three local roles in separate contexts; both reviewers must pass. Missing runtime/model blocks pending explicit reroute. |
 | M | `gpt-5.6-terra` / medium | Exact bounded authorization/card; 1st Reviewer condition-based and fresh 2nd Reviewer for behavior or validation-tool changes. |
 | H | `gpt-5.6-terra` / high | Mandatory fresh 1st Reviewer, explicit human approval and mandatory independent fresh 2nd Reviewer. |
 | HS | `gpt-5.6-sol` / high | Same High gates; promoted because repository-wide context dominates. |
 
-Planned distribution: **12 Low, 18 Moderate and 11 High** tasks (T-05 is
-provisionally High), with no Complex aggregate task, plus V-02b added
-2026-09-06 and not yet scored. This distribution is a result of the task
-boundaries and evidence requirements, not the XS/S labels.
+Current distribution: **13 Low, 18 Moderate and 11 High** tasks (T-05 remains
+provisionally High), with no Complex aggregate task. V-02b was added and scored
+RRI 22 Low on 2026-09-06. This distribution is a result of the task boundaries
+and evidence requirements, not the XS/S labels.
 
 ## Complexity assessment of the original plan
 
@@ -244,9 +247,9 @@ All tasks start with status **pending**. A task is complete only when its stated
 | V-02b | XS | V-02 (blocks re-run) | **done** — Disposition FINDING-006 (New Game blocks on an unhandled native "Replace saved game?" confirmation once a save exists) by teaching `maestro/screenshots.yaml` to dismiss the confirmation before any `new-game-button` wait that may follow an existing save. `App.tsx` is explicitly out of scope for this task; the real player-facing UX gap stays open in FINDING-006 as accepted debt. | Closed 2026-09-06. Full tour re-run PASSED (14/14 screenshots). 1st Reviewer PASS, 2nd Reviewer PASS (fresh-context subagents, degraded-independence substitute per this session's local-bundle exclusion). See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
 | V-03 | S | V-02b | **done** — Review atlas readiness, Wally readability, six objects, reaction causality, stacked FX, and screen shake. | Closed 2026-09-06. No blank-atlas/misplaced-reaction issue. One concrete minor defect recorded (FINDING-007, slippers legibility). Stacked-FX/screen-shake recorded NOT VERIFIABLE from static screenshot evidence (structural — all FX lifetimes are shorter than the tour's pre-screenshot animation-settle wait), not inferred pass/fail. 1st Reviewer PASS, 2nd Reviewer PASS. See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
 | V-04 | S | V-02b | **done** — Review HUD hierarchy, controls, settings, new game, restart, continue, success, and three failures. | Closed 2026-09-06. All seven flows PASS. One cosmetic evidence-naming nit noted (`09_success.png` correctly captures the dressed+keys "READY!" objective-complete banner, not a separate victory screen — naming only, not filed as a finding). 1st Reviewer PASS, 2nd Reviewer PASS. See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
-| V-05 | XS | V-03, V-04 | Consolidate the immutable Android evidence ledger for the reviewed revision. | Evidence identifies device, revision, scenario, screenshot, reviewer result, and unresolved defect links. |
+| V-05 | XS | V-03, V-04 | **done** — Consolidate the immutable Android evidence ledger for the reviewed revision. | Closed 2026-09-06. The 14-row manifest identifies device, revision, scenario, screenshot, reviewer result, and unresolved defect links. See `docs/AUDIT_ANDROID_EVIDENCE.md`. |
 
-If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and the branch cannot pass final remediation. V-02 executed on 2026-09-06 and returned **FAILED** (root cause: FINDING-006); V-02b closed the gap and V-03/V-04 are now closed against the V-02b evidence set. V-05 is ready to start.
+If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and the branch cannot pass final remediation. An Android target was available on 2026-09-06: V-02 initially **FAILED** (root cause: FINDING-006), then its full re-run passed after V-02b; V-03, V-04 and V-05 are closed against that immutable evidence set.
 
 ### P — INC-004 performance decision
 
@@ -324,7 +327,7 @@ orchestrating Codex/Claude context at the listed capability; `repo tooling`,
 | ID | Planned RRI evidence | Primary execution and planned boundary | Local developer | Environment and verification |
 |---|---|---|---|---|
 | V-01 | `41 H (base 35; native floor) · 0/0/3/1/0/3/3/3` | APK tooling on one recorded candidate HEAD; build only. | Ineligible — native release build. | APK; non-empty release APK and immutable revision ledger. |
-| V-02 | `41 H (base 39; native floor) · 0/1/2/2/1/3/3/3` | Device/GUI + repo tooling on V-01 HEAD; no edits during run. | Ineligible — device execution and native evidence. | DEVICE; `npm run screenshots:android` with exact expected set. Executed 2026-09-06: **FAILED** — tour stopped at the `house-awake` scenario's `new-game-button` re-entry; `game-screen` never became visible within 20000ms. Root cause traced to FINDING-006 (unhandled native "Replace saved game?" confirmation), not a tooling/device fault. |
+| V-02 | `41 H (base 39; native floor) · 0/1/2/2/1/3/3/3` | Device/GUI + repo tooling on V-01 HEAD; no edits during run. | Ineligible — device execution and native evidence. | DEVICE; `npm run screenshots:android` with exact expected set. Initial 2026-09-06 run **FAILED** at `house-awake` because of FINDING-006; the unchanged-product full re-run after V-02b **PASSED** with all 14 checkpoints. |
 | V-02b | Scored 2026-09-06: YAML-only mechanism `22 L (base 22) · 0/1/1/2/1/2/1/1`; App.tsx mechanism `43 H (base 43) · 0/1/2/3/2/3/3/2` (`src/app/**` floor D2/P3/K3) was scored but not selected. **Mechanism decision: YAML-only, RRI 22 Low.** The real player-facing UX gap (unscoped confirmation dialog) remains open in FINDING-006 as accepted debt for this task's scope; it is not fixed here. | `maestro/screenshots.yaml` only — add a conditional dismissal of the native "Replace saved game?" confirmation before each `new-game-button` wait that may follow an existing save. No `App.tsx`/product change. | Per this session's fixed restriction: local bundle delegation is excluded for both authoring and review on this task despite Low eligibility. Primary agent authors directly; both reviewer gates use fresh-context general-purpose subagents as a disclosed degraded-independence substitute for the fixed local bundle. | NODE (+APK/DEVICE to re-run `npm run screenshots:android` full tour as acceptance evidence). |
 | V-03 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary visual review of immutable screenshots and, when needed, live device. | Ineligible — subjective visual/device review. | DEVICE evidence from V-02b; checkpoint-by-checkpoint ledger. Executed 2026-09-06 via direct Primary-agent screenshot inspection plus two fresh-context Explore subagents for source cross-checks (FX/shake timing, atlas/placement mapping) — no live device pass was needed since the question was resolvable from the existing screenshot set plus source; stacked-FX/shake recorded NOT VERIFIABLE rather than requiring a device rerun in this task's scope. |
 | V-04 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary UX flow review of immutable evidence. | Ineligible — subjective UX/device review. | DEVICE evidence from V-02b; flow-by-flow ledger. Executed 2026-09-06 via direct Primary-agent screenshot inspection cross-checked against `maestro/screenshots.yaml` step assertions. |
@@ -338,8 +341,9 @@ orchestrating Codex/Claude context at the listed capability; `repo tooling`,
 
 For every `policy-eligible / configured` row, Devstral receives only exact
 paths/content, acceptance and patch contract. Gemma4 must pass the analysis in
-a fresh local context before handoff; GPT-OSS 20B at `num_ctx=131072` must pass
-the verified solution in a separate local context before closure. The Primary
+a fresh local context before handoff; Qwen3.6 must pass the verified solution
+in a separate local context before closure. GPT-OSS 20B at `num_ctx=131072` is
+an optional architect reviewer for Moderate/High invariants only. The Primary
 validates/applies the patch and runs checks. No local role receives approval,
 repository-wide discovery, device control or completion authority.
 
@@ -389,8 +393,8 @@ use the same projection immediately before their execution.
 
 B-00 is complete. Output: `docs/AUDIT_REMEDIATION_BASELINE.md` (`npm run
 audit:premerge` PASS; no source/asset/config change; no tool/service
-installed or started). Self-review: `PASS`. Later tasks (A-*, E-*, ...)
-still each require their own separate authorization.
+installed or started). Self-review: `PASS`. Every remaining task still
+requires its own separate authorization.
 
 ## Recommended execution batches
 

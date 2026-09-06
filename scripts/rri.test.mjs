@@ -86,6 +86,8 @@ test("resolves every delegated Low role to its fixed local model", () => {
   assert.deepEqual(result.roles, LOW_LOCAL_ROLES);
   assert.equal(result.roles.firstReviewer.model, "gemma4:26b-a4b-it-qat");
   assert.equal(result.roles.secondReviewer.model, "qwen3.6:35b-a3b");
+  assert.match(result.band.review, /Qwen3\.6/);
+  assert.doesNotMatch(result.band.review, /GPT-OSS/);
 });
 
 test("offers the optional local architect reviewer for Moderate and High bands", () => {

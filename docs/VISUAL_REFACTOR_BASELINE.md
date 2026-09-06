@@ -78,7 +78,8 @@ These IDs should remain stable unless `maestro/screenshots.yaml` changes in the 
 8. `08_success`
 9. `09_restart`
 
-The final refactor expands this to eleven shots and adds explicit chaos/failure plus settings evidence.
+The final refactor expands this to fourteen shots and adds explicit
+chaos/failure plus settings evidence.
 
 ## Baseline commands
 

@@ -116,7 +116,7 @@ Expected behavior:
 - presentation contracts have deterministic unit coverage;
 - `npm run audit:premerge` provides one-command automated evidence;
 - CI enforces architecture residue/boundary checks;
-- screenshot YAML and shell runner agree on exactly eleven evidence files.
+- screenshot YAML and shell runner agree on exactly fourteen evidence files.
 
 Audit priority: **high**.
 

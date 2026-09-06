@@ -18,8 +18,8 @@ This log records implementation incidents, constraints, deviations and decisions
 - **Status:** Open / external validation required
 - **Observation:** the branch can inspect and rewrite the deterministic Maestro tour, but this execution environment has no attached Android emulator on which to run `npm run screenshots:android`.
 - **Impact:** actual visual evidence and side-by-side judgement must come from a developer machine/device.
-- **Mitigation:** test IDs, logical viewport and the final eleven-shot screenshot journey are deterministic and checked as part of the static audit contract; CI remains responsible for game semantics, presentation semantics and type safety.
-- **Evaluation:** run the final eleven-shot tour locally and review composition/state readability before approving the merge if visual QA is a merge gate.
+- **Mitigation:** test IDs, logical viewport and the final fourteen-shot screenshot journey are deterministic and checked as part of the static audit contract; CI remains responsible for game semantics, presentation semantics and type safety.
+- **Evaluation:** run the final fourteen-shot tour locally and review composition/state readability before approving the merge if visual QA is a merge gate.
 
 ### INC-002 — Binary sprite authoring is a separate delivery concern from atlas architecture
 

@@ -87,7 +87,7 @@ Do not require a performance rewrite without measurement. Record device/emulator
 
 ### E. UX / visual communication
 
-Use the eleven-shot Maestro tour plus direct play.
+Use the fourteen-shot Maestro tour plus direct play.
 
 Questions:
 

@@ -4,7 +4,13 @@
 
 **NOT READY TO MERGE**
 
-The reviewed branch preserves the gameplay domain and save contract, and the canonical automated audit is green. It is nevertheless not mergeable in its current state: the committed Wally atlas prevents an Android release build, and reproducible presentation-channel errors misassign or fail to interrupt visual reactions. Android visual QA and device performance review could not be completed because the release APK could not be built.
+This remains the current decision until Z-03 performs the final report update.
+The paragraphs and evidence table immediately below preserve the original
+2026-09-01 audit snapshot: at that point the Wally atlas and presentation
+channel findings blocked progress and Android QA could not complete. Those
+remediation and Android-evidence tasks have since progressed through V-05; the
+remaining path to a final decision is P-01 through P-03 followed by Z-01
+through Z-03, as tracked in `docs/AUDIT_REMEDIATION_PLAN.md`.
 
 ## Scope and reviewed revisions
 
@@ -17,7 +23,7 @@ The reviewed branch preserves the gameplay domain and save contract, and the can
 
 The requested audit, architecture, performance, policy, incident, product, and contributor documents were read first. Their claims were then checked against the complete diff, production code, tests, assets, scripts, and executable behavior.
 
-## Evidence executed
+## Evidence executed in the original audit snapshot
 
 | Evidence | Result |
 |---|---|
@@ -34,7 +40,7 @@ Android context: `sdk_gphone64_arm64`, Android 14 / API 34, `arm64-v8a`, release
 
 ## Findings summary
 
-| ID | Severity | Area | Disposition | Merge blocking |
+| ID | Severity | Area | Recommended disposition at discovery | Merge blocking at discovery |
 |---|---|---|---|---|
 | FINDING-001 | High | assets / tooling | fix-before-merge | Yes |
 | FINDING-002 | High | presentation | fix-before-merge | Yes |
@@ -44,9 +50,14 @@ Android context: `sdk_gphone64_arm64`, Android 14 / API 34, `arm64-v8a`, release
 | FINDING-006 | Medium | UX / persistence | fix-before-merge | No, but must be dispositioned |
 | FINDING-007 | Low | presentation / atlas layout | follow-up-issue | No |
 
-Totals: **0 Critical, 2 High, 3 Medium, 1 Low**.
+Totals: **0 Critical, 2 High, 3 Medium, 2 Low**.
 
 FINDING-006 was found during V-02 (Android screenshot evidence execution) on 2026-09-06, after this report's original 2026-09-01 audit date; it is appended under the same disposition rules rather than reopening the original review. FINDING-007 was found during V-03 (visual/atlas review) on 2026-09-06, under the same appended-finding rule.
+
+The `Status` and `Resolution / owner decision` fields below are chronological:
+original `open` entries preserve discovery state, while task-level completion
+is tracked in the remediation plan and evidence ledgers until Z-03 reconciles
+the complete report. Appended findings contain their current owner decision.
 
 ## Defects
 
@@ -84,7 +95,7 @@ The Android-first product cannot produce the release APK required by the reposit
 
 ### Recommendation
 
-Losslessly re-encode the Wally PNG with an Android-compatible encoder, verify that its dimensions and pixel content remain correct, then run a clean release build and the full eleven-shot tour. Add an automated check that validates production PNG decoding/packageability rather than validating only self-declared TypeScript manifest bounds.
+Losslessly re-encode the Wally PNG with an Android-compatible encoder, verify that its dimensions and pixel content remain correct, then run a clean release build and the full fourteen-shot tour. Add an automated check that validates production PNG decoding/packageability rather than validating only self-declared TypeScript manifest bounds.
 
 ### Resolution / owner decision
 

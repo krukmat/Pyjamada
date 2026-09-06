@@ -16,7 +16,8 @@ superseded by a new entry, not edited in place.
   touches only `docs/WALLY_ATLAS_RECONSTRUCTION.md` and
   `docs/PRESENTATION_POLICY.md` — no code, asset, dependency or build
   configuration path (verified via `git diff aa29ab9 1d803e9 --name-only`) —
-  so the artifact below remains valid evidence for the current HEAD.
+  so the artifact below remained valid evidence through that evidence
+  revision.
   **Re-verification rule:** before trusting this note on any later HEAD,
   re-run `git diff --name-only <this evidence revision> <current HEAD>` and
   confirm every changed path is documentation-only; if any code, asset,
@@ -50,9 +51,9 @@ superseded by a new entry, not edited in place.
   object, or FX atlas PNGs; `processReleaseResources` and
   `optimizeReleaseResources` both completed before `packageRelease`.
 
-This record makes no visual-quality or performance claim. Those remain
-V-02 through V-05 (Android visual QA) and P-01 through P-03 (INC-004
-performance decision), both still outstanding.
+This V-01 record alone makes no visual-quality or performance claim. Android
+visual QA is recorded chronologically by V-02 through V-05 below; the INC-004
+performance decision remains P-01 through P-03.
 
 ## V-02: screenshot tour execution record (2026-09-06, FAILED)
 
@@ -94,9 +95,9 @@ performance decision), both still outstanding.
 
 The plan's dependency graph requires A-03, A-05, Q-05, C-03, T-02, T-03 and
 T-05 before V-01 can call this "the final candidate" rather than an
-arbitrary build. The catalogue's own status column is stale (it marks
-everything but B-00 as "pending"); each dependency was independently
-re-checked against live repo state rather than trusted from that column:
+arbitrary build. At V-01 execution, completion was proven from live repository
+state rather than inferred from catalogue status text; each dependency was
+independently re-checked:
 
 | Dependency | Verification | Result |
 |---|---|---|
@@ -108,8 +109,8 @@ re-checked against live repo state rather than trusted from that column:
 | T-03 | `maestro/screenshots.yaml` has exactly 14 uniquely named checkpoints (`grep -c takeScreenshot`) covering menu/HUD/controls/settings/restart/continue plus all three failure outcomes (`HOUSE AWAKE!`, `OUT OF ENERGY!`, `TOO LATE!`); `audit-static.sh`'s screenshot-contract check confirms flow/runner name agreement | Satisfied |
 | T-05 | `src/app/GameScreen.tsx` implements the `lastTransientClipRef` latch described in the plan's transient-capture requirement, in-line labeled "T-05" | Satisfied |
 
-All seven gates are satisfied against current HEAD, independent of the
-plan document's own stale status column.
+All seven gates were satisfied for the V-01 execution snapshot. Later sections
+record the subsequent Android execution and review steps separately.
 
 ## V-02b: fix execution and re-run record (2026-09-06)
 
@@ -248,6 +249,87 @@ plan document's own stale status column.
   local bundle role was silently skipped or replaced with a claimed
   self-review.
 
+## V-05: immutable reviewed-evidence manifest (2026-09-06)
+
+- **Task decision:** `V-05 | closed | RRI 14 Low (base 14) | Effort S |
+  authorized by the user's explicit approval`. Inputs:
+  `0/0/0/1/0/1/1/3`; no modifier, categorical floor, or decomposition
+  trigger. Dominant drivers: repository context (`X`), evidence impact (`P`),
+  and verification (`T`).
+- **Execution route:** Primary-agent documentation synthesis. Local developer
+  **ineligible** because this task consolidates broad audit evidence rather
+  than producing a bounded code/test/mechanical patch. Required environment:
+  repository-local Git, SHA-256 tooling, and audit commands; no new device run
+  is claimed or required for this consolidation.
+- **V-05 review gates:** 1st Reviewer / task analysis: **n/a**; 2nd Reviewer /
+  solution: **n/a**. This is a non-delegated Low documentation-only task with
+  no behavior change. The reviewer results required by V-05's acceptance
+  criterion are the independent V-03/V-04 results attached to the reviewed
+  evidence below: both tasks' 1st and 2nd Reviewers returned **PASS**.
+
+### Evidence identity
+
+Every manifest row below inherits this exact identity:
+
+| Field | Immutable value |
+|---|---|
+| Reviewed product revision | `aa29ab9d5119425ed89560eac2b02267a190f329` (`feat/expressive-arcade-visual-refactor`) |
+| Reviewed Android artifact | `android/app/build/outputs/apk/release/app-release.apk`; 41364511 bytes; SHA-256 `b015d50a03cf9887f60948ce02fbe7adafbcd1df37f537b8236494af27d7124f`; release `0.3.0` (`versionCode 1`) |
+| Device / runner | Android emulator `emulator-5554`; ABI `arm64-v8a`; Maestro `2.6.1` |
+| Successful capture record | V-02b full-tour re-run recorded by `063c61102f610ff31dc2a75c267f0fd002130261`; 14/14 checkpoints passed after the YAML-only FINDING-006 guard |
+| Human-visible review record | V-03/V-04 closure `cb51a1e3647a3e9d035e5bb90029e4f976c12ce3`; V-03 1st/2nd Reviewer **PASS** and V-04 1st/2nd Reviewer **PASS** |
+| Ledger authoring base | `42be05c1da8a9f68ec6aeeadc33e395066ef5162`; this is documentation context only and is **not** represented as the built or device-tested revision |
+| Capture time / set size | All 14 preserved PNGs have filesystem timestamp `2026-09-06T17:39:53+0200`; 957493 bytes total |
+| Ordered-manifest SHA-256 | `17322d4a387ef8621c18f20b6980e8d2cc047554004ef4f6361782cfc0daa406`, calculated by hashing the lexically ordered `shasum -a 256` manifest shown below |
+
+The APK remains evidence for the explicitly identified reviewed product
+revision, not for later `HEAD`s. In particular, later commits include evidence
+workflow and `package.json` changes, so V-05 does not weaken V-01's
+re-verification rule or claim that the APK was rebuilt from the ledger
+authoring base.
+
+### Scenario and screenshot manifest
+
+`V-03 PASS` and `V-04 PASS` in this table mean the applicable task's complete
+review record passed both independent reviewer gates; they do not convert a
+qualified checkpoint into an unconditional visual pass.
+
+| # | Scenario / asserted state | Screenshot | Bytes | SHA-256 | Reviewed disposition |
+|---:|---|---|---:|---|---|
+| 01 | Clean launch; main menu visible | `artifacts/android-screenshots/01_main_menu.png` | 96640 | `4201478476f9362121f9665b0e2e73c40cf735f3b6b6d17300bce70815f01578` | V-04 **PASS** (entry flow) |
+| 02 | Settings opened; audio and control-layout rows visible | `artifacts/android-screenshots/02_settings.png` | 80660 | `e46da02f4d199a8486ebc9c78cfba24198793abb6c03213847fdbef93ab1d15d` | V-04 **PASS** (settings) |
+| 03 | Fresh run; objective and sleepy initial state visible | `artifacts/android-screenshots/03_run_start_sleepy.png` | 57282 | `6ed3667713c32d5acf9f6ac3adb5315ba1460d7839fc491be682fca900a59b12` | V-03 **PASS** (atlas/Wally); V-04 **PASS** (new game) |
+| 04 | Bed interaction; `Five more minutes` state visible | `artifacts/android-screenshots/04_bed_wake.png` | 62462 | `850e372ce50e60304bd08c49897df34431921a94581d0622ab9eb844e1014554` | V-03 **PASS** (reaction causality) |
+| 05 | Slippers interaction; `Soft steps unlocked` visible | `artifacts/android-screenshots/05_slippers.png` | 58769 | `d98c24020cb6aa6624e64d9c3723c8e802e1a8a1195f6185ac5cd5e55aa0f122` | V-03 reviewed concrete minor defect: [FINDING-007](AUDIT_REPORT.md#finding-007--slippers-is-visually-hard-to-distinguish-from-wally-at-its-room-position) |
+| 06 | First alarm interaction; quiet-awake state visible | `artifacts/android-screenshots/06_alarm.png` | 60720 | `79c3eab89423739f88b56b06c3dab3be7d486999b6a9275f85ed7efe42f66ba6` | V-03 **PASS** (reaction causality) |
+| 07 | Repeated alarm; startled/panic state visible | `artifacts/android-screenshots/07_startled.png` | 61015 | `7e66e0dc000ea38a16ca279fb392e678ecf9792c392adb65b24e436928ae48b1` | V-03 **PASS** (reaction causality); stacked FX/shake **NOT VERIFIABLE** from static evidence |
+| 08 | Wardrobe interaction; dressed state visible | `artifacts/android-screenshots/08_wardrobe_fumble.png` | 65381 | `4a1040a2e8e96df6ada36645478d951aa07e2f9553e9b6e4dea03ffcb60083b2` | V-03 **PASS** (reaction causality) |
+| 09 | Keys acquired; `READY! DRESSED · KEYS · GO` visible | `artifacts/android-screenshots/09_success.png` | 73275 | `dd882748bd139a32e13208bfe0a3a81751c43113feefe6e2e648221b5b64fd78` | V-04 **PASS** (objective complete), with filename-only naming nit |
+| 10 | Restart; stable initial gameplay state reconstructed | `artifacts/android-screenshots/10_restart.png` | 57993 | `7296e532b798be9a2407da946bacd17ac115acec0665abdea0312a84e23e8b17` | V-04 **PASS** (restart) |
+| 11 | Continue; stable post-bed state reconstructed | `artifacts/android-screenshots/11_continue_restore.png` | 63223 | `0fa8510057c8ea0e44d99f074070467bc4c607f714055d086f9fd9a13b1ef8fb` | V-04 **PASS** (continue) |
+| 12 | Noise failure; `HOUSE AWAKE!` visible | `artifacts/android-screenshots/12_fail_house_awake.png` | 74951 | `3b0fa10242a5723c67e1fd246effc076118ddab733b22c97897670e966b4e4f3` | V-04 **PASS** (failure); capture used the accepted [FINDING-006](AUDIT_REPORT.md#finding-006--new-game-silently-blocks-on-an-unhandled-native-confirmation-once-a-save-exists) test-flow guard |
+| 13 | Energy failure; `OUT OF ENERGY!` visible | `artifacts/android-screenshots/13_fail_exhausted.png` | 77001 | `8baf15ddc321fe9d510b701db93fef8dc34362939a32e55279e750aa2a6c4630` | V-04 **PASS** (failure); capture used the FINDING-006 test-flow guard |
+| 14 | Time failure; `TOO LATE!` visible | `artifacts/android-screenshots/14_fail_too_late.png` | 68121 | `df134cf4c94be48e30d5a5c817b3be92a76dd901f7f98efa77754b0d93a23955` | V-04 **PASS** (failure); capture used the FINDING-006 test-flow guard |
+
+### Open defects and evidence limits
+
+- [FINDING-006](AUDIT_REPORT.md#finding-006--new-game-silently-blocks-on-an-unhandled-native-confirmation-once-a-save-exists)
+  remains accepted debt for player UX. Its test-blocking portion is resolved
+  only by the conditional Maestro guard; V-05 does not claim a product fix.
+- [FINDING-007](AUDIT_REPORT.md#finding-007--slippers-is-visually-hard-to-distinguish-from-wally-at-its-room-position)
+  remains open accepted debt for slippers/Wally legibility.
+- Stacked FX and screen shake remain **NOT VERIFIABLE** from this static set,
+  for the timing reason documented in V-03. They are evidence limitations,
+  not silently converted to defects or passes.
+- The PNG directory is ignored by Git. These hashes detect any mutation of
+  the preserved local set, but do not make the PNGs retrievable from a clean
+  clone. Durable artifact publication would require a separately authorized
+  storage or repository-scope decision.
+
+This section is append-only evidence. If the candidate, APK, device run, or
+any screenshot changes, add a superseding manifest with new identities and
+hashes; do not rewrite this one.
+
 ## Status
 
 | Task | Status |
@@ -257,4 +339,4 @@ plan document's own stale status column.
 | V-02b | Closed. RRI 22 Low, YAML-only mechanism. 1st Reviewer PASS, 2nd Reviewer PASS (2026-09-06). `App.tsx` unmodified; FINDING-006's player-facing UX gap remains open as accepted debt |
 | V-03 | Closed. RRI 34 M. No blank-atlas/misplaced-reaction defect found. One minor visual-legibility defect recorded (FINDING-007, slippers hard to distinguish). Shake/stacked-FX recorded NOT VERIFIABLE from static evidence (structural, not a defect). 1st/2nd Reviewer PASS |
 | V-04 | Closed. RRI 34 M. All seven flows PASS. One cosmetic evidence-naming nit noted (not filed as a finding). 1st/2nd Reviewer PASS |
-| V-05 | Ready to start — V-03/V-04 dependency satisfied |
+| V-05 | Closed. RRI 14 Low. Immutable 14-row SHA-256 manifest identifies the reviewed candidate/APK, device, scenarios, V-03/V-04 reviewer results, and unresolved FINDING-006/FINDING-007 links; no new device run claimed |
