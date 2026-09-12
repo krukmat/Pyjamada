@@ -271,6 +271,22 @@ changes no behavior; no independent `PASS` is claimed. Local development was
 ineligible because protocol design and audit synthesis are not bounded
 code/test/mechanical work.
 
+P-01 scenario amendment (2026-09-07): the user explicitly authorized correcting
+M and C-W after P-02's independent High 1st Reviewer returned `REVISE`.
+M now uses 40 moves over 10 seconds plus 10 seconds observation; C-W uses the
+canonical startled wardrobe setup and two fumbles, with expected house-awake
+on the second. Deterministic rule/mapper checks passed before editing; these
+are not device measurements. Scope: `docs/PERFORMANCE_REVIEW_NOTES.md`, this
+plan, and `docs/AUDIT_REPORT.md` only. Calculator RRI remains 34 Moderate
+(base 34, no modifiers/floors; C/F/D/T/A/K/P/X = 0/2/1/2/2/2/2/3).
+Primary orchestrator authors the protocol correction; local developer is
+ineligible for protocol design. Authorization: current user request; no
+additional checkpoint required. Independent review of the amended protocol
+is included in the repeated P-02 High task-analysis gate before capture.
+P-02 remains pending until attributable capture evidence is complete; its
+audit output is `docs/AUDIT_ANDROID_EVIDENCE.md`, with status synchronization
+in this plan. P-03 retains ownership of the performance decision.
+
 ### Z — Closure
 
 | ID | Size | Depends on | Task and single output | Acceptance criterion |
@@ -343,7 +359,7 @@ orchestrating Codex/Claude context at the listed capability; `repo tooling`,
 | V-04 | `34 M (base 34) · 0/0/2/2/1/2/3/3` | Human/Primary UX flow review of immutable evidence. | Ineligible — subjective UX/device review. | DEVICE evidence from V-02b; flow-by-flow ledger. Executed 2026-09-06 via direct Primary-agent screenshot inspection cross-checked against `maestro/screenshots.yaml` step assertions. |
 | V-05 | `14 L (base 14) · 0/0/0/1/0/1/1/3` | Primary; `docs/AUDIT_ANDROID_EVIDENCE.md` synthesis only. | Ineligible — broad evidence synthesis, not a bounded code patch. | DOC; all ledger references resolve to V-02 artifacts/revision. |
 | P-01 | `31 M (base 31) · 0/0/1/2/2/2/2/3` | Primary + human reviewer; freeze protocol in `docs/PERFORMANCE_REVIEW_NOTES.md`. | Ineligible — profiling design/ADR-like decision. | DOC; tool/device/scenario/metric/failure fields complete before capture. |
-| P-02 | `43 H (base 43; native floor active) · 0/0/2/3/1/4/3/3` | Device/profile tooling only; one unchanged candidate. | Ineligible — native profiling and device operation. | PROFILE; raw attributable output for every scenario or explicit missing data. |
+| P-02 | Planned `43 H`; execution re-score 2026-09-07: `45 H (base 45; native floor 41) · 0/1/2/3/1/4/3/3`. The two authored outputs are the Android evidence ledger and plan status; generated raw capture files are evidence, not implementation files. | Device/profile tooling only; one unchanged candidate; `docs/AUDIT_ANDROID_EVIDENCE.md` and this plan record the result. | Ineligible — native profiling and device operation. | PROFILE; raw attributable output for every scenario or explicit missing data. |
 | P-03 | `38 M (base 38) · 0/0/2/2/2/2/3/4` | Primary + human reviewer; evidence interpretation only. | Ineligible — broad performance synthesis/decision. | DOC + P-02 raw evidence; exact three-valued disposition. |
 | Z-01 | `41 HS (base 35; native floor) · 0/0/2/1/0/3/3/5` | Repo tooling + device on one immutable HEAD. | Ineligible — repository-wide/native verification-only task. | NODE + DEVICE; exact commands in Z-01, each independently recorded. |
 | Z-02 | `48 HS (base 48) · 0/3/3/1/1/4/3/5` | Fresh Primary reviewer + human review of complete diff/evidence. | Ineligible — repository-wide independent review. | DOC; `git diff main...HEAD`, finding traceability and invariant checklist. |

@@ -13,6 +13,15 @@ the release-profile protocol is frozen by P-01; the remaining path to a final
 decision is P-02 through P-03 followed by Z-01
 through Z-03, as tracked in `docs/AUDIT_REMEDIATION_PLAN.md`.
 
+On 2026-09-07, P-02's independent task-analysis review returned `REVISE`:
+the original M route terminated after 43 of 60 moves, and the C-W setup
+could not produce the required fumbles. The user authorized a bounded P-01
+amendment: M uses 40 moves over 10 seconds plus 10 seconds observation; C-W
+uses the canonical startled wardrobe setup with two fumbles and expected
+house-awake on the second. The corrected routes passed deterministic
+rule/mapper checks against the unchanged candidate. This is not Android
+performance evidence; P-02 still requires capture and independent review.
+
 ## Scope and reviewed revisions
 
 - Feature: `feat/expressive-arcade-visual-refactor` at `b007fc3`

@@ -2,7 +2,8 @@
 
 This is a focused audit aid, not a claim that performance has been profiled on Android.
 
-**P-01 status:** protocol frozen on 2026-09-06. P-01 defines how P-02 must
+**P-01 status:** protocol frozen on 2026-09-06; scenario amendment authorized
+and applied on 2026-09-07 before any P-02 capture. P-01 defines how P-02 must
 capture evidence; it contains no measured performance result and does not
 disposition `INC-004`.
 
@@ -160,16 +161,27 @@ than assuming that the target cadence was achieved.
 | ID | Prepared state and measured stimulus | Required evidence |
 |---|---|---|
 | `I` — idle | Fresh run, no input for the whole window. | Three trace/framestats trials; one separate video trial. |
-| `M` — movement | Fresh run; alternate left/right at four taps per second for 15 seconds, then observe five seconds. | Three trace/framestats trials; one video with at least ten isolated touch-response samples. |
+| `M` — movement | Fresh run; issue exactly 40 alternating left/right taps at four taps per second for 10 seconds, then observe 10 seconds. The run remains active at noise 80. | Three trace/framestats trials; one video with at least ten isolated touch-response samples. |
 | `A1` — first alarm | Follow the V-02 route to the untouched alarm: two left + action at bed, four right + action at slippers, four right to alarm. After the five-second settle, press Action once at second 2. Recreate the state for every trial. | Three trace/framestats trials; one separate video trial. |
 | `C-A` — stacked alarm | Fresh run, six right to the alarm; after settling, issue three rapid Action presses starting at second 2. The third press reaches the `HOUSE AWAKE!` objective-failure beat. | Three trace/framestats trials; one video covering stacking, shake, failure FX, and touch response. |
-| `C-W` — wardrobe/fumble chaos | Fresh run, eleven right to the wardrobe; after settling, issue four rapid Action presses starting at second 2. Do not issue the fifth, terminal energy-depletion press. | Three trace/framestats trials; one video covering repeated fumble/noise FX and touch response. |
+| `C-W` — wardrobe/fumble chaos | Follow the canonical route: two left + Action at bed, four right + Action at slippers, four right + two Actions at alarm, five right to wardrobe. Assert startled, energy 65, noise 59, time 23 before settling. Issue two rapid Action presses starting at second 2. Both produce a fumble; the first remains active at noise 73, and the second reaches `HOUSE AWAKE!` at noise 87. | Three trace/framestats trials; one video covering repeated fumble/noise FX, the expected failure beat, and touch response. |
 | `O-S` — objective-success beats | Follow the canonical V-02 success route through bed, slippers, first and repeated alarm, and arrive at wardrobe. Begin the window after settling; press Action once to dress, move right five times at four taps per second, then press Action at keys to reach `READY!`. | Three trace/framestats trials; one video covering dress, key collection, success FX, and touch response. |
 
 `C-A` supplies the objective-failure beat and `O-S` supplies the success beat;
 both must be present. If a setup lands on the wrong object or produces the
 wrong HUD/reaction state, discard that trial, record why, and repeat it from a
 fresh run. Do not relabel it as the intended scenario.
+
+The 2026-09-07 amendment corrects two deterministic setup errors identified
+by P-02's independent High task-analysis reviewer (`REVISE`). The original
+60-move M route failed on tap 43 and ignored its remaining 17 inputs. The
+original fresh-run C-W route remained sleepy through all four wardrobe
+actions and never emitted `WALLY_FUMBLE`. In-memory execution of the unchanged
+systemic rules and visual mapper verified the corrected routes above. This
+is protocol validation, not measured Android performance. No other scenario,
+capture method, product code, or candidate APK changed. P-02 records the
+amended protocol file hash alongside its base Git revision so the uncommitted
+authorized amendment is attributable without creating a commit.
 
 ### Primary trace and frame capture
 
