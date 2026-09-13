@@ -9,7 +9,11 @@ import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
-import { IllustratedBedroomScene } from './IllustratedBedroomScene';
+import {
+  IllustratedBedroomBackdrop,
+  IllustratedBedroomForeground,
+  IllustratedBedroomLightOverlay,
+} from './IllustratedBedroomScene';
 import { stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
 
@@ -49,7 +53,7 @@ export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
   return (
     <Canvas style={{ width: size, height: size }}>
       <Group transform={[{ translateX: px(shake.x) }, { translateY: px(shake.y) }]}>
-        <IllustratedBedroomScene state={state} size={size} />
+        <IllustratedBedroomBackdrop state={state} size={size} />
         <RoomContactShadows state={state} px={px} />
         {objects.map(({ objectId, visual, placement }) => (
           <AtlasSprite
@@ -76,9 +80,11 @@ export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
           scale={scale}
           facing={state.player.facing}
         />
+        <IllustratedBedroomLightOverlay state={state} size={size} />
         {fx.map((item) => (
           <AtlasSprite key={item.key} image={fxImage} frame={item.frame} x={px(item.x)} y={px(item.y)} scale={scale} />
         ))}
+        <IllustratedBedroomForeground state={state} size={size} />
       </Group>
     </Canvas>
   );
