@@ -4,7 +4,7 @@ import type { PresentationRuntime } from '../game/presentation/PresentationRunti
 import { selectWallyVisual } from '../game/presentation/WallyAnimator';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
-import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
+import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
@@ -28,14 +28,9 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
   const done = state.objective.status !== 'active';
   const activeVisualEvents = presentationRuntime.snapshot();
 
-  // T-05: transient actor clips (wake, alarm_recoil, fumble, ...) live only
-  // ~300-440ms in PresentationRuntime (see visualEventLifetimeMs), but a
-  // uiautomator/Maestro hierarchy read takes ~2s round-trip on this device —
-  // confirmed by timing five consecutive dumps. No polling interval can win
-  // that race, so the debug hook exposes the latest non-idle clip seen since
-  // the last input rather than the live snapshot, and clears on the next
-  // input. This changes only what this test-only text node reports; it does
-  // not touch PresentationRuntime, gameplay timing or the real render clip.
+  // T-05: transient actor clips live for less time than the Android hierarchy
+  // dump round-trip. The test hook therefore latches the latest non-idle clip
+  // until the next input without changing presentation or gameplay timing.
   const lastTransientClipRef = useRef<string | null>(null);
   const liveClipId = isTestHooksEnabled() ? selectWallyVisual(state, activeVisualEvents, nowMs).clipId : null;
   if (liveClipId !== null && !liveClipId.startsWith('idle')) {
@@ -62,21 +57,8 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
           {debugClipId}
         </Text>
       )}
-      <View style={[styles.gameFrame, { width: viewport.width + 8 }]}>
-        <View style={styles.hud}>
-          <ArcadeStat label="TIME" value={String(state.timeSpent).padStart(2, '0')} accent={VISUAL_TOKENS.ui.yellow} />
-          <ResourceStat label="ENERGY" value={state.energy} max={100} accent={VISUAL_TOKENS.feedback.energy} />
-          <ResourceStat label="NOISE" value={state.noise} max={100} accent={VISUAL_TOKENS.feedback.noise} />
-        </View>
-        <View style={styles.objectiveStrip}>
-          <View>
-            <Text style={styles.objectiveKicker}>MORNING MISSION</Text>
-            <Text style={styles.objective}>GET DRESSED + FIND KEYS</Text>
-          </View>
-          <View style={[styles.actionPrompt, target && styles.actionPromptActive]}>
-            <Text style={[styles.actionPromptText, target && styles.actionPromptTextActive]}>{target ? `ACTION · ${target.label}` : 'MOVE · EXPLORE'}</Text>
-          </View>
-        </View>
+
+      <View style={[styles.gameFrame, { width: viewport.width }]}>
         <GameCanvas
           state={state}
           width={viewport.width}
@@ -84,10 +66,29 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
           activeVisualEvents={activeVisualEvents}
           nowMs={nowMs}
         />
+
+        <View pointerEvents="none" style={styles.sceneHud}>
+          <View style={styles.missionBlock}>
+            <Text style={styles.objectiveKicker}>MORNING RUN</Text>
+            <Text style={styles.objective}>GET DRESSED + FIND KEYS</Text>
+          </View>
+          <View style={styles.statsBlock}>
+            <ArcadeStat label="TIME" value={String(state.timeSpent).padStart(2, '0')} accent={VISUAL_TOKENS.ui.yellow} />
+            <ResourceStat label="ENERGY" value={state.energy} max={100} accent={VISUAL_TOKENS.feedback.energy} />
+            <ResourceStat label="NOISE" value={state.noise} max={100} accent={VISUAL_TOKENS.feedback.noise} />
+          </View>
+        </View>
+
+        {!done && target && (
+          <View pointerEvents="none" style={styles.actionPrompt}>
+            <Text style={styles.actionPromptText}>ACTION · {target.label}</Text>
+          </View>
+        )}
+
         {done && <OutcomeBanner state={state} />}
       </View>
 
-      <View style={[styles.feedbackBox, { maxWidth: viewport.width + 8 }]}>
+      <View style={[styles.feedbackBox, { maxWidth: viewport.width }]}>
         <Text testID="game-reaction" style={styles.reaction}>{reactionFor(state)}</Text>
         {state.lastAction && state.lastAction.kind !== 'restart' && <Text style={styles.delta}>{compactDeltaFor(state)}</Text>}
       </View>
@@ -99,13 +100,21 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
           {touchControlLayout === 'standard' ? right : left}
         </View>
       ) : (
-        <Pressable testID="restart-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, styles.restart, pressed && styles.pressed]} onPress={onRestart}>
+        <Pressable
+          testID="restart-button"
+          style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, styles.restart, pressed && styles.pressed]}
+          onPress={onRestart}
+        >
           <Text style={styles.buttonText}>TRY AGAIN</Text>
         </Pressable>
       )}
 
-      <Pressable testID="exit-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={onExit}>
-        <Text style={styles.buttonText}>BACK TO MENU</Text>
+      <Pressable
+        testID="exit-button"
+        style={({ pressed }: { pressed: boolean }) => [styles.exitButton, pressed && styles.pressed]}
+        onPress={onExit}
+      >
+        <Text style={styles.exitText}>BACK TO MENU</Text>
       </Pressable>
     </View>
   );
@@ -123,8 +132,11 @@ function ArcadeStat({ label, value, accent }: { label: string; value: string; ac
 function ResourceStat({ label, value, max, accent }: { label: string; value: number; max: number; accent: string }) {
   return (
     <View style={styles.stat}>
-      <View style={styles.resourceHeader}><Text style={styles.statLabel}>{label}</Text><Text style={styles.resourceValue}>{value}</Text></View>
-      <PixelMeter value={value / max} segments={6} accent={accent} />
+      <View style={styles.resourceHeader}>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.resourceValue}>{value}</Text>
+      </View>
+      <PixelMeter value={value / max} segments={4} accent={accent} />
     </View>
   );
 }
@@ -143,7 +155,17 @@ function OutcomeBanner({ state }: { state: SystemicRunState }) {
 
 function Control({ testID, label, onPress, wide = false, accent = 'move' }: { testID: string; label: string; onPress: () => void; wide?: boolean; accent?: 'move' | 'action' }) {
   return (
-    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.control, wide && styles.controlWide, accent === 'action' && styles.controlAction, pressed && styles.pressed]}>
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }) => [
+        styles.control,
+        wide && styles.controlWide,
+        accent === 'action' && styles.controlAction,
+        pressed && styles.pressed,
+      ]}
+    >
       <View style={styles.controlHighlight} />
       <Text style={styles.controlText}>{label}</Text>
     </Pressable>
@@ -186,41 +208,121 @@ function signed(value: number): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: VISUAL_TOKENS.environment.void, padding: 12 },
-  // T-05: kept fully on-screen with real bounds and near-zero (not exactly
-  // zero) opacity. opacity:0 and off-screen placement were both tried and
-  // both still excluded the node from Maestro's UI hierarchy dump.
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: SCENE_TOKENS.foreground,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
   debugHidden: { position: 'absolute', top: 0, left: 0, width: 4, height: 4, opacity: 0.01 },
-  gameFrame: { position: 'relative', alignItems: 'center', overflow: 'hidden', backgroundColor: VISUAL_TOKENS.environment.void, borderWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge },
-  hud: { width: '100%', minHeight: 50, flexDirection: 'row', backgroundColor: VISUAL_TOKENS.ui.panel, borderBottomWidth: 3, borderBottomColor: VISUAL_TOKENS.ui.magentaDark },
-  stat: { flex: 1, justifyContent: 'center', paddingHorizontal: 7, paddingVertical: 5, borderRightWidth: 1, borderRightColor: VISUAL_TOKENS.ui.panelEdge },
-  statLabel: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', letterSpacing: 1 },
-  statValue: { fontFamily: 'monospace', fontSize: 16, fontWeight: '900', textAlign: 'center', marginTop: 1 },
-  resourceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  resourceValue: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  objectiveStrip: { width: '100%', minHeight: 42, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: VISUAL_TOKENS.ui.panelRaised, borderBottomWidth: 2, borderBottomColor: VISUAL_TOKENS.ui.panelEdge },
-  objectiveKicker: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 6, fontWeight: '900', letterSpacing: 1 },
-  objective: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 9, fontWeight: '900' },
-  actionPrompt: { minWidth: 82, paddingHorizontal: 7, paddingVertical: 5, borderWidth: 2, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
-  actionPromptActive: { borderColor: VISUAL_TOKENS.interactive.focus },
-  actionPromptText: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
-  actionPromptTextActive: { color: VISUAL_TOKENS.interactive.focusLight },
-  feedbackBox: { width: '100%', minHeight: 48, padding: 7, borderWidth: 2, borderRightWidth: 4, borderBottomWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
-  reaction: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center' },
-  delta: { marginTop: 3, color: VISUAL_TOKENS.ui.cyan, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
-  outcomeBanner: { position: 'absolute', left: 20, right: 20, bottom: 18, minHeight: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, backgroundColor: 'rgba(12,9,18,0.94)' },
+  gameFrame: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: SCENE_TOKENS.trimDark,
+    borderRadius: 12,
+    backgroundColor: SCENE_TOKENS.skyDeep,
+  },
+  sceneHud: {
+    position: 'absolute',
+    top: 7,
+    left: 7,
+    right: 7,
+    minHeight: 41,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245,223,177,0.20)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(46,37,50,0.78)',
+  },
+  missionBlock: { flex: 1.15, justifyContent: 'center' },
+  objectiveKicker: { color: SCENE_TOKENS.sunrise, fontFamily: 'monospace', fontSize: 6, fontWeight: '800', letterSpacing: 1 },
+  objective: { marginTop: 1, color: '#fff0c9', fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
+  statsBlock: { flex: 1.75, flexDirection: 'row', gap: 5 },
+  stat: { flex: 1, justifyContent: 'center', minWidth: 0 },
+  statLabel: { color: '#c9bdba', fontFamily: 'monospace', fontSize: 5, fontWeight: '900', letterSpacing: 0.4 },
+  statValue: { fontFamily: 'monospace', fontSize: 12, fontWeight: '900', textAlign: 'center' },
+  resourceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  resourceValue: { color: '#f5e9d2', fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
+  actionPrompt: {
+    position: 'absolute',
+    bottom: 8,
+    left: '29%',
+    right: '29%',
+    minHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,240,154,0.62)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(46,37,50,0.76)',
+  },
+  actionPromptText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
+  feedbackBox: {
+    width: '100%',
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 11,
+    backgroundColor: 'rgba(31,24,34,0.86)',
+  },
+  reaction: { color: '#f5e9d2', fontFamily: 'monospace', fontSize: 8, fontWeight: '800', textAlign: 'center' },
+  delta: { marginTop: 2, color: SCENE_TOKENS.sunrise, fontFamily: 'monospace', fontSize: 6, fontWeight: '900', textAlign: 'center' },
+  outcomeBanner: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 16,
+    minHeight: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderRadius: 16,
+    backgroundColor: 'rgba(42,31,42,0.92)',
+  },
   outcomeSuccess: { borderColor: VISUAL_TOKENS.feedback.success },
   outcomeFailure: { borderColor: VISUAL_TOKENS.feedback.failure },
-  outcomeTitle: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  outcomeSubtitle: { marginTop: 2, color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', letterSpacing: 1 },
-  controls: { flexDirection: 'row', gap: 10 },
-  control: { position: 'relative', width: 74, height: 54, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, borderColor: VISUAL_TOKENS.ui.cyanDark, backgroundColor: VISUAL_TOKENS.ui.panelRaised },
-  controlWide: { width: 110 },
-  controlAction: { borderColor: VISUAL_TOKENS.ui.magentaDark },
-  controlHighlight: { position: 'absolute', left: 3, right: 3, top: 3, height: 3, backgroundColor: 'rgba(255,255,255,0.10)' },
-  pressed: { opacity: 0.78, transform: [{ translateX: 2 }, { translateY: 3 }], borderRightWidth: 3, borderBottomWidth: 3 },
-  controlText: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 14, fontWeight: '900' },
-  secondaryButton: { minWidth: 190, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRightWidth: 5, borderBottomWidth: 5, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panelRaised, paddingHorizontal: 14 },
-  restart: { borderColor: VISUAL_TOKENS.ui.yellowDark },
-  buttonText: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  outcomeTitle: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
+  outcomeSubtitle: { marginTop: 2, color: '#e8d7c0', fontFamily: 'monospace', fontSize: 7, fontWeight: '800', letterSpacing: 1 },
+  controls: { flexDirection: 'row', gap: 9 },
+  control: {
+    position: 'relative',
+    width: 68,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(186,213,199,0.50)',
+    borderRadius: 17,
+    backgroundColor: 'rgba(62,98,134,0.48)',
+  },
+  controlWide: { width: 106 },
+  controlAction: { borderColor: 'rgba(246,217,144,0.72)', backgroundColor: 'rgba(128,88,66,0.62)' },
+  controlHighlight: { position: 'absolute', left: 7, right: 7, top: 5, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.10)' },
+  pressed: { opacity: 0.76, transform: [{ translateY: 2 }] },
+  controlText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 12, fontWeight: '900' },
+  secondaryButton: {
+    minWidth: 180,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 15,
+    backgroundColor: 'rgba(128,88,66,0.72)',
+    paddingHorizontal: 14,
+  },
+  restart: { borderColor: SCENE_TOKENS.sunrise },
+  buttonText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  exitButton: { minHeight: 26, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 3 },
+  exitText: { color: '#a999a5', fontFamily: 'monospace', fontSize: 7, fontWeight: '800', letterSpacing: 0.8 },
 });
