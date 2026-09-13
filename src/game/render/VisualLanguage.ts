@@ -88,3 +88,5 @@ export const FX_GRAMMAR = [
   'motion-streak',
   'impact',
 ] as const;
+
+// Wonder-Boy-inspired scene rework starts here.
