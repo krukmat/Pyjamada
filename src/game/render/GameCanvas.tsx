@@ -2,7 +2,7 @@ import React from 'react';
 import { Canvas, Group, Rect, useImage } from '@shopify/react-native-skia';
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
-import { BEDROOM_OBJECTS_ATLAS_SOURCE, DOMESTIC_FX_ATLAS_SOURCE } from '../presentation/AssetSources';
+import { DOMESTIC_FX_ATLAS_SOURCE } from '../presentation/AssetSources';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
@@ -14,6 +14,7 @@ import {
   IllustratedBedroomForeground,
   IllustratedBedroomLightOverlay,
 } from './IllustratedBedroomScene';
+import { IllustratedObject } from './IllustratedObject';
 import { IllustratedWally } from './IllustratedWally';
 import { stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
@@ -41,7 +42,6 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
-  const objectImage = useImage(BEDROOM_OBJECTS_ATLAS_SOURCE);
   const fxImage = useImage(DOMESTIC_FX_ATLAS_SOURCE);
   const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
@@ -59,10 +59,10 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
         <IllustratedBedroomBackdrop state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
         {objects.map(({ objectId, visual, placement }) => (
-          <AtlasSprite
+          <IllustratedObject
             key={objectId}
-            image={objectImage}
-            frame={visual.frame}
+            objectId={objectId}
+            visual={visual}
             x={px(placement.x)}
             y={px(placement.y)}
             scale={scale}
