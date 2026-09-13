@@ -1,12 +1,10 @@
 import React from 'react';
-import { Canvas, Group, Rect, useImage } from '@shopify/react-native-skia';
+import { Canvas, Group, Rect } from '@shopify/react-native-skia';
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
-import { DOMESTIC_FX_ATLAS_SOURCE } from '../presentation/AssetSources';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
-import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
 import {
@@ -14,6 +12,7 @@ import {
   IllustratedBedroomForeground,
   IllustratedBedroomLightOverlay,
 } from './IllustratedBedroomScene';
+import { IllustratedFx } from './IllustratedFx';
 import { IllustratedObject } from './IllustratedObject';
 import { IllustratedWally } from './IllustratedWally';
 import { stageOriginX, stagePx, stageScale } from './StageViewport';
@@ -42,7 +41,6 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
-  const fxImage = useImage(DOMESTIC_FX_ATLAS_SOURCE);
   const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
@@ -85,7 +83,13 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
         />
         <IllustratedBedroomLightOverlay state={state} size={height} />
         {fx.map((item) => (
-          <AtlasSprite key={item.key} image={fxImage} frame={item.frame} x={px(item.x)} y={px(item.y)} scale={scale} />
+          <IllustratedFx
+            key={item.key}
+            fx={item}
+            x={px(item.x)}
+            y={px(item.y)}
+            scale={scale}
+          />
         ))}
         <IllustratedBedroomForeground state={state} size={height} />
       </Group>
