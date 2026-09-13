@@ -14,12 +14,13 @@ import {
   IllustratedBedroomForeground,
   IllustratedBedroomLightOverlay,
 } from './IllustratedBedroomScene';
-import { stagePx, stageScale } from './StageViewport';
+import { stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
 
 type Props = {
   state: SystemicRunState;
-  size: number;
+  width: number;
+  height: number;
   activeVisualEvents: readonly ActiveVisualEvent[];
   nowMs: number;
 };
@@ -35,9 +36,10 @@ const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   window: { x: 108, y: 66 },
 };
 
-export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
-  const scale = stageScale(size);
-  const px = (value: number) => stagePx(size, value);
+export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: Props) {
+  const scale = stageScale(height);
+  const px = (value: number) => stagePx(height, value);
+  const originX = stageOriginX(width, height);
   const wallyImage = useImage(WALLY_ATLAS_SOURCE);
   const objectImage = useImage(BEDROOM_OBJECTS_ATLAS_SOURCE);
   const fxImage = useImage(DOMESTIC_FX_ATLAS_SOURCE);
@@ -51,9 +53,10 @@ export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
 
   return (
-    <Canvas style={{ width: size, height: size }}>
-      <Group transform={[{ translateX: px(shake.x) }, { translateY: px(shake.y) }]}>
-        <IllustratedBedroomBackdrop state={state} size={size} />
+    <Canvas style={{ width, height }}>
+      <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
+      <Group transform={[{ translateX: originX + px(shake.x) }, { translateY: px(shake.y) }]}>
+        <IllustratedBedroomBackdrop state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
         {objects.map(({ objectId, visual, placement }) => (
           <AtlasSprite
@@ -80,11 +83,11 @@ export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
           scale={scale}
           facing={state.player.facing}
         />
-        <IllustratedBedroomLightOverlay state={state} size={size} />
+        <IllustratedBedroomLightOverlay state={state} size={height} />
         {fx.map((item) => (
           <AtlasSprite key={item.key} image={fxImage} frame={item.frame} x={px(item.x)} y={px(item.y)} scale={scale} />
         ))}
-        <IllustratedBedroomForeground state={state} size={size} />
+        <IllustratedBedroomForeground state={state} size={height} />
       </Group>
     </Canvas>
   );
