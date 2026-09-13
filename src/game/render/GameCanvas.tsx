@@ -1,106 +1,149 @@
 import React from 'react';
-import { Canvas, Group, Rect, useImage } from '@shopify/react-native-skia';
-import { LOGICAL_SIZE, PLAYER_GROUND_Y } from '../core/World';
+import { Canvas, Circle, Group, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { PLAYER_GROUND_Y } from '../core/World';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
-import { BEDROOM_OBJECTS_ATLAS_SOURCE, DOMESTIC_FX_ATLAS_SOURCE, WALLY_ATLAS_SOURCE } from '../presentation/AssetSources';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
-import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
+import { findSystemicObject } from '../systemic/SystemicContent';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
-import { VISUAL_TOKENS } from './VisualLanguage';
+import {
+  IllustratedBedroomBackdrop,
+  IllustratedBedroomForeground,
+  IllustratedBedroomLightOverlay,
+} from './IllustratedBedroomScene';
+import { IllustratedFx } from './IllustratedFx';
+import { IllustratedObject } from './IllustratedObject';
+import { IllustratedWally } from './IllustratedWally';
+import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
+import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
 type Props = {
   state: SystemicRunState;
-  size: number;
+  width: number;
+  height: number;
   activeVisualEvents: readonly ActiveVisualEvent[];
   nowMs: number;
 };
 
 type ObjectPlacement = { x: number; y: number };
 
+// Presentation coordinates are deliberately independent from gameplay radii.
+// X remains aligned with the systemic room for spatial intuition, while Y is
+// free to place props naturally into the illustrated furniture.
 const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   bed: { x: 16, y: 105 },
   slippers: { x: 32, y: 105 },
-  'alarm-clock': { x: 48, y: 101 },
+  'alarm-clock': { x: 48, y: 78 },
   wardrobe: { x: 68, y: 105 },
-  keys: { x: 88, y: 101 },
+  keys: { x: 88, y: 66 },
   window: { x: 108, y: 66 },
 };
 
-export function GameCanvas({ state, size, activeVisualEvents, nowMs }: Props) {
-  const scale = size / LOGICAL_SIZE;
-  const px = (value: number) => Math.round(value * scale);
-  const wallyImage = useImage(WALLY_ATLAS_SOURCE);
-  const objectImage = useImage(BEDROOM_OBJECTS_ATLAS_SOURCE);
-  const fxImage = useImage(DOMESTIC_FX_ATLAS_SOURCE);
+export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: Props) {
+  const scale = stageScale(height);
+  const px = (value: number) => stagePx(height, value);
+  const originX = stageOriginX(width, height);
+  const cameraX = stageCameraOffsetPx(height, state.player.x, state.player.facing);
   const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
     visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
     placement: OBJECT_PLACEMENTS[objectId],
   }));
+  const target = findSystemicObject(state.player.x);
   const fx = resolveFxFrames(activeVisualEvents, nowMs);
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
 
   return (
-    <Canvas style={{ width: size, height: size }}>
-      <Group transform={[{ translateX: px(shake.x) }, { translateY: px(shake.y) }]}>
-        <BedroomEnvironment state={state} px={px} />
+    <Canvas style={{ width, height }}>
+      <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
+      <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
+        <IllustratedBedroomBackdrop state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
+        {target && (
+          <InteractionFocus
+            objectId={target.id}
+            placement={OBJECT_PLACEMENTS[target.id]}
+            px={px}
+            phase={Math.floor(nowMs / 240) % 2}
+          />
+        )}
         {objects.map(({ objectId, visual, placement }) => (
-          <AtlasSprite
+          <IllustratedObject
             key={objectId}
-            image={objectImage}
-            frame={visual.frame}
+            objectId={objectId}
+            visual={visual}
             x={px(placement.x)}
             y={px(placement.y)}
             scale={scale}
           />
         ))}
-        <Rect x={px(state.player.x - 8)} y={px(PLAYER_GROUND_Y + 1)} width={px(16)} height={px(2)} color="rgba(5,5,9,0.48)" />
-        <AtlasSprite
-          image={wallyImage}
-          frame={wally.frame}
+        <Rect
+          x={px(state.player.x - 8)}
+          y={px(PLAYER_GROUND_Y + 1)}
+          width={px(16)}
+          height={px(2)}
+          color={SCENE_TOKENS.contactShadow}
+        />
+        <IllustratedWally
+          state={state}
+          visual={wally}
           x={px(state.player.x)}
           y={px(PLAYER_GROUND_Y)}
           scale={scale}
           facing={state.player.facing}
         />
+        <IllustratedBedroomLightOverlay state={state} size={height} />
         {fx.map((item) => (
-          <AtlasSprite key={item.key} image={fxImage} frame={item.frame} x={px(item.x)} y={px(item.y)} scale={scale} />
+          <IllustratedFx
+            key={item.key}
+            fx={item}
+            x={px(item.x)}
+            y={px(item.y)}
+            scale={scale}
+          />
         ))}
-        <ForegroundVignette px={px} />
+        <IllustratedBedroomForeground state={state} size={height} />
       </Group>
     </Canvas>
   );
 }
 
-function BedroomEnvironment({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
-  const windowGlow = state.flags.windowOpen ? VISUAL_TOKENS.feedback.quietDark : VISUAL_TOKENS.environment.floorDeep;
+function InteractionFocus({ objectId, placement, px, phase }: {
+  objectId: SystemicObjectId;
+  placement: ObjectPlacement;
+  px: (value: number) => number;
+  phase: number;
+}) {
+  const elevated = objectId === 'window' || objectId === 'keys' || objectId === 'alarm-clock';
+  const radius = objectId === 'bed' ? 15 : objectId === 'wardrobe' ? 11 : 7;
+  const cueY = elevated ? placement.y - (objectId === 'alarm-clock' ? 8 : 11) : placement.y + 1;
+  const alpha = phase === 0 ? 0.15 : 0.24;
+
   return (
     <>
-      <Rect x={0} y={0} width={px(128)} height={px(128)} color={VISUAL_TOKENS.environment.void} />
-      <Rect x={px(3)} y={px(5)} width={px(122)} height={px(91)} color={VISUAL_TOKENS.environment.wallDeep} />
-      <Rect x={px(5)} y={px(7)} width={px(118)} height={px(87)} color={VISUAL_TOKENS.environment.wall} />
-      <Rect x={px(5)} y={px(80)} width={px(118)} height={px(14)} color={VISUAL_TOKENS.environment.wallLight} />
-      <Rect x={0} y={px(94)} width={px(128)} height={px(34)} color={VISUAL_TOKENS.environment.floorDeep} />
-      <Rect x={0} y={px(99)} width={px(128)} height={px(29)} color={VISUAL_TOKENS.environment.floor} />
-      <Rect x={0} y={px(99)} width={px(128)} height={px(2)} color={VISUAL_TOKENS.environment.floorLight} />
-      <Rect x={px(84)} y={px(18)} width={px(34)} height={px(3)} color={VISUAL_TOKENS.environment.wallDeep} />
-      <Rect x={px(88)} y={px(22)} width={px(26)} height={px(2)} color={VISUAL_TOKENS.environment.wallLight} />
-      <Rect x={px(90)} y={px(28)} width={px(4)} height={px(4)} color={VISUAL_TOKENS.interactive.shadow} />
-      <Rect x={px(98)} y={px(28)} width={px(7)} height={px(4)} color={VISUAL_TOKENS.environment.floorLight} />
-      <Rect x={px(8)} y={px(18)} width={px(22)} height={px(18)} color={VISUAL_TOKENS.environment.wallDeep} />
-      <Rect x={px(10)} y={px(20)} width={px(18)} height={px(14)} color={VISUAL_TOKENS.environment.floorDeep} />
-      <Rect x={px(13)} y={px(23)} width={px(12)} height={px(2)} color={VISUAL_TOKENS.environment.moon} />
-      <Rect x={px(16)} y={px(27)} width={px(6)} height={px(4)} color={VISUAL_TOKENS.interactive.shadow} />
-      <Rect x={px(94)} y={px(68)} width={px(29)} height={px(2)} color={windowGlow} />
-      <Rect x={px(96)} y={px(70)} width={px(24)} height={px(10)} color={state.flags.windowOpen ? 'rgba(85,182,106,0.10)' : 'rgba(52,81,143,0.08)'} />
-      <Rect x={px(42)} y={px(109)} width={px(36)} height={px(12)} color={VISUAL_TOKENS.environment.floorDeep} />
-      <Rect x={px(46)} y={px(111)} width={px(28)} height={px(8)} color={VISUAL_TOKENS.environment.wallDeep} />
-      <Rect x={px(50)} y={px(113)} width={px(20)} height={px(4)} color={VISUAL_TOKENS.environment.floorLight} />
+      <RoundedRect
+        x={px(placement.x - radius)}
+        y={px(cueY - 2)}
+        width={px(radius * 2)}
+        height={px(4)}
+        r={px(2)}
+        color={`rgba(241,215,92,${alpha})`}
+      />
+      <Circle
+        cx={px(placement.x - radius + 1)}
+        cy={px(cueY - 5 - phase)}
+        r={px(1.2)}
+        color={VISUAL_TOKENS.interactive.focusLight}
+      />
+      <Circle
+        cx={px(placement.x + radius - 1)}
+        cy={px(cueY - 7 + phase)}
+        r={px(1)}
+        color={VISUAL_TOKENS.interactive.focus}
+      />
     </>
   );
 }
@@ -108,20 +151,9 @@ function BedroomEnvironment({ state, px }: { state: SystemicRunState; px: (value
 function RoomContactShadows({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
   return (
     <>
-      <Rect x={px(2)} y={px(103)} width={px(29)} height={px(3)} color="rgba(5,5,9,0.38)" />
-      <Rect x={px(55)} y={px(103)} width={px(27)} height={px(3)} color="rgba(5,5,9,0.42)" />
-      {!state.equipped.includes('slippers') && <Rect x={px(27)} y={px(103)} width={px(10)} height={px(2)} color="rgba(5,5,9,0.36)" />}
-      {!state.collected.includes('keys') && <Rect x={px(84)} y={px(102)} width={px(9)} height={px(2)} color="rgba(5,5,9,0.34)" />}
-    </>
-  );
-}
-
-function ForegroundVignette({ px }: { px: (value: number) => number }) {
-  return (
-    <>
-      <Rect x={0} y={0} width={px(3)} height={px(128)} color="rgba(5,5,9,0.68)" />
-      <Rect x={px(125)} y={0} width={px(3)} height={px(128)} color="rgba(5,5,9,0.68)" />
-      <Rect x={0} y={px(125)} width={px(128)} height={px(3)} color="rgba(5,5,9,0.72)" />
+      <Rect x={px(2)} y={px(103)} width={px(29)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
+      <Rect x={px(55)} y={px(103)} width={px(27)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
+      {!state.equipped.includes('slippers') && <Rect x={px(27)} y={px(103)} width={px(10)} height={px(2)} color={SCENE_TOKENS.contactShadow} />}
     </>
   );
 }
