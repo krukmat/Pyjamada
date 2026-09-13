@@ -255,7 +255,7 @@ If no Android target is available, V-02 through V-05 remain **NOT EXECUTED** and
 
 | ID | Size | Depends on | Task and single output | Acceptance criterion |
 |---|---:|---|---|---|
-| P-01 | S | V-01 | **done** — Define a release-profile protocol for idle, movement, first alarm, stacked alarm/wardrobe chaos, and objective beats. | Closed 2026-09-06. The frozen protocol fixes the V-01 artifact, Android target, Perfetto/ADB/`gfxinfo`/video tooling, repetitions, metric fields, attribution rules, and explicit `NOT CAPTURED` failure handling. See `docs/PERFORMANCE_REVIEW_NOTES.md`. |
+| P-01 | S | V-01 | **done, with observability gate open** — Define a release-profile protocol for idle, movement, first alarm, stacked alarm/wardrobe chaos, and objective beats. | The protocol itself closed 2026-09-06. Its 2026-09-13 replacement-observability diagnostic failed: ADB-injected touches changed gameplay but created no visible encoded marker, so no amendment was made and P-02 remains blocked. See `docs/PERFORMANCE_REVIEW_NOTES.md` and `docs/AUDIT_ANDROID_EVIDENCE.md`. |
 | P-02 | S | V-02, P-01 | Capture the protocol once on the final candidate without changing code during measurement. | Raw evidence is attributable to one revision/device and covers every scenario; missing data is marked, not invented. |
 | P-03 | S | P-02 | Interpret results and record exactly `ACCEPT`, `FOLLOW-UP`, or `FIX BEFORE MERGE` for INC-004. | The decision cites measured evidence and evaluates the 80 ms ticker against observed behavior rather than a generic target. |
 
@@ -286,6 +286,17 @@ is included in the repeated P-02 High task-analysis gate before capture.
 P-02 remains pending until attributable capture evidence is complete; its
 audit output is `docs/AUDIT_ANDROID_EVIDENCE.md`, with status synchronization
 in this plan. P-03 retains ownership of the performance decision.
+
+P-01 observability readiness (2026-09-13): actual RRI `49 High` (base 49,
+native floor 41; C/F/D/T/A/K/P/X = 0/1/2/3/3/4/3/3). The approved bounded
+diagnostic preserved the frozen APK and restored both Android overlays to their
+original unset values. It proved a monotonic process-level CPU counter but
+failed the prerequisite that every injected input have a visible encoded origin;
+therefore it did not amend the protocol, did not begin a new P-02 capture, and
+does not alter the existing P-02 evidence. Local development was ineligible for
+native/device diagnosis. The High task-analysis reviewer passed; the required
+independent solution review (`p01_solution_review`, fresh context) passed after
+`git diff --check` and `npm run audit:premerge`.
 
 ### Z — Closure
 
@@ -373,10 +384,12 @@ an optional architect reviewer for Moderate/High invariants only. The Primary
 validates/applies the patch and runs checks. No local role receives approval,
 repository-wide discovery, device control or completion authority.
 
-## Next task card — B-00
+## Historical task card — B-00 (closed)
 
-This expanded card is the ready-to-present form of the first task. Later tasks
-use the same projection immediately before their execution.
+This is the completed baseline card retained for historical traceability, not
+the next executable task. The current blocking task is a new, bounded P-01
+input-observability method; P-02 may not resume until that task passes its own
+review and authorization gates.
 
 ### 1. Decision
 

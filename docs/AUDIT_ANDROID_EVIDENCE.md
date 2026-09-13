@@ -343,7 +343,7 @@ hashes; do not rewrite this one.
 
 
 ## P-02: Android performance capture attempt (2026-09-07)
-**Status: OPEN / NOT CAPTURED.** All 18 primary trials, six scenario videos and three process-cold videos were saved. Seventeen primary metric rows are complete; A1-3 lacks a complete app CPU total. Required marker-based touch and cold-readiness latency is unavailable. This evidence does not close P-02 and does not disposition INC-004.
+**Status: OPEN / NOT CAPTURED.** All 18 primary trials, six scenario videos and three process-cold videos were saved. Seventeen primary metric rows are complete; A1-3 lacks a complete app CPU total. Required marker-based touch and cold-readiness latency is unavailable. The 2026-09-13 P-01 observability-readiness diagnostic also failed to validate a replacement input-origin method. This evidence does not close P-02 and does not disposition INC-004.
 ### Task card and review gates
 - Objective: execute the authorized amended P-01 protocol on the unchanged V-01 APK and retain attributable raw evidence, including explicit failures.
 - Scope: this evidence ledger and `docs/AUDIT_REMEDIATION_PLAN.md`; generated command transcripts, traces, frame statistics, videos and analysis under the ignored artifact directory below. No application, asset, dependency, native configuration or save-format changes. P-03 owns interpretation.
@@ -435,7 +435,38 @@ All four records below include force-stop, an empty PID check, `am start -W`, a 
 The original cold3 video is18.045500s despite a20s screenrecord request; this unexplained short capture is retained as a deviation. Its single retry is20.091589s and shows the same empty-view/full-room sequence, but the missing touch origin still prevents acceptance.
 ### Evidence location, integrity and next gate
 Raw and derived files remain local and ignored at `artifacts/android-performance/aa29ab9d5119425ed89560eac2b02267a190f329/20260907T060746Z/`. They are **not durable repository artifacts**. The ordered SHA-256 manifest below records their identity for later archival; archiving/publishing has not been performed. `SHA256SUMS` excludes itself; its SHA-256 is `480ece51f0adaec973f869809a3f00fe8afdc1da4486f7e221c575131a5e6c68`.
-P-02 remains open. Before another comparable capture, P-01 needs a validated visible input-origin method and a readiness check that verifies required CPU fields while the warm process still exists. Any revised method must receive its own bounded review/authorization. Keep the current failures and raw data; do not fill missing metrics from another trial, host timestamps, the screenshot tour or source event counts. P-03 and final merge disposition remain pending.
+
+### P-01 observability-readiness diagnostic (2026-09-13)
+
+**Status: FAILED / no protocol amendment.** The unchanged frozen APK was still
+installed (SHA-256 `b015d50a03cf9887f60948ce02fbe7adafbcd1df37f537b8236494af27d7124f`)
+on `emulator-5554`. The diagnostic artifacts are local and ignored at
+`artifacts/android-performance/aa29ab9d5119425ed89560eac2b02267a190f329/p01-observability-20260913-validated/`.
+
+- `pointer_location` and `show_touches` were initially unset, explicitly
+  enabled only for this video pass, then verified unset again afterward. They
+  were not enabled for a primary CPU capture.
+- Ten alternating movement inputs and two repeated Action inputs at the same
+  coordinates changed the game state, but the encoded 13.686389-second video
+  (166 decoded frames; raw PTS retained) contained no visible touch marker or
+  nonzero pointer coordinates: the pointer overlay remained `P: 0 / 1` with
+  zero coordinates. Thus ADB-injected inputs are not an attributable visible
+  input-origin method on this target. The repeated Action pair is consequently
+  unresolved, not treated as two observed touches. Continue-to-room was not
+  attempted after this prerequisite failed.
+- The CPU aggregate experiment is promising but not sufficient to open P-02:
+  the same PID `15797` remained alive, `CLK_TCK` was 100, and
+  `/proc/15797/stat` fields 14+15 rose monotonically from 5,008,835 to
+  5,009,254 ticks (4,190 ms) while `top -H` retained its thread breakdown.
+  It may be proposed in a later P-01 amendment only together with a valid
+  input-origin method and its full readiness check.
+
+P-02 remains open. Before another comparable capture, P-01 needs a validated
+visible input-origin method and a readiness check that verifies required CPU
+fields while the warm process still exists. Any revised method must receive its
+own bounded review/authorization. Keep the current failures and raw data; do
+not fill missing metrics from another trial, host timestamps, the screenshot
+tour or source event counts. P-03 and final merge disposition remain pending.
 <details>
 <summary>Ordered SHA-256 manifest</summary>
 
