@@ -136,17 +136,31 @@ If the release APK is already built:
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The prepared expressive-arcade tour writes fourteen checkpoints to:
+The expressive-arcade tour writes fourteen local checkpoints to:
 
 ```text
 artifacts/android-screenshots/
 ```
 
+The current tour covers the main menu and settings, the sleepy run start, the
+bed/slippers/alarm/wardrobe interactions, success and restart, restored
+continue state, and the `HOUSE AWAKE!`, `OUT OF ENERGY!` and `TOO LATE!`
+failure outcomes. The generated files are ignored local evidence; rerun the
+command to refresh them.
+
 The GitHub execution environment does **not** claim to have performed the visual review; screenshots/device performance remain local audit evidence.
 
-A manually captured 14-step evidence set (main menu through all three failure
-conditions) taken on an arm64-v8a emulator is checked in at
-`docs/screenshots/`, for reference between full Maestro runs.
+The versioned 14-step evidence set (main menu through all three failure
+conditions) from the latest arm64-v8a Android tour is checked in at
+`docs/screenshots/`, so it can be reviewed in GitHub between full Maestro runs.
+
+### Android tour samples
+
+<p align="center">
+  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Sleepy run start in the illustrated bedroom" width="30%" />
+  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run" width="30%" />
+  <img src="docs/screenshots/12_fail_house_awake.png" alt="House Awake failure outcome" width="30%" />
+</p>
 
 ## Useful entry points
 
@@ -160,6 +174,7 @@ src/game/render/GameCanvas.tsx            Skia room composition
 assets/game/                              original Wally/object/FX sprite sheets
 src/platform/storage/                    game persistence
 maestro/screenshots.yaml                 fourteen-step Android visual journey
+artifacts/android-screenshots/            generated local Android screenshot evidence
 docs/screenshots/                         manually captured evidence set
 tests/game.test.ts                        gameplay coverage
 tests/presentation.test.ts                presentation/restore/atlas coverage
