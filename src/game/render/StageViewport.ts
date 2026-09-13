@@ -12,10 +12,12 @@ export type StageDimensions = {
 
 export function stageDimensionsForScreenWidth(screenWidth: number): StageDimensions {
   const availableWidth = Math.max(STAGE_LOGICAL_WIDTH, Math.floor(screenWidth - 24));
-  const scale = Math.max(1, Math.min(3, Math.floor(availableWidth / STAGE_LOGICAL_WIDTH)));
+  const desiredScale = Math.max(1, Math.min(2.5, availableWidth / STAGE_LOGICAL_WIDTH));
+  const height = Math.floor(STAGE_LOGICAL_HEIGHT * desiredScale);
+  const scale = height / STAGE_LOGICAL_HEIGHT;
   return {
-    width: STAGE_LOGICAL_WIDTH * scale,
-    height: STAGE_LOGICAL_HEIGHT * scale,
+    width: Math.floor(STAGE_LOGICAL_WIDTH * scale),
+    height,
     scale,
   };
 }
