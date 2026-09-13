@@ -17,7 +17,7 @@ Pyjamada is also a compact game-architecture playground:
 - **React Native owns the app shell.**
 - **TypeScript owns deterministic gameplay.**
 - **A semantic presentation layer owns transient reactions.**
-- **Skia owns rendering and sprite atlases.**
+- **Skia owns the illustrated gameplay renderer.**
 - **AsyncStorage owns persistence.**
 - **Maestro owns the Android visual tour.**
 
@@ -35,13 +35,17 @@ Wally can be `sleepy`, `normal`, `rushed` or `startled`. Ten ordered rules conne
 
 There is one active gameplay path and one save model.
 
-## Expressive arcade presentation
+## Modern 80s arcade presentation
 
-The active visual direction uses original arcade-inspired pixel assets without copying any existing game's characters, sprite sheets or compositions. The design principle is:
+The active gameplay direction is **arcade-first, Wonder-Boy-flavored and modernized for mobile**. It borrows transferable principles — immediate readability, strong silhouettes, horizontal stage rhythm, warm color, layered depth and expressive consequences — without copying any existing game's characters, layouts, art, sprites or UI.
 
-> **Restrained world + expressive actors + exaggerated consequences.**
+The current visual principle is:
 
-Wally, all six objects and reusable domestic FX are rendered from sprite atlases with deterministic animation clips. Gameplay does not wait for decorative animation and presentation state is never persisted.
+> **Charming layered world + expressive actors + exaggerated consequences.**
+
+Wally, the six gameplay objects and semantic FX are now drawn as original procedural Skia illustration. `WallyAnimator`, `ObjectAnimator`, `FxSystem` and the existing clip manifests still provide deterministic semantic selection and timing; the historical PNG atlases remain validated assets/contracts but are no longer the primary gameplay artwork.
+
+The gameplay viewport is a presentation-only panoramic stage. Logical gameplay coordinates, hit radii, rules and persistence remain unchanged.
 
 ## Architecture
 
@@ -70,10 +74,17 @@ Wally, all six objects and reusable domestic FX are rendered from sprite atlases
                         WallyAnimator ObjectAnimator  FxSystem
                               └────────────┼────────────┘
                                            ▼
-                                     GameCanvas / Skia
+                                  presentation clip/frame
                                            │
-                                    sprite atlases +
-                                  procedural environment
+                                           ▼
+                                     GameCanvas / Skia
+                              ┌────────────┼─────────────┐
+                              ▼            ▼             ▼
+                       illustrated Wally  objects   semantic FX
+                              │            │             │
+                              └────────────┼─────────────┘
+                                           ▼
+                         layered bedroom + lighting + camera
 
 Persistence stores gameplay state only; transient presentation is rebuilt from state/events.
 ```
@@ -120,7 +131,7 @@ Pre-merge/audit evidence package:
 npm run audit:premerge
 ```
 
-That command adds static architecture checks for the gameplay→presentation boundary, legacy-renderer removal and screenshot-tour contract.
+That command adds strict PNG validation plus static architecture checks for the gameplay→presentation boundary, legacy-renderer removal and screenshot-tour contract.
 
 ## Generate the Android visual tour
 
@@ -136,64 +147,64 @@ If the release APK is already built:
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The expressive-arcade tour writes fourteen local checkpoints to:
+The tour writes fourteen local checkpoints to:
 
 ```text
 artifacts/android-screenshots/
 ```
 
-The current tour covers the main menu and settings, the sleepy run start, the
-bed/slippers/alarm/wardrobe interactions, success and restart, restored
-continue state, and the `HOUSE AWAKE!`, `OUT OF ENERGY!` and `TOO LATE!`
-failure outcomes. The generated files are ignored local evidence; rerun the
-command to refresh them.
+It covers the main menu and settings, sleepy run start, bed/slippers/alarm/wardrobe interactions, success and restart, restored continue state, and the `HOUSE AWAKE!`, `OUT OF ENERGY!` and `TOO LATE!` failure outcomes.
 
-The GitHub execution environment does **not** claim to have performed the visual review; screenshots/device performance remain local audit evidence.
+The generated local files are ignored evidence; rerun the command whenever the renderer changes. The GitHub execution environment does **not** claim to have performed Android visual review or performance profiling.
 
-The versioned 14-step evidence set (main menu through all three failure
-conditions) from the latest arm64-v8a Android tour is checked in at
-`docs/screenshots/`, so it can be reviewed in GitHub between full Maestro runs.
+A versioned 14-step evidence set is checked in under `docs/screenshots/` so the branch can be reviewed between full Maestro runs. **Those checked-in images are a visual checkpoint, not proof that the current HEAD has been recaptured.** After a substantial gameplay-render pass, run the tour again before making aesthetic or performance claims about the latest code.
 
 ### Android tour samples
 
 <p align="center">
-  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Sleepy run start in the illustrated bedroom" width="30%" />
-  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run" width="30%" />
-  <img src="docs/screenshots/12_fail_house_awake.png" alt="House Awake failure outcome" width="30%" />
+  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Sleepy run start Android evidence checkpoint" width="30%" />
+  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run Android evidence checkpoint" width="30%" />
+  <img src="docs/screenshots/12_fail_house_awake.png" alt="House Awake Android evidence checkpoint" width="30%" />
 </p>
 
 ## Useful entry points
 
 ```text
 App.tsx                                  application composition + navigation
-src/app/GameScreen.tsx                   HUD, feedback, controls + presentation cadence
+src/app/GameScreen.tsx                   minimal gameplay HUD, feedback and controls
 src/game/systemic/                       deterministic gameplay domain
-src/game/presentation/                   visual events, runtime, animators and FX
-src/game/presentation/atlas/             atlas contracts/manifests/renderer
-src/game/render/GameCanvas.tsx            Skia room composition
-assets/game/                              original Wally/object/FX sprite sheets
-src/platform/storage/                    game persistence
+src/game/presentation/                   visual events, runtime and semantic animators
+src/game/presentation/atlas/             clip/frame manifests + legacy asset contracts
+src/game/render/GameCanvas.tsx            gameplay-stage composition
+src/game/render/IllustratedWally.tsx      original procedural Wally renderer
+src/game/render/WallyArcadeMotion.ts      anticipation/impact/recovery key poses
+src/game/render/IllustratedObject.tsx     six procedural interactive-object renderers
+src/game/render/IllustratedFx.tsx         semantic modern-arcade FX renderer
+src/game/render/IllustratedBedroomScene.tsx layered bedroom/stage composition
+src/game/render/ArcadeStageLighting.tsx   hero-first light/value hierarchy
+src/game/render/StageViewport.ts          presentation-only projection + camera
+assets/game/                              validated historical atlas assets/contracts
+src/platform/storage/                    gameplay persistence
 maestro/screenshots.yaml                 fourteen-step Android visual journey
 artifacts/android-screenshots/            generated local Android screenshot evidence
-docs/screenshots/                         manually captured evidence set
+docs/screenshots/                         versioned Android visual checkpoint
 tests/game.test.ts                        gameplay coverage
-tests/presentation.test.ts                presentation/restore/atlas coverage
+tests/presentation.test.ts                presentation/restore/manifest coverage
 docs/workflow/AGENT_WORKFLOW_GUIDE.md     AI task workflow, RRI/HITL and model routing
-scripts/rri.mjs                           deterministic RRI v2 calculator
-scripts/sync-agent-instructions.mjs       Codex/Claude startup instruction projection
 scripts/audit-static.sh                   architecture invariants
 ```
 
 ## Audit status
 
-The expressive arcade refactor is maintained on `feat/expressive-arcade-visual-refactor` until team audit disposition. Start with:
+The visual refactor is maintained on `feat/expressive-arcade-visual-refactor` until team audit disposition. Start with:
 
 - `docs/AUDIT_READINESS.md`
 - `docs/AUDIT_REVIEW_GUIDE.md`
 - `docs/VISUAL_REFACTOR_INCIDENTS.md`
 - `docs/PERFORMANCE_REVIEW_NOTES.md`
+- `docs/WONDER_BOY_VISUAL_REWORK_PLAN.md`
 
-CI success is necessary but not sufficient for merge approval; Android visual quality and the known presentation-cadence performance question require explicit human disposition.
+CI success is necessary but not sufficient for merge approval. Android visual quality, the known presentation-cadence question around the React 80 ms ticker, and the human gameplay/fun gate require explicit external disposition.
 
 ## Current scope
 
