@@ -16,7 +16,7 @@ import {
 import { IllustratedFx } from './IllustratedFx';
 import { IllustratedObject } from './IllustratedObject';
 import { IllustratedWally } from './IllustratedWally';
-import { stageOriginX, stagePx, stageScale } from './StageViewport';
+import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
 type Props = {
@@ -42,6 +42,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
+  const cameraX = stageCameraOffsetPx(height, state.player.x, state.player.facing);
   const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
@@ -55,7 +56,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
   return (
     <Canvas style={{ width, height }}>
       <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
-      <Group transform={[{ translateX: originX + px(shake.x) }, { translateY: px(shake.y) }]}>
+      <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
         <IllustratedBedroomBackdrop state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
         {target && (
