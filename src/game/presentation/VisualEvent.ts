@@ -9,12 +9,15 @@ export type WallyReactionCause = 'bed' | 'alarm-clock' | 'wardrobe' | 'keys' | '
 // recomputed later from the runtime's current/latest state.
 export type VisualOrigin = { x: number; y: number };
 
+// These are presentation anchors, not gameplay coordinates. X stays aligned
+// with the systemic room so cause/effect remains spatially intuitive; Y may
+// attach the feedback to furniture, shelves or wall-mounted props.
 export const OBJECT_VISUAL_ORIGINS: Record<SystemicObjectId, VisualOrigin> = {
   bed: { x: 16, y: 87 },
   slippers: { x: 32, y: 101 },
-  'alarm-clock': { x: 48, y: 87 },
+  'alarm-clock': { x: 48, y: 68 },
   wardrobe: { x: 68, y: 74 },
-  keys: { x: 88, y: 91 },
+  keys: { x: 88, y: 56 },
   window: { x: 108, y: 48 },
 };
 
