@@ -37,3 +37,15 @@ export function stageParallaxPx(pixelSize: number, playerX: number, maxLogicalOf
   const travel = Math.max(-1, Math.min(1, (playerX - center) / center));
   return stagePx(pixelSize, travel * maxLogicalOffset);
 }
+
+export function stageCameraOffsetPx(
+  pixelHeight: number,
+  playerX: number,
+  facing: 'left' | 'right',
+): number {
+  const center = LOGICAL_SIZE / 2;
+  const positionBias = Math.max(-1, Math.min(1, (playerX - center) / 48)) * 4;
+  const lookAhead = facing === 'right' ? 1 : -1;
+  const logicalOffset = Math.max(-6, Math.min(6, -(positionBias + lookAhead)));
+  return stagePx(pixelHeight, logicalOffset);
+}
