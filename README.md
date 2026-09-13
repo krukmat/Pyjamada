@@ -157,15 +157,25 @@ It covers the main menu and settings, sleepy run start, bed/slippers/alarm/wardr
 
 The generated local files are ignored evidence; rerun the command whenever the renderer changes. The GitHub execution environment does **not** claim to have performed Android visual review or performance profiling.
 
-A versioned 14-step evidence set is checked in under `docs/screenshots/` so the branch can be reviewed between full Maestro runs. **Those checked-in images are a visual checkpoint, not proof that the current HEAD has been recaptured.** After a substantial gameplay-render pass, run the tour again before making aesthetic or performance claims about the latest code.
+A curated six-shot gallery is checked in under `docs/screenshots/`, selected from the latest generated tour to show the game's strongest beats without repeating near-identical states. It remains a visual checkpoint: after a substantial renderer change, run the tour again before making aesthetic or performance claims about the new code.
 
-### Android tour samples
+### A morning in Pyjamada
+
+From the mission briefing to a barely controlled escape, the room turns every small choice into a visible consequence.
 
 <p align="center">
-  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Sleepy run start Android evidence checkpoint" width="30%" />
-  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run Android evidence checkpoint" width="30%" />
-  <img src="docs/screenshots/12_fail_house_awake.png" alt="House Awake Android evidence checkpoint" width="30%" />
+  <img src="docs/screenshots/01_main_menu.png" alt="Pyjamada main menu and morning mission" width="30%" />
+  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Wally starting the morning sleepy in the bedroom" width="30%" />
+  <img src="docs/screenshots/07_startled.png" alt="Wally startled after making too much noise with the alarm" width="30%" />
 </p>
+<p align="center"><sub>Pick the mission · Wake up in the bedroom · Discover that noise has consequences</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/08_wardrobe_fumble.png" alt="Wally dressed after a clumsy wardrobe interaction" width="30%" />
+  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run with clothes and keys" width="30%" />
+  <img src="docs/screenshots/12_fail_house_awake.png" alt="Failed Pyjamada run after waking the house" width="30%" />
+</p>
+<p align="center"><sub>Get dressed, coordination optional · Find the clean route · Or wake the whole house</sub></p>
 
 ## Useful entry points
 
