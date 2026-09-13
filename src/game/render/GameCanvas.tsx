@@ -8,6 +8,7 @@ import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import { findSystemicObject } from '../systemic/SystemicContent';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
+import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
 import {
   IllustratedBedroomBackdrop,
   IllustratedBedroomForeground,
@@ -61,6 +62,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
       <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
       <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
         <IllustratedBedroomBackdrop state={state} size={height} />
+        <ArcadeStageAtmosphere state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
         {target && (
           <InteractionFocus
@@ -80,13 +82,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
             scale={scale}
           />
         ))}
-        <Rect
-          x={px(state.player.x - 8)}
-          y={px(PLAYER_GROUND_Y + 1)}
-          width={px(16)}
-          height={px(2)}
-          color={SCENE_TOKENS.contactShadow}
-        />
+        <WallyFocusLight state={state} size={height} x={state.player.x} groundY={PLAYER_GROUND_Y} />
         <IllustratedWally
           state={state}
           visual={wally}
@@ -118,9 +114,15 @@ function InteractionFocus({ objectId, placement, px, phase }: {
   phase: number;
 }) {
   const elevated = objectId === 'window' || objectId === 'keys' || objectId === 'alarm-clock';
-  const radius = objectId === 'bed' ? 15 : objectId === 'wardrobe' ? 11 : 7;
+  const radius = objectId === 'bed'
+    ? 16
+    : objectId === 'wardrobe'
+      ? 14
+      : objectId === 'alarm-clock' || objectId === 'keys'
+        ? 9
+        : 8;
   const cueY = elevated ? placement.y - (objectId === 'alarm-clock' ? 8 : 11) : placement.y + 1;
-  const alpha = phase === 0 ? 0.15 : 0.24;
+  const alpha = phase === 0 ? 0.13 : 0.21;
 
   return (
     <>
@@ -151,9 +153,9 @@ function InteractionFocus({ objectId, placement, px, phase }: {
 function RoomContactShadows({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
   return (
     <>
-      <Rect x={px(2)} y={px(103)} width={px(29)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
-      <Rect x={px(55)} y={px(103)} width={px(27)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
-      {!state.equipped.includes('slippers') && <Rect x={px(27)} y={px(103)} width={px(10)} height={px(2)} color={SCENE_TOKENS.contactShadow} />}
+      <RoundedRect x={px(2)} y={px(102)} width={px(30)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
+      <RoundedRect x={px(53)} y={px(102)} width={px(31)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
+      {!state.equipped.includes('slippers') && <RoundedRect x={px(26)} y={px(102)} width={px(12)} height={px(3)} r={px(1.5)} color={SCENE_TOKENS.contactShadow} />}
     </>
   );
 }
