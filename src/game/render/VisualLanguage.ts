@@ -67,6 +67,7 @@ export const SCENE_TOKENS = {
   sky: '#73a4c1',
   skyLight: '#bad5c7',
   sunrise: '#f6d990',
+  horizon: '#e8c783',
   cloud: '#f4ead1',
   cloudShade: '#d5c7b9',
   distantDeep: '#465d70',
