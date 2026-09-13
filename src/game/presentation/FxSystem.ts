@@ -12,6 +12,7 @@ export type FxVisualFrame = {
   x: number;
   y: number;
   frame: AtlasFrame;
+  frameIndex: number;
 };
 
 // FINDING-003 / F-04: every FX-capable event either owns a fixed object
@@ -75,6 +76,7 @@ export function resolveFxFrames(active: readonly ActiveVisualEvent[], nowMs: num
       x: origin.x,
       y: origin.y + yOffset,
       frame: requireAtlasFrame(FX_INDEX, animation.frameId),
+      frameIndex: animation.frameIndex,
     }];
   });
 }
