@@ -62,6 +62,40 @@ export const VISUAL_TOKENS = {
   },
 } as const;
 
+export const SCENE_TOKENS = {
+  skyDeep: '#31547a',
+  sky: '#5f8fb4',
+  skyLight: '#a9c7c2',
+  horizon: '#e2c483',
+  distantDeep: '#334d62',
+  distant: '#547081',
+  distantLight: '#72939a',
+  wallShadow: '#4b3e57',
+  wallDeep: '#6b5364',
+  wall: '#a97570',
+  wallWarm: '#cf9674',
+  plasterLight: '#e4b888',
+  trimDark: '#5a3d48',
+  woodDeep: '#4a342f',
+  wood: '#76513f',
+  woodLight: '#aa7653',
+  floorDeep: '#4a3c38',
+  floor: '#735845',
+  floorLight: '#a27a57',
+  curtainDeep: '#553c63',
+  curtain: '#8b5f77',
+  curtainLight: '#bb8190',
+  rugDeep: '#6f4652',
+  rug: '#b86662',
+  rugLight: '#df9874',
+  foreground: '#2a2230',
+  foregroundLight: '#433347',
+  windowGlow: 'rgba(255,220,150,0.14)',
+  warmLight: 'rgba(255,209,132,0.10)',
+  coolShade: 'rgba(42,58,90,0.14)',
+  contactShadow: 'rgba(37,25,32,0.34)',
+} as const;
+
 export const PIXEL_ART_POLICY = {
   logicalWorldSize: 128,
   baseSpriteScale: 1,
@@ -72,11 +106,13 @@ export const PIXEL_ART_POLICY = {
 } as const;
 
 export const VISUAL_VALUE_ORDER = [
+  'atmosphere',
   'environment',
   'secondary-props',
   'interactive-objects',
   'wally',
   'fx',
+  'foreground',
 ] as const;
 
 export const FX_GRAMMAR = [
@@ -88,5 +124,3 @@ export const FX_GRAMMAR = [
   'motion-streak',
   'impact',
 ] as const;
-
-// Wonder-Boy-inspired scene rework starts here.
