@@ -29,12 +29,15 @@ type Props = {
 
 type ObjectPlacement = { x: number; y: number };
 
+// Presentation coordinates are deliberately independent from gameplay radii.
+// X remains aligned with the systemic room for spatial intuition, while Y is
+// free to place props naturally into the illustrated furniture.
 const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   bed: { x: 16, y: 105 },
   slippers: { x: 32, y: 105 },
-  'alarm-clock': { x: 48, y: 101 },
+  'alarm-clock': { x: 48, y: 78 },
   wardrobe: { x: 68, y: 105 },
-  keys: { x: 88, y: 101 },
+  keys: { x: 88, y: 66 },
   window: { x: 108, y: 66 },
 };
 
@@ -114,9 +117,9 @@ function InteractionFocus({ objectId, placement, px, phase }: {
   px: (value: number) => number;
   phase: number;
 }) {
-  const isWallObject = objectId === 'window';
+  const elevated = objectId === 'window' || objectId === 'keys' || objectId === 'alarm-clock';
   const radius = objectId === 'bed' ? 15 : objectId === 'wardrobe' ? 11 : 7;
-  const cueY = isWallObject ? placement.y - 11 : placement.y + 1;
+  const cueY = elevated ? placement.y - (objectId === 'alarm-clock' ? 8 : 11) : placement.y + 1;
   const alpha = phase === 0 ? 0.15 : 0.24;
 
   return (
@@ -151,7 +154,6 @@ function RoomContactShadows({ state, px }: { state: SystemicRunState; px: (value
       <Rect x={px(2)} y={px(103)} width={px(29)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
       <Rect x={px(55)} y={px(103)} width={px(27)} height={px(3)} color={SCENE_TOKENS.contactShadow} />
       {!state.equipped.includes('slippers') && <Rect x={px(27)} y={px(103)} width={px(10)} height={px(2)} color={SCENE_TOKENS.contactShadow} />}
-      {!state.collected.includes('keys') && <Rect x={px(84)} y={px(102)} width={px(9)} height={px(2)} color={SCENE_TOKENS.contactShadow} />}
     </>
   );
 }
