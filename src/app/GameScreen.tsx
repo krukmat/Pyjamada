@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { selectWallyVisual } from '../game/presentation/WallyAnimator';
 import { GameCanvas } from '../game/render/GameCanvas';
+import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
@@ -21,7 +22,7 @@ type Props = {
 
 export function GameScreen({ state, presentationRuntime, touchControlLayout, onInput, onRestart, onExit }: Props) {
   const { width } = useWindowDimensions();
-  const viewport = Math.min(384, Math.max(128, Math.floor((width - 32) / 128) * 128));
+  const viewport = stageDimensionsForScreenWidth(width);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const target = findSystemicObject(state.player.x);
   const done = state.objective.status !== 'active';
@@ -61,7 +62,7 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
           {debugClipId}
         </Text>
       )}
-      <View style={[styles.gameFrame, { width: viewport + 8 }]}>
+      <View style={[styles.gameFrame, { width: viewport.width + 8 }]}>
         <View style={styles.hud}>
           <ArcadeStat label="TIME" value={String(state.timeSpent).padStart(2, '0')} accent={VISUAL_TOKENS.ui.yellow} />
           <ResourceStat label="ENERGY" value={state.energy} max={100} accent={VISUAL_TOKENS.feedback.energy} />
@@ -76,11 +77,17 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
             <Text style={[styles.actionPromptText, target && styles.actionPromptTextActive]}>{target ? `ACTION · ${target.label}` : 'MOVE · EXPLORE'}</Text>
           </View>
         </View>
-        <GameCanvas state={state} size={viewport} activeVisualEvents={activeVisualEvents} nowMs={nowMs} />
+        <GameCanvas
+          state={state}
+          width={viewport.width}
+          height={viewport.height}
+          activeVisualEvents={activeVisualEvents}
+          nowMs={nowMs}
+        />
         {done && <OutcomeBanner state={state} />}
       </View>
 
-      <View style={styles.feedbackBox}>
+      <View style={[styles.feedbackBox, { maxWidth: viewport.width + 8 }]}>
         <Text testID="game-reaction" style={styles.reaction}>{reactionFor(state)}</Text>
         {state.lastAction && state.lastAction.kind !== 'restart' && <Text style={styles.delta}>{compactDeltaFor(state)}</Text>}
       </View>
@@ -198,7 +205,7 @@ const styles = StyleSheet.create({
   actionPromptActive: { borderColor: VISUAL_TOKENS.interactive.focus },
   actionPromptText: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
   actionPromptTextActive: { color: VISUAL_TOKENS.interactive.focusLight },
-  feedbackBox: { width: '100%', maxWidth: 392, minHeight: 48, padding: 7, borderWidth: 2, borderRightWidth: 4, borderBottomWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
+  feedbackBox: { width: '100%', minHeight: 48, padding: 7, borderWidth: 2, borderRightWidth: 4, borderBottomWidth: 4, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
   reaction: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center' },
   delta: { marginTop: 3, color: VISUAL_TOKENS.ui.cyan, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
   outcomeBanner: { position: 'absolute', left: 20, right: 20, bottom: 18, minHeight: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, backgroundColor: 'rgba(12,9,18,0.94)' },
