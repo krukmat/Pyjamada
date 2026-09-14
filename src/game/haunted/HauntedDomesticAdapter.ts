@@ -15,6 +15,7 @@ export type HauntedMovementNoiseResult = {
 
 const BASE_MOVEMENT_NOISE_PER_UNIT = 0.125;
 const SLIPPERS_MOVEMENT_NOISE_PER_UNIT = 0.025;
+const SLEEPY_BLOCK_PENALTY_MS = 1_000;
 
 export function syncDomesticPlayer(state: SystemicRunState, x: number, facing: 'left' | 'right'): SystemicRunState {
   return { ...state, player: { x: Math.round(x), facing } };
@@ -49,6 +50,19 @@ export function interactHauntedDomestic(state: SystemicRunState): HauntedDomesti
   const object = findSystemicObject(state.player.x);
   if (!object) return { state, clockPenaltyMs: 0, ruleTrace: [] };
 
+  // Haunted Morning has a real wake-up gate: sleepy Wally can fumble with the
+  // room, but cannot make objective progress until bed/alarm wakes him.
+  if (state.wallyState === 'sleepy' && object.id !== 'bed' && object.id !== 'alarm-clock') {
+    const trace = ['sleepy-action-blocked'];
+    const next = withHighNoiseState({
+      ...state,
+      energy: clampEnergy(state.energy - 2),
+      noise: clampNoise(state.noise + 2),
+      interactionCounts: { ...state.interactionCounts, [object.id]: state.interactionCounts[object.id] + 1 },
+    }, trace);
+    return { state: next, objectId: object.id, clockPenaltyMs: SLEEPY_BLOCK_PENALTY_MS, ruleTrace: trace };
+  }
+
   const pre = state;
   const trace: string[] = [];
   let penaltyMs = object.baseEffect.time * 1000;
@@ -61,11 +75,6 @@ export function interactHauntedDomestic(state: SystemicRunState): HauntedDomesti
   next = applyCommands(next, object.commands);
   next = markObjectState(next, object.id);
 
-  if (pre.wallyState === 'sleepy' && object.id !== 'bed' && object.id !== 'alarm-clock') {
-    penaltyMs += 2000;
-    next = { ...next, energy: clampEnergy(next.energy - 2) };
-    trace.push('sleepy-action-tax');
-  }
   if (object.id === 'bed' && pre.wallyState === 'sleepy') {
     next = { ...next, wallyState: 'normal' };
     trace.push('bed-wakes-wally');
