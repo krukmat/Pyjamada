@@ -1,140 +1,342 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
+import { selectWallyVisual } from '../game/presentation/WallyAnimator';
 import { GameCanvas } from '../game/render/GameCanvas';
-import { RETRO_PALETTE } from '../game/render/VisualLanguage';
+import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
+import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { SystemicInput, SystemicRunState } from '../game/systemic/SystemicState';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { PixelMeter } from './RetroUiKit';
+import { isTestHooksEnabled } from './testHooks';
 
 type Props = {
   state: SystemicRunState;
+  presentationRuntime: PresentationRuntime;
   touchControlLayout: TouchControlLayout;
   onInput: (input: SystemicInput) => void;
   onRestart: () => void;
   onExit: () => void;
 };
 
-export function GameScreen({ state, touchControlLayout, onInput, onRestart, onExit }: Props) {
+export function GameScreen({ state, presentationRuntime, touchControlLayout, onInput, onRestart, onExit }: Props) {
   const { width } = useWindowDimensions();
-  const viewport = Math.min(384, Math.max(128, Math.floor((width - 32) / 128) * 128));
+  const viewport = stageDimensionsForScreenWidth(width);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const target = findSystemicObject(state.player.x);
   const done = state.objective.status !== 'active';
-  const left = <Control testID="move-left-button" label="◀" onPress={() => onInput('left')} />;
-  const right = <Control testID="move-right-button" label="▶" onPress={() => onInput('right')} />;
+  const activeVisualEvents = presentationRuntime.snapshot();
+
+  // T-05: transient actor clips live for less time than the Android hierarchy
+  // dump round-trip. The test hook therefore latches the latest non-idle clip
+  // until the next input without changing presentation or gameplay timing.
+  const lastTransientClipRef = useRef<string | null>(null);
+  const liveClipId = isTestHooksEnabled() ? selectWallyVisual(state, activeVisualEvents, nowMs).clipId : null;
+  if (liveClipId !== null && !liveClipId.startsWith('idle')) {
+    lastTransientClipRef.current = liveClipId;
+  }
+  const debugClipId = lastTransientClipRef.current ?? liveClipId;
+
+  const handleInput = (input: SystemicInput) => {
+    lastTransientClipRef.current = null;
+    onInput(input);
+  };
+  const left = <Control testID="move-left-button" label="◀" onPress={() => handleInput('left')} />;
+  const right = <Control testID="move-right-button" label="▶" onPress={() => handleInput('right')} />;
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 80);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <View testID="game-screen" style={styles.container}>
-      <View style={[styles.gameFrame, { width: viewport + 8 }]}>
-        <View style={styles.hud}>
-          <Stat label="TIME" value={String(state.timeSpent)} />
-          <ResourceStat label="ENERGY" value={state.energy} max={100} accent={RETRO_PALETTE.green} />
-          <ResourceStat label="NOISE" value={state.noise} max={100} accent={RETRO_PALETTE.red} />
-          <Stat label="WALLY" value={state.wallyState.toUpperCase()} />
+      {isTestHooksEnabled() && (
+        <Text testID="debug-wally-clip" style={styles.debugHidden}>
+          {debugClipId}
+        </Text>
+      )}
+
+      <View style={[styles.gameFrame, { width: viewport.width }]}>
+        <GameCanvas
+          state={state}
+          width={viewport.width}
+          height={viewport.height}
+          activeVisualEvents={activeVisualEvents}
+          nowMs={nowMs}
+        />
+
+        <View pointerEvents="none" style={styles.sceneHud}>
+          <View style={styles.missionBlock}>
+            <Text style={styles.objectiveKicker}>MORNING RUN</Text>
+            <Text style={styles.objective}>GET DRESSED + FIND KEYS</Text>
+          </View>
+          <View style={styles.statsBlock}>
+            <ArcadeStat label="TIME" value={String(state.timeSpent).padStart(2, '0')} accent={VISUAL_TOKENS.ui.yellow} />
+            <ResourceStat label="ENERGY" value={state.energy} max={100} accent={VISUAL_TOKENS.feedback.energy} />
+            <ResourceStat label="NOISE" value={state.noise} max={100} accent={VISUAL_TOKENS.feedback.noise} />
+          </View>
         </View>
-        <View style={styles.objectiveStrip}>
-          <Text style={styles.objective}>GET DRESSED + FIND KEYS</Text>
-          <Text style={styles.nearby}>{target ? `NEAR: ${target.label}` : 'NEAR: —'}</Text>
-        </View>
-        <GameCanvas state={state} size={viewport} />
+
+        {!done && target && (
+          <View pointerEvents="none" style={styles.actionPrompt}>
+            <View style={styles.actionDot} />
+            <Text style={styles.actionPromptText}>ACTION · {target.label}</Text>
+          </View>
+        )}
+
+        {done && <OutcomeBanner state={state} />}
       </View>
 
-      <View style={styles.feedbackBox}>
+      <View style={[styles.feedbackBox, { maxWidth: viewport.width }]}>
         <Text testID="game-reaction" style={styles.reaction}>{reactionFor(state)}</Text>
-        <Text style={styles.delta}>{deltaFor(state)}</Text>
-        {state.lastAction?.ruleTrace.length ? <Text style={styles.trace}>RULES: {state.lastAction.ruleTrace.join(' → ')}</Text> : null}
+        {state.lastAction && state.lastAction.kind !== 'restart' && <Text style={styles.delta}>{compactDeltaFor(state)}</Text>}
       </View>
 
       {!done ? (
         <View style={styles.controls}>
           {touchControlLayout === 'standard' ? left : right}
-          <Control testID="action-button" label="ACTION" wide onPress={() => onInput('action')} />
+          <Control testID="action-button" label="ACTION" wide accent="action" onPress={() => handleInput('action')} />
           {touchControlLayout === 'standard' ? right : left}
         </View>
       ) : (
-        <Pressable testID="restart-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, styles.restart, pressed && styles.pressed]} onPress={onRestart}>
+        <Pressable
+          testID="restart-button"
+          style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, styles.restart, pressed && styles.pressed]}
+          onPress={onRestart}
+        >
           <Text style={styles.buttonText}>TRY AGAIN</Text>
         </Pressable>
       )}
 
-      <Pressable testID="exit-button" style={({ pressed }: { pressed: boolean }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={onExit}>
-        <Text style={styles.buttonText}>BACK TO MENU</Text>
+      <Pressable
+        testID="exit-button"
+        style={({ pressed }: { pressed: boolean }) => [styles.exitButton, pressed && styles.pressed]}
+        onPress={onExit}
+      >
+        <Text style={styles.exitText}>BACK TO MENU</Text>
       </Pressable>
     </View>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return <View style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>;
+function ArcadeStat({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
+    </View>
+  );
 }
 
 function ResourceStat({ label, value, max, accent }: { label: string; value: number; max: number; accent: string }) {
   return (
     <View style={styles.stat}>
-      <View style={styles.resourceHeader}><Text style={styles.statLabel}>{label}</Text><Text style={styles.resourceValue}>{value}</Text></View>
+      <View style={styles.resourceHeader}>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.resourceValue}>{value}</Text>
+      </View>
       <PixelMeter value={value / max} segments={5} accent={accent} />
     </View>
   );
 }
 
-function Control({ testID, label, onPress, wide = false }: { testID: string; label: string; onPress: () => void; wide?: boolean }) {
+function OutcomeBanner({ state }: { state: SystemicRunState }) {
+  const success = state.objective.status === 'completed';
+  const title = success ? 'READY!' : state.objective.reason === 'house-awake' ? 'HOUSE AWAKE!' : state.objective.reason === 'too-late' ? 'TOO LATE!' : 'OUT OF ENERGY!';
+  const subtitle = success ? 'DRESSED · KEYS · GO' : 'THE ROOM REMEMBERS YOUR MISTAKES';
   return (
-    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.control, wide && styles.controlWide, pressed && styles.pressed]}>
+    <View style={[styles.outcomeBanner, success ? styles.outcomeSuccess : styles.outcomeFailure]}>
+      <Text style={styles.outcomeTitle}>{title}</Text>
+      <Text style={styles.outcomeSubtitle}>{subtitle}</Text>
+    </View>
+  );
+}
+
+function Control({ testID, label, onPress, wide = false, accent = 'move' }: { testID: string; label: string; onPress: () => void; wide?: boolean; accent?: 'move' | 'action' }) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }) => [
+        styles.control,
+        wide && styles.controlWide,
+        accent === 'action' && styles.controlAction,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.controlHighlight} />
       <Text style={styles.controlText}>{label}</Text>
     </Pressable>
   );
 }
 
 function reactionFor(state: SystemicRunState): string {
-  if (state.objective.status === 'completed') return 'READY! Wally has the keys and is dressed. One clean escape.';
+  if (state.objective.status === 'completed') return 'Keys. Clothes. Door. Wally is somehow ready.';
   if (state.objective.status === 'failed') {
-    if (state.objective.reason === 'house-awake') return 'CHAOS. Too much noise. Wally knows exactly what went wrong.';
-    if (state.objective.reason === 'too-late') return 'TOO LATE. A faster route is hiding in the same room.';
-    return 'EXHAUSTED. Wally needs a less heroic morning routine.';
+    if (state.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
+    if (state.objective.reason === 'too-late') return 'Morning won. Try a sharper route.';
+    return 'No energy left. Heroics were a mistake.';
   }
   const id = state.lastAction?.objectId;
-  if (id === 'bed') return 'Five more minutes. A suspiciously effective strategy.';
-  if (id === 'alarm-clock' && state.wallyState === 'startled') return 'THE ALARM AGAIN? Wally is now operating on panic.';
-  if (id === 'alarm-clock') return 'Awake instantly. Quietly? Not remotely.';
-  if (id === 'slippers') return 'Stealth slippers equipped. Domestic technology at its finest.';
-  if (id === 'wardrobe') return 'Dressed. Coordination remains optional.';
-  if (id === 'window') return state.flags.windowOpen ? 'Fresh air. Unfortunately, every sound now travels.' : 'Window closed. The house forgives nothing.';
-  if (id === 'keys') return 'Keys acquired. Now: is Wally actually dressed?';
-  if (state.wallyState === 'sleepy') return 'Wally is barely awake. Touch something and see what happens.';
-  if (state.wallyState === 'rushed') return 'Clock pressure. Faster decisions now have noisier consequences.';
-  if (state.wallyState === 'startled') return 'Wally is startled. Small mistakes are getting expensive.';
-  return 'The room is simple. The consequences are not.';
+  if (id === 'bed') return 'Five more minutes. Surprisingly effective.';
+  if (id === 'alarm-clock' && state.wallyState === 'startled') return 'Again?! Panic mode engaged.';
+  if (id === 'alarm-clock') return 'Awake. Quiet? Not even close.';
+  if (id === 'slippers') return 'Soft steps unlocked.';
+  if (id === 'wardrobe') return 'Dressed. Coordination optional.';
+  if (id === 'window') return state.flags.windowOpen ? 'Fresh air. Every sound travels farther.' : 'Window shut. Noise stays inside.';
+  if (id === 'keys') return 'Keys acquired.';
+  if (state.wallyState === 'sleepy') return 'Wally is barely functional.';
+  if (state.wallyState === 'rushed') return 'The clock is winning.';
+  if (state.wallyState === 'startled') return 'One more mistake could get loud.';
+  return 'Ordinary room. Suspicious consequences.';
 }
 
-function deltaFor(state: SystemicRunState): string {
+function compactDeltaFor(state: SystemicRunState): string {
   const action = state.lastAction;
-  if (!action) return 'ACTION → CONSEQUENCE → ADAPT';
-  const sign = (value: number) => value > 0 ? `+${value}` : String(value);
-  return `Δ TIME ${sign(action.timeDelta)} · ENERGY ${sign(action.energyDelta)} · NOISE ${sign(action.noiseDelta)}`;
+  if (!action) return '';
+  const parts: string[] = [];
+  if (action.energyDelta !== 0) parts.push(`ENERGY ${signed(action.energyDelta)}`);
+  if (action.noiseDelta !== 0) parts.push(`NOISE ${signed(action.noiseDelta)}`);
+  if (action.timeDelta !== 0) parts.push(`TIME ${signed(action.timeDelta)}`);
+  return parts.join(' · ');
+}
+
+function signed(value: number): string {
+  return value > 0 ? `+${value}` : String(value);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#07060b', padding: 14 },
-  gameFrame: { alignItems: 'center', overflow: 'hidden', backgroundColor: RETRO_PALETTE.void, borderWidth: 4, borderColor: RETRO_PALETTE.greenDark },
-  hud: { width: '100%', minHeight: 56, flexDirection: 'row', backgroundColor: RETRO_PALETTE.panel, borderBottomWidth: 3, borderBottomColor: RETRO_PALETTE.greenDark },
-  stat: { flex: 1, justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4, borderRightWidth: 1, borderRightColor: RETRO_PALETTE.purpleDark },
-  statLabel: { color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
-  statValue: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center', marginTop: 4 },
-  resourceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  resourceValue: { color: RETRO_PALETTE.yellow, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  objectiveStrip: { width: '100%', minHeight: 34, paddingHorizontal: 8, justifyContent: 'center', backgroundColor: RETRO_PALETTE.panelRaised, borderBottomWidth: 2, borderBottomColor: RETRO_PALETTE.purpleDark },
-  objective: { color: RETRO_PALETTE.yellow, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
-  nearby: { color: RETRO_PALETTE.magenta, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  feedbackBox: { width: '100%', maxWidth: 392, minHeight: 66, padding: 8, borderWidth: 2, borderBottomWidth: 4, borderRightWidth: 4, borderColor: RETRO_PALETTE.purpleDark, backgroundColor: RETRO_PALETTE.panel },
-  reaction: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', textAlign: 'center' },
-  delta: { marginTop: 4, color: RETRO_PALETTE.cyan, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', textAlign: 'center' },
-  trace: { marginTop: 3, color: RETRO_PALETTE.purple, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
-  controls: { flexDirection: 'row', gap: 10 },
-  control: { width: 74, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, borderColor: RETRO_PALETTE.cyanDark, backgroundColor: RETRO_PALETTE.panelRaised },
-  controlWide: { width: 110, borderColor: RETRO_PALETTE.magentaDark },
-  pressed: { opacity: 0.78, transform: [{ translateX: 2 }, { translateY: 3 }], borderRightWidth: 3, borderBottomWidth: 3 },
-  controlText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 14, fontWeight: '900' },
-  secondaryButton: { minWidth: 190, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRightWidth: 5, borderBottomWidth: 5, borderColor: RETRO_PALETTE.purpleDark, backgroundColor: RETRO_PALETTE.panelRaised, paddingHorizontal: 14 },
-  restart: { borderColor: RETRO_PALETTE.yellowDark },
-  buttonText: { color: RETRO_PALETTE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: SCENE_TOKENS.foreground,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  debugHidden: { position: 'absolute', top: 0, left: 0, width: 4, height: 4, opacity: 0.01 },
+  gameFrame: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(244,217,164,0.34)',
+    borderRadius: 12,
+    backgroundColor: SCENE_TOKENS.skyDeep,
+  },
+  sceneHud: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: 6,
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 5,
+  },
+  missionBlock: {
+    flex: 1.08,
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(245,211,125,0.28)',
+    backgroundColor: 'rgba(40,33,44,0.68)',
+  },
+  objectiveKicker: { color: SCENE_TOKENS.sunrise, fontFamily: 'monospace', fontSize: 5, fontWeight: '800', letterSpacing: 0.8 },
+  objective: { marginTop: 1, color: '#fff0c9', fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
+  statsBlock: {
+    flex: 1.72,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(181,205,189,0.18)',
+    backgroundColor: 'rgba(36,31,41,0.62)',
+  },
+  stat: { flex: 1, justifyContent: 'center', minWidth: 0 },
+  statLabel: { color: '#cfc1b7', fontFamily: 'monospace', fontSize: 5, fontWeight: '900', letterSpacing: 0.35 },
+  statValue: { fontFamily: 'monospace', fontSize: 13, lineHeight: 14, fontWeight: '900', textAlign: 'center' },
+  resourceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 },
+  resourceValue: { color: '#f5e9d2', fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
+  actionPrompt: {
+    position: 'absolute',
+    bottom: 7,
+    alignSelf: 'center',
+    minHeight: 21,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255,240,154,0.50)',
+    borderRadius: 11,
+    backgroundColor: 'rgba(38,31,42,0.66)',
+  },
+  actionDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: VISUAL_TOKENS.interactive.focus },
+  actionPromptText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'center' },
+  feedbackBox: {
+    width: '100%',
+    minHeight: 28,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  reaction: { color: '#eaddc8', fontFamily: 'monospace', fontSize: 8, fontWeight: '800', textAlign: 'center' },
+  delta: { marginTop: 1, color: SCENE_TOKENS.sunrise, fontFamily: 'monospace', fontSize: 6, fontWeight: '900', textAlign: 'center' },
+  outcomeBanner: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 15,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderRadius: 14,
+    backgroundColor: 'rgba(35,28,38,0.89)',
+  },
+  outcomeSuccess: { borderColor: VISUAL_TOKENS.feedback.success },
+  outcomeFailure: { borderColor: VISUAL_TOKENS.feedback.failure },
+  outcomeTitle: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
+  outcomeSubtitle: { marginTop: 2, color: '#e8d7c0', fontFamily: 'monospace', fontSize: 7, fontWeight: '800', letterSpacing: 1 },
+  controls: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  control: {
+    position: 'relative',
+    width: 54,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(181,205,189,0.44)',
+    borderRadius: 22,
+    backgroundColor: 'rgba(53,87,118,0.42)',
+  },
+  controlWide: { width: 96, borderRadius: 18 },
+  controlAction: { borderColor: 'rgba(245,211,125,0.64)', backgroundColor: 'rgba(120,83,63,0.54)' },
+  controlHighlight: { position: 'absolute', left: 9, right: 9, top: 5, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.09)' },
+  pressed: { opacity: 0.74, transform: [{ translateY: 2 }] },
+  controlText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 12, fontWeight: '900' },
+  secondaryButton: {
+    minWidth: 176,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 14,
+    backgroundColor: 'rgba(120,83,63,0.62)',
+    paddingHorizontal: 14,
+  },
+  restart: { borderColor: SCENE_TOKENS.sunrise },
+  buttonText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  exitButton: { minHeight: 22, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 2 },
+  exitText: { color: '#91838e', fontFamily: 'monospace', fontSize: 6, fontWeight: '800', letterSpacing: 0.7 },
 });

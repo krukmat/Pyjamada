@@ -29,6 +29,12 @@ equal(state.objective.status,'completed','efficient success');
 ok(state.noise < 40,'efficient low noise');
 ok(success.events.some(e=>e.type==='OBJECTIVE_COMPLETED'),'success event');
 
+const emptyGround=moveTo(createSystemicRun('empty-ground'),56);
+const noTarget=updateSystemicRun(emptyGround,'action');
+ok(noTarget.events.some(e=>e.type==='NO_TARGET'),'action on empty ground reports no target');
+const noTargetEncoded=encodeSystemicRun(noTarget.state);
+equal(decodeSystemicRun(noTargetEncoded).status,'ok','codec accepts interaction with no target object');
+
 const decoded=decodeSystemicRun(encodeSystemicRun(state)); equal(decoded.status,'ok','codec roundtrip');
 equal(decodeSystemicRun(JSON.stringify({...state,noise:101})).status,'invalid','codec rejects invalid noise');
 equal(decodeSystemicRun(JSON.stringify({...state,energy:35.5})).status,'invalid','codec rejects fractional resources');

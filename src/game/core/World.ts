@@ -1,2 +1,3 @@
 export const LOGICAL_SIZE = 128;
-export const PLAYER_GROUND_Y = 88;
+// Presentation ground anchor. Gameplay collision/routing remains X-only.
+export const PLAYER_GROUND_Y = 104;

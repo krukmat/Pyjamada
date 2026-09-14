@@ -1,122 +1,161 @@
 import React from 'react';
-import { Canvas, Rect } from '@shopify/react-native-skia';
-import { LOGICAL_SIZE, PLAYER_GROUND_Y } from '../core/World';
-import type { SystemicRunState } from '../systemic/SystemicState';
-import { HeroContactShadow, KeySprite, PixelBlocks, type PixelBlock } from './PixelArtKit';
-import { RETRO_PALETTE } from './VisualLanguage';
+import { Canvas, Circle, Group, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { PLAYER_GROUND_Y } from '../core/World';
+import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
+import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
+import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
+import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
+import { findSystemicObject } from '../systemic/SystemicContent';
+import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
+import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
+import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
+import {
+  IllustratedBedroomBackdrop,
+  IllustratedBedroomForeground,
+  IllustratedBedroomLightOverlay,
+} from './IllustratedBedroomScene';
+import { IllustratedFx } from './IllustratedFx';
+import { IllustratedObject } from './IllustratedObject';
+import { IllustratedWally } from './IllustratedWally';
+import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
+import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
-type Props = { state: SystemicRunState; size: number };
-type ScaleFn = (value: number) => number;
+type Props = {
+  state: SystemicRunState;
+  width: number;
+  height: number;
+  activeVisualEvents: readonly ActiveVisualEvent[];
+  nowMs: number;
+};
 
-export function GameCanvas({ state, size }: Props) {
-  const scale = size / LOGICAL_SIZE;
-  const px = (value: number) => value * scale;
+type ObjectPlacement = { x: number; y: number };
+
+// Presentation coordinates are deliberately independent from gameplay radii.
+// X remains aligned with the systemic room for spatial intuition, while Y is
+// free to place props naturally into the illustrated furniture.
+const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
+  bed: { x: 16, y: 105 },
+  slippers: { x: 32, y: 105 },
+  'alarm-clock': { x: 48, y: 78 },
+  wardrobe: { x: 68, y: 105 },
+  keys: { x: 88, y: 66 },
+  window: { x: 108, y: 66 },
+};
+
+export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: Props) {
+  const scale = stageScale(height);
+  const px = (value: number) => stagePx(height, value);
+  const originX = stageOriginX(width, height);
+  const cameraX = stageCameraOffsetPx(height, state.player.x, state.player.facing);
+  const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
+  const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
+    objectId,
+    visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
+    placement: OBJECT_PLACEMENTS[objectId],
+  }));
+  const target = findSystemicObject(state.player.x);
+  const fx = resolveFxFrames(activeVisualEvents, nowMs);
+  const shake = resolveScreenShake(activeVisualEvents, nowMs);
+
   return (
-    <Canvas style={{ width: size, height: size }}>
-      <BedroomBackdrop px={px} />
-      <BedroomAtmosphere px={px} windowOpen={state.flags.windowOpen} />
-      <BedroomObjects state={state} px={px} />
-      <HeroContactShadow x={state.player.x} y={PLAYER_GROUND_Y} px={px} />
-      <Wally state={state} px={px} />
+    <Canvas style={{ width, height }}>
+      <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
+      <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
+        <IllustratedBedroomBackdrop state={state} size={height} />
+        <ArcadeStageAtmosphere state={state} size={height} />
+        <RoomContactShadows state={state} px={px} />
+        {target && (
+          <InteractionFocus
+            objectId={target.id}
+            placement={OBJECT_PLACEMENTS[target.id]}
+            px={px}
+            phase={Math.floor(nowMs / 240) % 2}
+          />
+        )}
+        {objects.map(({ objectId, visual, placement }) => (
+          <IllustratedObject
+            key={objectId}
+            objectId={objectId}
+            visual={visual}
+            x={px(placement.x)}
+            y={px(placement.y)}
+            scale={scale}
+          />
+        ))}
+        <WallyFocusLight state={state} size={height} x={state.player.x} groundY={PLAYER_GROUND_Y} />
+        <IllustratedWally
+          state={state}
+          visual={wally}
+          x={px(state.player.x)}
+          y={px(PLAYER_GROUND_Y)}
+          scale={scale}
+          facing={state.player.facing}
+        />
+        <IllustratedBedroomLightOverlay state={state} size={height} />
+        {fx.map((item) => (
+          <IllustratedFx
+            key={item.key}
+            fx={item}
+            x={px(item.x)}
+            y={px(item.y)}
+            scale={scale}
+          />
+        ))}
+        <IllustratedBedroomForeground state={state} size={height} />
+      </Group>
     </Canvas>
   );
 }
 
-function BedroomBackdrop({ px }: { px: ScaleFn }) {
-  const dither: PixelBlock[] = [
-    { x: 8, y: 111, width: 10, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 31, y: 120, width: 14, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 58, y: 109, width: 8, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 83, y: 122, width: 12, height: 2, color: RETRO_PALETTE.blueDark },
-    { x: 108, y: 113, width: 9, height: 2, color: RETRO_PALETTE.blueDark },
-  ];
+function InteractionFocus({ objectId, placement, px, phase }: {
+  objectId: SystemicObjectId;
+  placement: ObjectPlacement;
+  px: (value: number) => number;
+  phase: number;
+}) {
+  const elevated = objectId === 'window' || objectId === 'keys' || objectId === 'alarm-clock';
+  const radius = objectId === 'bed'
+    ? 16
+    : objectId === 'wardrobe'
+      ? 14
+      : objectId === 'alarm-clock' || objectId === 'keys'
+        ? 9
+        : 8;
+  const cueY = elevated ? placement.y - (objectId === 'alarm-clock' ? 8 : 11) : placement.y + 1;
+  const alpha = phase === 0 ? 0.13 : 0.21;
+
   return (
     <>
-      <Rect x={0} y={0} width={px(128)} height={px(128)} color={RETRO_PALETTE.void} />
-      <Rect x={px(4)} y={px(8)} width={px(120)} height={px(96)} color={RETRO_PALETTE.panelRaised} />
-      <Rect x={px(4)} y={px(100)} width={px(120)} height={px(4)} color={RETRO_PALETTE.cyan} />
-      <Rect x={0} y={px(104)} width={px(128)} height={px(24)} color={RETRO_PALETTE.blue} />
-      <Rect x={0} y={px(104)} width={px(128)} height={px(2)} color={RETRO_PALETTE.yellow} />
-      <PixelBlocks blocks={dither} px={px} prefix="floor-dither" />
+      <RoundedRect
+        x={px(placement.x - radius)}
+        y={px(cueY - 2)}
+        width={px(radius * 2)}
+        height={px(4)}
+        r={px(2)}
+        color={`rgba(241,215,92,${alpha})`}
+      />
+      <Circle
+        cx={px(placement.x - radius + 1)}
+        cy={px(cueY - 5 - phase)}
+        r={px(1.2)}
+        color={VISUAL_TOKENS.interactive.focusLight}
+      />
+      <Circle
+        cx={px(placement.x + radius - 1)}
+        cy={px(cueY - 7 + phase)}
+        r={px(1)}
+        color={VISUAL_TOKENS.interactive.focus}
+      />
     </>
   );
 }
 
-function BedroomAtmosphere({ px, windowOpen }: { px: ScaleFn; windowOpen: boolean }) {
-  const blocks: PixelBlock[] = [
-    { x: 12, y: 44, width: 8, height: 20, color: '#1e2b52' },
-    { x: 20, y: 44, width: 8, height: 30, color: '#1b274a' },
-    { x: 28, y: 44, width: 8, height: 40, color: '#182342' },
-    { x: 18, y: 16, width: 1, height: 1, color: RETRO_PALETTE.moon },
-    { x: 31, y: 19, width: 1, height: 1, color: RETRO_PALETTE.yellow },
-    { x: 39, y: 14, width: 1, height: 1, color: RETRO_PALETTE.cyan },
-    { x: 12, y: 22, width: 28, height: 22, color: RETRO_PALETTE.cyanDark },
-    { x: 14, y: 24, width: 24, height: 18, color: RETRO_PALETTE.cyan },
-    { x: 16, y: 26, width: 20, height: 14, color: windowOpen ? RETRO_PALETTE.greenDark : RETRO_PALETTE.blueDark },
-    { x: 25, y: 26, width: 2, height: 14, color: RETRO_PALETTE.cyan },
-    { x: 16, y: 32, width: 20, height: 2, color: RETRO_PALETTE.cyan },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="bedroom-atmosphere" />;
-}
-
-function BedroomObjects({ state, px }: { state: SystemicRunState; px: ScaleFn }) {
-  const wardrobePrimary = state.flags.dressed ? RETRO_PALETTE.green : RETRO_PALETTE.orange;
-  const wardrobeShade = state.flags.dressed ? RETRO_PALETTE.greenDark : RETRO_PALETTE.orangeDark;
-  const blocks: PixelBlock[] = [
-    { x: 7, y: 81, width: 30, height: 16, color: RETRO_PALETTE.magentaDark },
-    { x: 8, y: 82, width: 28, height: 14, color: RETRO_PALETTE.magenta },
-    { x: 9, y: 91, width: 26, height: 5, color: RETRO_PALETTE.magentaDark },
-    { x: 8, y: 96, width: 4, height: 8, color: RETRO_PALETTE.yellowDark },
-    { x: 32, y: 96, width: 4, height: 8, color: RETRO_PALETTE.yellowDark },
-    { x: 28, y: 99, width: 9, height: 4, color: RETRO_PALETTE.shadow },
-    { x: 29, y: 100, width: 7, height: 2, color: state.equipped.includes('slippers') ? RETRO_PALETTE.green : RETRO_PALETTE.cyan },
-    { x: 43, y: 87, width: 12, height: 14, color: RETRO_PALETTE.orangeDark },
-    { x: 44, y: 88, width: 10, height: 12, color: RETRO_PALETTE.orange },
-    { x: 46, y: 84, width: 6, height: 5, color: state.interactionCounts['alarm-clock'] > 1 ? RETRO_PALETTE.red : RETRO_PALETTE.yellow },
-    { x: 51, y: 89, width: 2, height: 9, color: RETRO_PALETTE.orangeDark },
-    { x: 58, y: 41, width: 24, height: 63, color: wardrobeShade },
-    { x: 59, y: 42, width: 22, height: 62, color: wardrobePrimary },
-    { x: 62, y: 47, width: 16, height: 24, color: RETRO_PALETTE.redDark },
-    { x: 63, y: 48, width: 14, height: 22, color: '#6d3c3c' },
-    { x: 62, y: 75, width: 16, height: 25, color: RETRO_PALETTE.redDark },
-    { x: 63, y: 76, width: 14, height: 23, color: '#6d3c3c' },
-    { x: 76, y: 72, width: 1, height: 1, color: RETRO_PALETTE.yellow },
-  ];
+function RoomContactShadows({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
   return (
     <>
-      <PixelBlocks blocks={blocks} px={px} prefix="bedroom" />
-      {!state.collected.includes('keys') && <KeySprite x={88} y={96} px={px} />}
+      <RoundedRect x={px(2)} y={px(102)} width={px(30)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
+      <RoundedRect x={px(53)} y={px(102)} width={px(31)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
+      {!state.equipped.includes('slippers') && <RoundedRect x={px(26)} y={px(102)} width={px(12)} height={px(3)} r={px(1.5)} color={SCENE_TOKENS.contactShadow} />}
     </>
   );
-}
-
-function Wally({ state, px }: { state: SystemicRunState; px: ScaleFn }) {
-  const x = state.player.x;
-  const y = PLAYER_GROUND_Y;
-  const facingRight = state.player.facing === 'right';
-  const body = state.wallyState === 'sleepy'
-    ? RETRO_PALETTE.cyan
-    : state.wallyState === 'normal'
-      ? RETRO_PALETTE.green
-      : state.wallyState === 'rushed'
-        ? RETRO_PALETTE.yellow
-        : RETRO_PALETTE.red;
-  const bodyShade = state.wallyState === 'sleepy'
-    ? RETRO_PALETTE.cyanDark
-    : state.wallyState === 'normal'
-      ? RETRO_PALETTE.greenDark
-      : state.wallyState === 'rushed'
-        ? RETRO_PALETTE.yellowDark
-        : RETRO_PALETTE.redDark;
-  const eyeX = facingRight ? x + 5 : x + 2;
-  const blocks: PixelBlock[] = [
-    { x: x + 1, y, width: 5, height: 2, color: RETRO_PALETTE.magenta },
-    { x: x + 1, y: y + 2, width: 6, height: 4, color: RETRO_PALETTE.ink },
-    { x: eyeX, y: y + 3, width: 1, height: 1, color: RETRO_PALETTE.shadow },
-    { x: x + 1, y: y + 6, width: 6, height: 6, color: body },
-    { x: x + 5, y: y + 6, width: 2, height: 6, color: bodyShade },
-    { x: x + 1, y: y + 12, width: 2, height: 4, color: body },
-    { x: x + 5, y: y + 12, width: 2, height: 4, color: bodyShade },
-  ];
-  return <PixelBlocks blocks={blocks} px={px} prefix="wally" />;
 }

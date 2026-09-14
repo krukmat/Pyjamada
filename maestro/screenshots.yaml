@@ -1,8 +1,9 @@
 appId: com.krukmat.pyjamada
-name: Android Screenshot Tour
+name: Expressive Arcade Android Screenshot Tour
 tags:
   - android
   - screenshots
+  - expressive-arcade
 ---
 - launchApp:
     clearState: true
@@ -22,8 +23,25 @@ tags:
     visible:
       id: main-menu-screen
     timeout: 20000
+- assertVisible: PYJAMADA
 - takeScreenshot:
     path: 01_main_menu
+
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible:
+      id: settings-screen
+    timeout: 10000
+- assertVisible: SETTINGS
+- takeScreenshot:
+    path: 02_settings
+- tapOn:
+    id: settings-back-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
 
 - tapOn:
     id: new-game-button
@@ -32,8 +50,9 @@ tags:
       id: game-screen
     timeout: 20000
 - assertVisible: GET DRESSED + FIND KEYS
+- assertVisible: "Wally is barely functional.*"
 - takeScreenshot:
-    path: 02_run_start
+    path: 03_run_start_sleepy
 
 - repeat:
     times: 2
@@ -42,9 +61,16 @@ tags:
           id: move-left-button
 - tapOn:
     id: action-button
-- assertVisible: NORMAL
+- assertVisible: "Five more minutes.*"
+# T-05: debug-wally-clip is confirmed present with the correct latched value
+# via direct uiautomator inspection, but Maestro's own visible-element check
+# does not detect this specific node (likely its own size/opacity visibility
+# heuristic, not a rendering bug) — tracked separately. Use a short fixed
+# pause instead of gating the screenshot on that assertion.
+- waitForAnimationToEnd:
+    timeout: 500
 - takeScreenshot:
-    path: 03_bed_wake
+    path: 04_bed_wake
 
 - repeat:
     times: 4
@@ -53,9 +79,11 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible: "Stealth slippers equipped.*"
+- assertVisible: "Soft steps unlocked.*"
+- waitForAnimationToEnd:
+    timeout: 500
 - takeScreenshot:
-    path: 04_slippers
+    path: 05_slippers
 
 - repeat:
     times: 4
@@ -64,26 +92,19 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible: "Awake instantly.*"
+- assertVisible: "Awake. Quiet.*"
+- waitForAnimationToEnd:
+    timeout: 500
 - takeScreenshot:
-    path: 05_alarm
+    path: 06_alarm
 
 - tapOn:
     id: action-button
-- assertVisible: "THE ALARM AGAIN.*"
+- assertVisible: "Again.*Panic mode engaged.*"
+- waitForAnimationToEnd:
+    timeout: 500
 - takeScreenshot:
-    path: 06_startled
-
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: move-right-button
-- tapOn:
-    id: action-button
-- assertVisible: "Dressed.*"
-- takeScreenshot:
-    path: 07_wardrobe
+    path: 07_startled
 
 - repeat:
     times: 5
@@ -92,15 +113,190 @@ tags:
           id: move-right-button
 - tapOn:
     id: action-button
-- assertVisible:
-    id: restart-button
+- assertVisible: "Dressed. Coordination optional.*"
+- waitForAnimationToEnd:
+    timeout: 500
+- takeScreenshot:
+    path: 08_wardrobe_fumble
+
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
 - assertVisible: "READY!.*"
 - takeScreenshot:
-    path: 08_success
+    path: 09_success
 
 - tapOn:
     id: restart-button
 - assertVisible: GET DRESSED + FIND KEYS
-- assertVisible: SLEEPY
+- assertVisible: "Wally is barely functional.*"
 - takeScreenshot:
-    path: 09_restart
+    path: 10_restart
+
+# Restore contract: persist a stable post-bed state, leave the game, then reconstruct
+# presentation from gameplay state without persisting transient animation frames.
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: move-left-button
+- tapOn:
+    id: action-button
+- assertVisible: "Five more minutes.*"
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: continue-button
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 10000
+- assertVisible: "Five more minutes.*"
+- takeScreenshot:
+    path: 11_continue_restore
+
+# Failure outcomes: each of the three failure conditions is deterministic from
+# a fresh run (see src/game/systemic/SystemicRuleEngine.ts and SYSTEMIC_LIMITS
+# in SystemicState.ts) and terminal, so each needs its own fresh run reached
+# via exit + new game rather than the mid-run restart-button.
+
+# house-awake: three alarm-clock presses from a fresh run push noise to 92,
+# past the noiseFailure threshold of 85.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+# App.tsx's handleNewGame shows a native "Replace saved game?" confirmation
+# whenever a save already exists (true for every new-game-button tap past the
+# very first one in this flow) and otherwise never reaches game-screen —
+# see FINDING-006 in docs/AUDIT_REPORT.md. Dismiss it here so the tour can
+# proceed; the underlying player-facing UX gap is tracked separately, not
+# fixed by this flow.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: move-right-button
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "HOUSE AWAKE!"
+- assertVisible: "Too loud. The whole house knows.*"
+- takeScreenshot:
+    path: 12_fail_house_awake
+
+# exhausted: five wardrobe interactions from a fresh run drain energy from 35
+# to 0, the minEnergy floor.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+# See FINDING-006 note above: dismiss the native replace-save confirmation.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 11
+    commands:
+      - tapOn:
+          id: move-right-button
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: action-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "OUT OF ENERGY!"
+- assertVisible: "No energy left. Heroics were a mistake.*"
+- takeScreenshot:
+    path: 13_fail_exhausted
+
+# too-late: equip slippers first so every subsequent move is quiet (noise +2
+# base, -2 from the slippers-quiet-step rule nets to zero), then move well
+# past the deadline of 50 without ever risking the noise or energy floors.
+- tapOn:
+    id: exit-button
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 10000
+- tapOn:
+    id: new-game-button
+# See FINDING-006 note above: dismiss the native replace-save confirmation.
+- runFlow:
+    when:
+      visible:
+        text: "Replace saved game?"
+    commands:
+      - tapOn: "Replace"
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 20000
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: move-right-button
+- tapOn:
+    id: action-button
+- assertVisible: "Soft steps unlocked.*"
+- repeat:
+    times: 46
+    commands:
+      - tapOn:
+          id: move-right-button
+- extendedWaitUntil:
+    visible:
+      id: restart-button
+    timeout: 10000
+- assertVisible: "TOO LATE!"
+- assertVisible: "Morning won. Try a sharper route.*"
+- takeScreenshot:
+    path: 14_fail_too_late
