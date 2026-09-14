@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
-import type { HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
+import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
@@ -26,6 +26,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   const [nowMs, setNowMs] = useState(() => Date.now());
   const state = session.domestic;
   const target = findSystemicObject(state.player.x);
+  const exitTarget = session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
   const done = session.objective.phase === 'completed' || session.objective.phase === 'failed';
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
@@ -65,9 +66,9 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
           </View>
         </View>
 
-        {!done && target && (
+        {!done && (exitTarget || target) && (
           <View pointerEvents="none" style={styles.prompt}>
-            <Text style={styles.promptText}>INTERACT · {target.label}</Text>
+            <Text style={styles.promptText}>{exitTarget ? 'INTERACT · EXIT' : `INTERACT · ${target?.label ?? ''}`}</Text>
           </View>
         )}
         {done && <Outcome session={session} />}
@@ -121,7 +122,8 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
 }
 
 function reactionFor(session: HauntedSessionState): string {
-  if (session.objective.phase === 'escape-ready') return 'Keys. Clothes. Now survive long enough to get out.';
+  if (session.objective.phase === 'completed') return 'Out. Barely.';
+  if (session.objective.phase === 'escape-ready') return 'Keys. Clothes. Get to the door.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
     if (session.objective.reason === 'haunted') return 'The haunting got Wally.';
