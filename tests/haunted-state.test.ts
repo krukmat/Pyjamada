@@ -27,10 +27,30 @@ async function main() {
     equal(decoded.state.input.attackPressed, false, 'transient action is not persisted');
   }
 
+  const armedSession: HauntedSessionState = {
+    ...createHauntedSession('projectile-save'),
+    combat: {
+      ...createHauntedSession('projectile-save').combat,
+      nextAttackAllowedMs: 325,
+      nextProjectileId: 2,
+      projectiles: [{ id: 1, x: 32, y: 86, vx: 76, damage: 1 }],
+    },
+  };
+  decoded = decodeHauntedSession(encodeHauntedSession(armedSession));
+  equal(decoded.status, 'ok', 'codec persists active Dream Spark state');
+  if (decoded.status === 'ok') equal(decoded.state.combat.projectiles.length, 1, 'active Dream Spark survives save roundtrip');
+
   equal(decodeHauntedSession(JSON.stringify({ schemaVersion: 1 })).status, 'invalid', 'legacy schema is intentionally incompatible');
   const invalidRng = JSON.parse(encoded) as Record<string, unknown>;
   invalidRng.rngState = 0;
   equal(decodeHauntedSession(JSON.stringify(invalidRng)).status, 'invalid', 'zero RNG state is rejected');
+
+  const tooManyProjectiles = JSON.parse(encodeHauntedSession(armedSession)) as { combat: { projectiles: unknown[] } };
+  tooManyProjectiles.combat.projectiles.push(
+    { id: 2, x: 40, y: 86, vx: 76, damage: 1 },
+    { id: 3, x: 48, y: 86, vx: 76, damage: 1 },
+  );
+  equal(decodeHauntedSession(JSON.stringify(tooManyProjectiles)).status, 'invalid', 'codec rejects projectile count above gameplay cap');
 
   session = {
     ...session,
