@@ -1,6 +1,7 @@
 import React from 'react';
 import { Canvas, Circle, Group, Rect, RoundedRect } from '@shopify/react-native-skia';
 import { PLAYER_GROUND_Y } from '../core/World';
+import type { DreamSparkProjectile } from '../haunted/HauntedCombat';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
@@ -17,6 +18,7 @@ import {
 import { IllustratedFx } from './IllustratedFx';
 import { IllustratedObject } from './IllustratedObject';
 import { IllustratedWally } from './IllustratedWally';
+import { PixelDreamSpark } from './PixelDreamSpark';
 import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
@@ -27,6 +29,7 @@ type Props = {
   activeVisualEvents: readonly ActiveVisualEvent[];
   nowMs: number;
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
+  dreamSparks?: readonly DreamSparkProjectile[];
 };
 
 type ObjectPlacement = { x: number; y: number };
@@ -40,7 +43,7 @@ const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   window: { x: 108, y: 66 },
 };
 
-export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, playerRenderPosition }: Props) {
+export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, playerRenderPosition, dreamSparks = [] }: Props) {
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
@@ -87,6 +90,15 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, pl
           scale={scale}
           facing={playerFacing}
         />
+        {dreamSparks.map((projectile) => (
+          <PixelDreamSpark
+            key={projectile.id}
+            projectile={projectile}
+            x={px(projectile.x)}
+            y={px(projectile.y)}
+            scale={scale}
+          />
+        ))}
         <IllustratedBedroomLightOverlay state={state} size={height} />
         {fx.map((item) => (
           <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
