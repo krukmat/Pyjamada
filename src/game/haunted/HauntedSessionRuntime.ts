@@ -8,13 +8,15 @@ import {
 } from './HauntedDomesticAdapter';
 import { consumeTransientActions, createHauntedInputState, type HauntedInputState } from './HauntedInput';
 import { createHauntedPlayerPhysics, stepHauntedPlayerPhysics, type HauntedPlayerPhysicsState } from './PlayerPhysics';
+import { seedFromString } from './SeededRng';
 
 export type HauntedObjectivePhase = 'prepare' | 'escape-ready' | 'completed' | 'failed';
 export type HauntedFailureReason = 'house-awake' | 'exhausted' | 'too-late' | 'haunted';
 
 export type HauntedSessionState = {
-  runtimeVersion: 1;
+  schemaVersion: 2;
   runId: string;
+  rngState: number;
   domestic: SystemicRunState;
   player: HauntedPlayerPhysicsState;
   input: HauntedInputState;
@@ -50,8 +52,9 @@ export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState {
   const domestic = createSystemicRun(runId);
   return {
-    runtimeVersion: 1,
+    schemaVersion: 2,
     runId,
+    rngState: seedFromString(runId),
     domestic,
     player: createHauntedPlayerPhysics(domestic.player.x),
     input: createHauntedInputState(),
