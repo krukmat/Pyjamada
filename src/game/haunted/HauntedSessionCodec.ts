@@ -51,7 +51,13 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
 
   if (!isRecord(value.combat)) return invalid('Invalid haunted combat state.');
   if (!positiveInt(value.combat.maxHp) || !Number.isInteger(value.combat.hp) || (value.combat.hp as number) < 0 || (value.combat.hp as number) > value.combat.maxHp) return invalid('Invalid haunted HP state.');
-  if (!nonNegative(value.combat.invulnerableUntilMs)) return invalid('Invalid haunted invulnerability state.');
+  if (!nonNegative(value.combat.invulnerableUntilMs) || !nonNegative(value.combat.nextAttackAllowedMs)) return invalid('Invalid haunted combat timing.');
+  if (!positiveInt(value.combat.nextProjectileId)) return invalid('Invalid haunted projectile id sequence.');
+  if (!Array.isArray(value.combat.projectiles) || value.combat.projectiles.length > 2) return invalid('Invalid haunted projectile list.');
+  for (const projectile of value.combat.projectiles) {
+    if (!isRecord(projectile)) return invalid('Invalid Dream Spark projectile.');
+    if (!positiveInt(projectile.id) || !finite(projectile.x) || !finite(projectile.y) || !finite(projectile.vx) || projectile.damage !== 1) return invalid('Invalid Dream Spark projectile.');
+  }
 
   if (!isRecord(value.objective) || !PHASES.includes(value.objective.phase as HauntedObjectivePhase)) return invalid('Invalid haunted objective phase.');
   const phase = value.objective.phase as HauntedObjectivePhase;
