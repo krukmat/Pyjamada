@@ -70,7 +70,7 @@ export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
 export const HAUNTED_PRESSURE = {
   alarmSpawnDelayMs: 800,
-  escapeSpawnDelayMs: 650,
+  escapeSpawnDelayMs: 150,
 } as const;
 
 export function isAtHauntedExit(playerX: number): boolean {
