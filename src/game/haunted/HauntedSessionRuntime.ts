@@ -57,6 +57,7 @@ export type HauntedSessionEvent =
   | { type: 'DREAM_SPARK_FIRED'; projectileId: number }
   | { type: 'DOMESTIC_INTERACTION'; objectId?: string; ruleTrace: string[] }
   | { type: 'ESCAPE_READY' }
+  | { type: 'SESSION_COMPLETED' }
   | { type: 'SESSION_FAILED'; reason: HauntedFailureReason }
   | HauntedThreatEvent;
 
@@ -66,6 +67,11 @@ export type HauntedSessionStep = {
 };
 
 export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
+export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
+
+export function isAtHauntedExit(playerX: number): boolean {
+  return Math.abs(playerX - HAUNTED_EXIT.x) <= HAUNTED_EXIT.radius;
+}
 
 export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState {
   const domestic = createSystemicRun(runId);
@@ -133,8 +139,10 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     }
   }
 
+  const escapeRequested = state.objective.phase === 'escape-ready' && state.input.interactPressed && isAtHauntedExit(player.x);
+
   let penaltyMs = state.penaltyMs;
-  if (state.input.interactPressed) {
+  if (state.input.interactPressed && !escapeRequested) {
     const interaction = interactHauntedDomestic(domestic);
     domestic = interaction.state;
     penaltyMs += interaction.clockPenaltyMs;
@@ -152,6 +160,9 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
   if (failure) {
     objective = { phase: 'failed', reason: failure };
     events.push({ type: 'SESSION_FAILED', reason: failure });
+  } else if (escapeRequested) {
+    objective = { phase: 'completed' };
+    events.push({ type: 'SESSION_COMPLETED' });
   } else if (objective.phase === 'prepare' && domestic.flags.dressed && domestic.collected.includes('keys')) {
     objective = { phase: 'escape-ready' };
     events.push({ type: 'ESCAPE_READY' });
