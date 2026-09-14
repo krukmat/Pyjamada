@@ -38,7 +38,10 @@ export function HauntedGhostSprite({ ghost, x, y, scale, nowMs, playerX }: Props
 
 function selectFrameId(ghost: HauntedGhostState, nowMs: number, playerX: number): string {
   if (ghost.phase === 'telegraph') return `telegraph_${Math.floor(nowMs / 110) % 3}`;
-  if (ghost.phase === 'dying') return `death_${Math.min(3, Math.floor(Math.max(0, ghost.phaseUntilMs - nowMs) / 55))}`;
+  if (ghost.phase === 'dying') {
+    const remainingMs = Math.max(0, ghost.phaseUntilMs - nowMs);
+    return `death_${3 - Math.min(3, Math.floor(remainingMs / 55))}`;
+  }
 
   const nearPlayer = Math.abs(ghost.x - playerX) <= 12;
   if (nearPlayer) return `attack_${Math.floor(nowMs / 85) % 4}`;
