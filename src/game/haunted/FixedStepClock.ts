@@ -18,17 +18,17 @@ export function advanceFixedStep(accumulatorMs: number, elapsedMs: number): Fixe
   const safeElapsed = Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0;
   const acceptedElapsed = Math.min(safeElapsed, HAUNTED_MAX_FRAME_DELTA_MS);
   const droppedMs = Math.max(0, safeElapsed - acceptedElapsed);
-  let accumulator = Math.max(0, accumulatorMs) + acceptedElapsed;
-  let steps = 0;
-
-  while (accumulator + Number.EPSILON >= HAUNTED_STEP_MS && steps < HAUNTED_MAX_CATCH_UP_STEPS) {
-    accumulator -= HAUNTED_STEP_MS;
-    steps += 1;
-  }
+  const accumulator = Math.max(0, accumulatorMs) + acceptedElapsed;
+  const toleranceMs = HAUNTED_STEP_MS * 1e-9;
+  const steps = Math.min(
+    HAUNTED_MAX_CATCH_UP_STEPS,
+    Math.floor((accumulator + toleranceMs) / HAUNTED_STEP_MS),
+  );
+  const remainder = accumulator - steps * HAUNTED_STEP_MS;
 
   return {
     steps,
-    accumulatorMs: Math.max(0, accumulator),
+    accumulatorMs: Math.max(0, Math.abs(remainder) <= toleranceMs ? 0 : remainder),
     simulatedMs: steps * HAUNTED_STEP_MS,
     droppedMs,
   };
