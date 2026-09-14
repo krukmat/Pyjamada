@@ -26,6 +26,11 @@ export const DREAM_SPARK = {
   spawnOffsetY: -18,
 } as const;
 
+export const PLAYER_HIT_RULES = {
+  invulnerabilityMs: 900,
+  damage: 1,
+} as const;
+
 const PROJECTILE_MIN_X = -4;
 const PROJECTILE_MAX_X = 132;
 
@@ -63,6 +68,18 @@ export function tryFireDreamSpark(
       nextProjectileId: combat.nextProjectileId + 1,
       nextAttackAllowedMs: nowMs + DREAM_SPARK.cooldownMs,
       projectiles: [...combat.projectiles, projectile],
+    },
+  };
+}
+
+export function applyHauntedPlayerHit(combat: HauntedCombatState, nowMs: number): { combat: HauntedCombatState; accepted: boolean } {
+  if (nowMs < combat.invulnerableUntilMs || combat.hp <= 0) return { combat, accepted: false };
+  return {
+    accepted: true,
+    combat: {
+      ...combat,
+      hp: Math.max(0, combat.hp - PLAYER_HIT_RULES.damage),
+      invulnerableUntilMs: nowMs + PLAYER_HIT_RULES.invulnerabilityMs,
     },
   };
 }
