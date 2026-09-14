@@ -1,3 +1,4 @@
+import { DREAM_SPARK } from '../src/game/haunted/HauntedCombat';
 import { HAUNTED_STEP_MS, advanceFixedStep } from '../src/game/haunted/FixedStepClock';
 import { pressAction, setHeldControl } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, stepHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
@@ -53,9 +54,33 @@ ok(session.domestic.collected.includes('keys'), 'keys remain collectible');
 equal(session.objective.phase, 'escape-ready', 'dressed plus keys unlocks escape instead of instant success');
 ok(session.objective.phase !== 'completed', 'run does not complete before exit interaction');
 
-const attackSession = { ...session, input: pressAction(session.input, 'attack') };
-stepped = stepHauntedSession(attackSession, HAUNTED_STEP_MS);
-ok(stepped.events.some((event) => event.type === 'ATTACK_REQUESTED'), 'attack is distinct from interaction');
+let combatSession = createHauntedSession('dream-spark');
+const initialNoise = combatSession.domestic.noise;
+combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
+stepped = stepHauntedSession(combatSession, HAUNTED_STEP_MS);
+combatSession = stepped.state;
+ok(stepped.events.some((event) => event.type === 'DREAM_SPARK_FIRED'), 'attack fires Dream Spark');
+equal(combatSession.combat.projectiles.length, 1, 'first attack creates one projectile');
+equal(combatSession.domestic.noise, initialNoise + DREAM_SPARK.noisePerShot, 'Dream Spark adds noise');
+
+combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
+stepped = stepHauntedSession(combatSession, HAUNTED_STEP_MS);
+combatSession = stepped.state;
+equal(combatSession.combat.projectiles.length, 1, 'cooldown rejects immediate repeated attack');
+ok(!stepped.events.some((event) => event.type === 'DREAM_SPARK_FIRED'), 'rejected attack emits no fire event');
+
+for (let i = 0; i < 10; i += 1) combatSession = stepHauntedSession(combatSession, HAUNTED_STEP_MS).state;
+combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
+combatSession = stepHauntedSession(combatSession, HAUNTED_STEP_MS).state;
+equal(combatSession.combat.projectiles.length, 2, 'second shot fires after cooldown');
+const firstProjectileX = combatSession.combat.projectiles[0]?.x ?? 0;
+combatSession = stepHauntedSession(combatSession, HAUNTED_STEP_MS).state;
+ok((combatSession.combat.projectiles[0]?.x ?? 0) > firstProjectileX, 'Dream Spark moves as a physical projectile');
+
+for (let i = 0; i < 10; i += 1) combatSession = stepHauntedSession(combatSession, HAUNTED_STEP_MS).state;
+combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
+combatSession = stepHauntedSession(combatSession, HAUNTED_STEP_MS).state;
+equal(combatSession.combat.projectiles.length, 2, 'active projectile cap prevents a third Dream Spark');
 
 console.log('haunted runtime tests passed');
 
