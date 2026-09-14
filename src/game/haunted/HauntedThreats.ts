@@ -45,6 +45,31 @@ export function createHauntedThreatState(): HauntedThreatState {
   return { ghosts: [], nextEnemyId: 1, nextSpawnAtMs: GHOST_RULES.graceMs };
 }
 
+export function queueGhostTelegraphAt(
+  threats: HauntedThreatState,
+  nowMs: number,
+  x: number,
+): { threats: HauntedThreatState; event?: HauntedThreatEvent } {
+  const present = threats.ghosts.filter((ghost) => ghost.phase !== 'dying').length;
+  if (present >= GHOST_RULES.maxActive) return { threats };
+  const ghostId = threats.nextEnemyId;
+  const ghost: HauntedGhostState = {
+    id: ghostId,
+    x: clamp(x, LEFT_SPAWN_X, RIGHT_SPAWN_X),
+    y: GHOST_BASE_Y,
+    phase: 'telegraph',
+    phaseUntilMs: nowMs + GHOST_RULES.telegraphMs,
+  };
+  return {
+    threats: {
+      ...threats,
+      ghosts: [...threats.ghosts, ghost],
+      nextEnemyId: ghostId + 1,
+    },
+    event: { type: 'GHOST_TELEGRAPHED', ghostId },
+  };
+}
+
 export type StepHauntedThreatsResult = {
   threats: HauntedThreatState;
   combat: HauntedCombatState;
@@ -121,16 +146,14 @@ export function stepHauntedThreats(
     const random = nextSeededRandom(nextRngState);
     nextRngState = random.state;
     const spawnOnLeft = chooseSpawnOnLeft(player.x, random.value);
-    const ghost: HauntedGhostState = {
-      id: nextEnemyId,
-      x: spawnOnLeft ? LEFT_SPAWN_X : RIGHT_SPAWN_X,
-      y: GHOST_BASE_Y,
-      phase: 'telegraph',
-      phaseUntilMs: nowMs + GHOST_RULES.telegraphMs,
-    };
-    ghosts = [...ghosts, ghost];
-    events.push({ type: 'GHOST_TELEGRAPHED', ghostId: nextEnemyId });
-    nextEnemyId += 1;
+    const queued = queueGhostTelegraphAt(
+      { ghosts, nextEnemyId, nextSpawnAtMs },
+      nowMs,
+      spawnOnLeft ? LEFT_SPAWN_X : RIGHT_SPAWN_X,
+    );
+    ghosts = queued.threats.ghosts;
+    nextEnemyId = queued.threats.nextEnemyId;
+    if (queued.event) events.push(queued.event);
     nextSpawnAtMs = nowMs + spawnIntervalMs(noise);
   }
 
@@ -157,4 +180,8 @@ function approach(value: number, target: number, amount: number): number {
   if (value < target) return Math.min(value + amount, target);
   if (value > target) return Math.max(value - amount, target);
   return value;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
