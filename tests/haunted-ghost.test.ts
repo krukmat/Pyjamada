@@ -1,6 +1,6 @@
 import { HAUNTED_STEP_MS } from '../src/game/haunted/FixedStepClock';
 import { pressAction } from '../src/game/haunted/HauntedInput';
-import { HAUNTED_EXIT, createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
+import { HAUNTED_EXIT, HAUNTED_PRESSURE, createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
 import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 import { HAUNTED_GHOST_ATLAS } from '../src/game/presentation/atlas/HauntedGhostAtlas';
 import { validateSpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
@@ -84,6 +84,42 @@ stepped = stepHauntedSession(hitSession, HAUNTED_STEP_MS);
 hitSession = stepped.state;
 equal(hitSession.combat.hp, hpDuringInvulnerability, 'contact cannot drain multiple hearts during invulnerability');
 ok(!stepped.events.some((event) => event.type === 'PLAYER_HIT_BY_GHOST'), 'invulnerability suppresses repeated contact event');
+
+let alarmSession = createHauntedSession('alarm-attracts-ghost');
+alarmSession = {
+  ...alarmSession,
+  player: { ...alarmSession.player, x: 48, vx: 0 },
+  domestic: { ...alarmSession.domestic, player: { ...alarmSession.domestic.player, x: 48 } },
+  threats: { ...alarmSession.threats, nextSpawnAtMs: 99_999 },
+  input: pressAction(alarmSession.input, 'interact'),
+};
+stepped = stepHauntedSession(alarmSession, HAUNTED_STEP_MS);
+alarmSession = stepped.state;
+ok(stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION' && event.objectId === 'alarm-clock'), 'alarm interaction remains a domestic event');
+equal(
+  alarmSession.threats.nextSpawnAtMs,
+  alarmSession.elapsedMs + HAUNTED_PRESSURE.alarmSpawnDelayMs,
+  'alarm pulls the next Ghost spawn forward',
+);
+
+let pressureSession = createHauntedSession('escape-pressure');
+pressureSession = {
+  ...pressureSession,
+  domestic: {
+    ...pressureSession.domestic,
+    flags: { ...pressureSession.domestic.flags, dressed: true },
+    collected: ['keys'],
+  },
+  threats: { ...pressureSession.threats, nextSpawnAtMs: 99_999 },
+};
+stepped = stepHauntedSession(pressureSession, HAUNTED_STEP_MS);
+pressureSession = stepped.state;
+equal(pressureSession.objective.phase, 'escape-ready', 'prepared Wally enters escape-ready phase');
+equal(
+  pressureSession.threats.nextSpawnAtMs,
+  pressureSession.elapsedMs + HAUNTED_PRESSURE.escapeSpawnDelayMs,
+  'escape-ready schedules a final Ghost pressure beat',
+);
 
 let exitSession = createHauntedSession('haunted-exit');
 exitSession = {
