@@ -9,6 +9,7 @@ export type DecodeHauntedSessionResult = { status: 'ok'; state: HauntedSessionSt
 
 const PHASES: readonly HauntedObjectivePhase[] = ['prepare', 'escape-ready', 'completed', 'failed'];
 const REASONS: readonly HauntedFailureReason[] = ['house-awake', 'exhausted', 'too-late', 'haunted'];
+const GHOST_PHASES = ['telegraph', 'active', 'dying'] as const;
 
 export function encodeHauntedSession(state: HauntedSessionState): string {
   const { input: _input, ...save } = state;
@@ -57,6 +58,19 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
   for (const projectile of value.combat.projectiles) {
     if (!isRecord(projectile)) return invalid('Invalid Dream Spark projectile.');
     if (!positiveInt(projectile.id) || !finite(projectile.x) || !finite(projectile.y) || !finite(projectile.vx) || projectile.damage !== 1) return invalid('Invalid Dream Spark projectile.');
+  }
+
+  if (!isRecord(value.threats)) return invalid('Invalid haunted threat state.');
+  if (!positiveInt(value.threats.nextEnemyId) || !nonNegative(value.threats.nextSpawnAtMs)) return invalid('Invalid haunted threat sequence.');
+  if (!Array.isArray(value.threats.ghosts) || value.threats.ghosts.length > 4) return invalid('Invalid haunted Ghost list.');
+  const ghostIds = new Set<number>();
+  for (const ghost of value.threats.ghosts) {
+    if (!isRecord(ghost)) return invalid('Invalid Ghost state.');
+    if (!positiveInt(ghost.id) || ghostIds.has(ghost.id)) return invalid('Invalid Ghost id.');
+    ghostIds.add(ghost.id);
+    if (!finite(ghost.x) || ghost.x < -16 || ghost.x > 144 || !finite(ghost.y) || ghost.y < -64 || ghost.y > 128) return invalid('Invalid Ghost position.');
+    if (!GHOST_PHASES.includes(ghost.phase as typeof GHOST_PHASES[number])) return invalid('Invalid Ghost phase.');
+    if (!nonNegative(ghost.phaseUntilMs)) return invalid('Invalid Ghost timing.');
   }
 
   if (!isRecord(value.objective) || !PHASES.includes(value.objective.phase as HauntedObjectivePhase)) return invalid('Invalid haunted objective phase.');
