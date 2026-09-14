@@ -26,13 +26,11 @@ type Props = {
   height: number;
   activeVisualEvents: readonly ActiveVisualEvent[];
   nowMs: number;
+  playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
 };
 
 type ObjectPlacement = { x: number; y: number };
 
-// Presentation coordinates are deliberately independent from gameplay radii.
-// X remains aligned with the systemic room for spatial intuition, while Y is
-// free to place props naturally into the illustrated furniture.
 const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   bed: { x: 16, y: 105 },
   slippers: { x: 32, y: 105 },
@@ -42,18 +40,21 @@ const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   window: { x: 108, y: 66 },
 };
 
-export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: Props) {
+export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, playerRenderPosition }: Props) {
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
-  const cameraX = stageCameraOffsetPx(height, state.player.x, state.player.facing);
+  const playerX = playerRenderPosition?.x ?? state.player.x;
+  const playerY = playerRenderPosition?.y ?? PLAYER_GROUND_Y;
+  const playerFacing = playerRenderPosition?.facing ?? state.player.facing;
+  const cameraX = stageCameraOffsetPx(height, playerX, playerFacing);
   const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
     visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
     placement: OBJECT_PLACEMENTS[objectId],
   }));
-  const target = findSystemicObject(state.player.x);
+  const target = findSystemicObject(playerX);
   const fx = resolveFxFrames(activeVisualEvents, nowMs);
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
 
@@ -65,12 +66,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
         <ArcadeStageAtmosphere state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
         {target && (
-          <InteractionFocus
-            objectId={target.id}
-            placement={OBJECT_PLACEMENTS[target.id]}
-            px={px}
-            phase={Math.floor(nowMs / 240) % 2}
-          />
+          <InteractionFocus objectId={target.id} placement={OBJECT_PLACEMENTS[target.id]} px={px} phase={Math.floor(nowMs / 240) % 2} />
         )}
         {objects.map(({ objectId, visual, placement }) => (
           <IllustratedObject
@@ -82,24 +78,18 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs }: 
             scale={scale}
           />
         ))}
-        <WallyFocusLight state={state} size={height} x={state.player.x} groundY={PLAYER_GROUND_Y} />
+        <WallyFocusLight state={state} size={height} x={playerX} groundY={playerY} />
         <IllustratedWally
           state={state}
           visual={wally}
-          x={px(state.player.x)}
-          y={px(PLAYER_GROUND_Y)}
+          x={px(playerX)}
+          y={px(playerY)}
           scale={scale}
-          facing={state.player.facing}
+          facing={playerFacing}
         />
         <IllustratedBedroomLightOverlay state={state} size={height} />
         {fx.map((item) => (
-          <IllustratedFx
-            key={item.key}
-            fx={item}
-            x={px(item.x)}
-            y={px(item.y)}
-            scale={scale}
-          />
+          <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
         ))}
         <IllustratedBedroomForeground state={state} size={height} />
       </Group>
@@ -114,38 +104,15 @@ function InteractionFocus({ objectId, placement, px, phase }: {
   phase: number;
 }) {
   const elevated = objectId === 'window' || objectId === 'keys' || objectId === 'alarm-clock';
-  const radius = objectId === 'bed'
-    ? 16
-    : objectId === 'wardrobe'
-      ? 14
-      : objectId === 'alarm-clock' || objectId === 'keys'
-        ? 9
-        : 8;
+  const radius = objectId === 'bed' ? 16 : objectId === 'wardrobe' ? 14 : objectId === 'alarm-clock' || objectId === 'keys' ? 9 : 8;
   const cueY = elevated ? placement.y - (objectId === 'alarm-clock' ? 8 : 11) : placement.y + 1;
   const alpha = phase === 0 ? 0.13 : 0.21;
 
   return (
     <>
-      <RoundedRect
-        x={px(placement.x - radius)}
-        y={px(cueY - 2)}
-        width={px(radius * 2)}
-        height={px(4)}
-        r={px(2)}
-        color={`rgba(241,215,92,${alpha})`}
-      />
-      <Circle
-        cx={px(placement.x - radius + 1)}
-        cy={px(cueY - 5 - phase)}
-        r={px(1.2)}
-        color={VISUAL_TOKENS.interactive.focusLight}
-      />
-      <Circle
-        cx={px(placement.x + radius - 1)}
-        cy={px(cueY - 7 + phase)}
-        r={px(1)}
-        color={VISUAL_TOKENS.interactive.focus}
-      />
+      <RoundedRect x={px(placement.x - radius)} y={px(cueY - 2)} width={px(radius * 2)} height={px(4)} r={px(2)} color={`rgba(241,215,92,${alpha})`} />
+      <Circle cx={px(placement.x - radius + 1)} cy={px(cueY - 5 - phase)} r={px(1.2)} color={VISUAL_TOKENS.interactive.focusLight} />
+      <Circle cx={px(placement.x + radius - 1)} cy={px(cueY - 7 + phase)} r={px(1)} color={VISUAL_TOKENS.interactive.focus} />
     </>
   );
 }
