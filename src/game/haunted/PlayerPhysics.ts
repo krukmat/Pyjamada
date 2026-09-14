@@ -17,6 +17,8 @@ export const HAUNTED_PLAYER_PHYSICS = {
   friction: 300,
   gravity: 180,
   jumpVelocity: -72,
+  hitKnockbackX: 34,
+  hitKnockbackY: -34,
 } as const;
 
 export function createHauntedPlayerPhysics(x = 24): HauntedPlayerPhysicsState {
@@ -58,6 +60,15 @@ export function stepHauntedPlayerPhysics(
 
   const facing = intent < 0 ? 'left' : intent > 0 ? 'right' : state.facing;
   return { x, y, vx, vy, grounded, facing };
+}
+
+export function applyHauntedKnockback(state: HauntedPlayerPhysicsState, direction: -1 | 1): HauntedPlayerPhysicsState {
+  return {
+    ...state,
+    vx: HAUNTED_PLAYER_PHYSICS.hitKnockbackX * direction,
+    vy: HAUNTED_PLAYER_PHYSICS.hitKnockbackY,
+    grounded: false,
+  };
 }
 
 function approach(value: number, target: number, amount: number): number {
