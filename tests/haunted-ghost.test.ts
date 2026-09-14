@@ -85,6 +85,39 @@ hitSession = stepped.state;
 equal(hitSession.combat.hp, hpDuringInvulnerability, 'contact cannot drain multiple hearts during invulnerability');
 ok(!stepped.events.some((event) => event.type === 'PLAYER_HIT_BY_GHOST'), 'invulnerability suppresses repeated contact event');
 
+let sleepyBypass = createHauntedSession('sleepy-bypass');
+sleepyBypass = {
+  ...sleepyBypass,
+  player: { ...sleepyBypass.player, x: 68, vx: 0 },
+  domestic: { ...sleepyBypass.domestic, player: { ...sleepyBypass.domestic.player, x: 68 } },
+  threats: { ...sleepyBypass.threats, nextSpawnAtMs: 99_999 },
+  input: pressAction(sleepyBypass.input, 'interact'),
+};
+stepped = stepHauntedSession(sleepyBypass, HAUNTED_STEP_MS);
+sleepyBypass = stepped.state;
+ok(!sleepyBypass.domestic.flags.dressed, 'sleepy Wally cannot bypass wake-up by using the wardrobe');
+ok(
+  stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION' && event.ruleTrace.includes('sleepy-action-blocked')),
+  'sleepy objective attempt resolves as a fumble',
+);
+
+let bedWake = createHauntedSession('bed-wakes-haunting');
+bedWake = {
+  ...bedWake,
+  player: { ...bedWake.player, x: 16, vx: 0 },
+  domestic: { ...bedWake.domestic, player: { ...bedWake.domestic.player, x: 16 } },
+  threats: { ...bedWake.threats, nextSpawnAtMs: 99_999 },
+  input: pressAction(bedWake.input, 'interact'),
+};
+stepped = stepHauntedSession(bedWake, HAUNTED_STEP_MS);
+bedWake = stepped.state;
+equal(bedWake.domestic.wallyState, 'normal', 'bed wakes Wally before the arcade pressure begins');
+equal(
+  bedWake.threats.nextSpawnAtMs,
+  bedWake.elapsedMs + HAUNTED_PRESSURE.wakeSpawnDelayMs,
+  'waking through bed schedules the first Ghost encounter',
+);
+
 let alarmSession = createHauntedSession('alarm-attracts-ghost');
 alarmSession = {
   ...alarmSession,
