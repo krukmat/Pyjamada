@@ -25,6 +25,7 @@ import {
 import { seedFromString } from './SeededRng';
 import {
   createHauntedThreatState,
+  queueGhostTelegraphAt,
   stepHauntedThreats,
   type HauntedThreatEvent,
   type HauntedThreatState,
@@ -68,10 +69,10 @@ export type HauntedSessionStep = {
 
 export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
+export const HAUNTED_ESCAPE_GHOST_X = 108;
 export const HAUNTED_PRESSURE = {
   wakeSpawnDelayMs: 1_800,
   alarmSpawnDelayMs: 800,
-  escapeSpawnDelayMs: 150,
 } as const;
 
 export function isAtHauntedExit(playerX: number): boolean {
@@ -179,7 +180,9 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     events.push({ type: 'SESSION_COMPLETED' });
   } else if (objective.phase === 'prepare' && domestic.flags.dressed && domestic.collected.includes('keys')) {
     objective = { phase: 'escape-ready' };
-    threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.escapeSpawnDelayMs);
+    const finalThreat = queueGhostTelegraphAt(threats, elapsedMs, HAUNTED_ESCAPE_GHOST_X);
+    threats = finalThreat.threats;
+    if (finalThreat.event) events.push(finalThreat.event);
     events.push({ type: 'ESCAPE_READY' });
   }
 
