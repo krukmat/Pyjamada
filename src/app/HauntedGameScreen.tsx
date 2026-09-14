@@ -56,7 +56,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
         <View pointerEvents="none" style={styles.hud}>
           <View>
             <Text style={styles.kicker}>HAUNTED MORNING</Text>
-            <Text style={styles.objective}>{session.objective.phase === 'escape-ready' ? 'ESCAPE READY · REACH THE DOOR' : 'GET DRESSED + FIND KEYS'}</Text>
+            <Text style={styles.objective}>{session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS'}</Text>
           </View>
           <View style={styles.stats}>
             <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
@@ -123,17 +123,28 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
 
 function reactionFor(session: HauntedSessionState): string {
   if (session.objective.phase === 'completed') return 'Out. Barely.';
-  if (session.objective.phase === 'escape-ready') return 'Keys. Clothes. Get to the door.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
     if (session.objective.reason === 'haunted') return 'The haunting got Wally.';
     if (session.objective.reason === 'too-late') return 'Morning won. Try a sharper route.';
     return 'No energy left. Heroics were a mistake.';
   }
+
+  const telegraphing = session.threats.ghosts.some((ghost) => ghost.phase === 'telegraph');
+  const activeGhosts = session.threats.ghosts.filter((ghost) => ghost.phase === 'active').length;
+  if (session.objective.phase === 'escape-ready') {
+    if (telegraphing) return 'Exit lane haunted. Fire, dodge, get out.';
+    return 'Keys. Clothes. Clear the door.';
+  }
+  if (telegraphing) return 'Something is phasing into the room...';
+  if (activeGhosts > 0) return activeGhosts === 1 ? 'Ghost active. Shoot or keep moving.' : `${activeGhosts} ghosts active. Keep moving.`;
+
   const id = session.domestic.objectStates;
-  if (session.domestic.wallyState === 'sleepy') return 'Wally is barely functional.';
+  if (session.domestic.wallyState === 'sleepy') return 'Wake up first. Bed or alarm.';
   if (session.domestic.wallyState === 'rushed') return 'The clock is winning.';
   if (session.domestic.wallyState === 'startled') return 'Something is wrong with this room.';
+  if (session.domestic.interactionCounts['alarm-clock'] > 0) return 'That alarm woke something else.';
+  if (id.bed !== 'idle') return 'Awake. The room is waking up too.';
   if (id.wardrobe !== 'idle') return 'Dressed. Coordination optional.';
   return 'Ordinary room. Suspicious consequences.';
 }
