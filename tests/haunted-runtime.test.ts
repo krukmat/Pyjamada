@@ -2,6 +2,9 @@ import { DREAM_SPARK } from '../src/game/haunted/HauntedCombat';
 import { HAUNTED_STEP_MS, advanceFixedStep } from '../src/game/haunted/FixedStepClock';
 import { pressAction, setHeldControl } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, stepHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
+import { HAUNTED_WALLY_ATLAS } from '../src/game/presentation/atlas/HauntedWallyAtlas';
+import { validateSpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
+import { hauntedWallyFrameIndex, selectHauntedWallyPose } from '../src/game/render/HauntedWallyVisual';
 
 function equal(actual: unknown, expected: unknown, label: string) {
   if (actual !== expected) throw new Error(`${label}: ${String(actual)} !== ${String(expected)}`);
@@ -15,7 +18,16 @@ fixed = advanceFixedStep(0, 10_000);
 equal(fixed.steps, 5, 'fixed step bounds catch-up work');
 ok(fixed.droppedMs > 0, 'fixed step reports suspended/background time as dropped');
 
+equal(HAUNTED_WALLY_ATLAS.width, 256, 'haunted Wally atlas width is frozen');
+equal(HAUNTED_WALLY_ATLAS.height, 336, 'haunted Wally atlas height is frozen');
+equal(HAUNTED_WALLY_ATLAS.frames.length, 50, 'haunted Wally atlas exposes both 25-frame palettes');
+equal(validateSpriteAtlasManifest(HAUNTED_WALLY_ATLAS).length, 0, 'haunted Wally atlas manifest is valid');
+equal(hauntedWallyFrameIndex('attack', 0), 10, 'attack starts on dedicated pixel pose');
+equal(hauntedWallyFrameIndex('success', 0), 23, 'success has dedicated pixel pose');
+equal(hauntedWallyFrameIndex('fail', 0), 24, 'failure has dedicated pixel pose');
+
 let session = createHauntedSession('haunted-test');
+equal(selectHauntedWallyPose(session), 'sleepy', 'new haunted run starts on sleepy pixel pose');
 const startX = session.player.x;
 session = { ...session, input: setHeldControl(session.input, 'right', true) };
 for (let i = 0; i < 15; i += 1) session = stepHauntedSession(session, HAUNTED_STEP_MS).state;
@@ -27,6 +39,7 @@ let stepped = stepHauntedSession(session, HAUNTED_STEP_MS);
 session = stepped.state;
 ok(stepped.events.some((event) => event.type === 'PLAYER_JUMPED'), 'jump emits semantic event');
 ok(!session.player.grounded && session.player.y < 104, 'jump enters airborne state');
+equal(selectHauntedWallyPose(session), 'jump', 'airborne state selects jump sprite pose');
 for (let i = 0; i < 60 && !session.player.grounded; i += 1) session = stepHauntedSession(session, HAUNTED_STEP_MS).state;
 ok(session.player.grounded, 'gravity returns player to ground');
 
@@ -62,6 +75,7 @@ combatSession = stepped.state;
 ok(stepped.events.some((event) => event.type === 'DREAM_SPARK_FIRED'), 'attack fires Dream Spark');
 equal(combatSession.combat.projectiles.length, 1, 'first attack creates one projectile');
 equal(combatSession.domestic.noise, initialNoise + DREAM_SPARK.noisePerShot, 'Dream Spark adds noise');
+equal(selectHauntedWallyPose(combatSession), 'attack', 'fresh Dream Spark selects attack sprite pose');
 
 combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
 stepped = stepHauntedSession(combatSession, HAUNTED_STEP_MS);
