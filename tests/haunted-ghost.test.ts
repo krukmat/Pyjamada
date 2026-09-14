@@ -1,6 +1,6 @@
 import { HAUNTED_STEP_MS } from '../src/game/haunted/FixedStepClock';
 import { pressAction } from '../src/game/haunted/HauntedInput';
-import { createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
+import { HAUNTED_EXIT, createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
 import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 import { HAUNTED_GHOST_ATLAS } from '../src/game/presentation/atlas/HauntedGhostAtlas';
 import { validateSpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
@@ -25,6 +25,7 @@ session = stepped.state;
 ok(stepped.events.some((event) => event.type === 'GHOST_TELEGRAPHED'), 'Ghost announces itself before becoming dangerous');
 equal(session.threats.ghosts.length, 1, 'telegraph creates one Ghost slot');
 equal(session.threats.ghosts[0]?.phase, 'telegraph', 'new Ghost starts in telegraph phase');
+equal(session.threats.ghosts[0]?.x, 122, 'Wally near the left edge forces a safe right-side Ghost spawn');
 
 for (let i = 0; i < 20 && session.threats.ghosts[0]?.phase !== 'active'; i += 1) {
   stepped = stepHauntedSession(session, HAUNTED_STEP_MS);
@@ -83,5 +84,24 @@ stepped = stepHauntedSession(hitSession, HAUNTED_STEP_MS);
 hitSession = stepped.state;
 equal(hitSession.combat.hp, hpDuringInvulnerability, 'contact cannot drain multiple hearts during invulnerability');
 ok(!stepped.events.some((event) => event.type === 'PLAYER_HIT_BY_GHOST'), 'invulnerability suppresses repeated contact event');
+
+let exitSession = createHauntedSession('haunted-exit');
+exitSession = {
+  ...exitSession,
+  domestic: {
+    ...exitSession.domestic,
+    flags: { ...exitSession.domestic.flags, dressed: true },
+    collected: ['keys'],
+    player: { ...exitSession.domestic.player, x: HAUNTED_EXIT.x },
+  },
+  player: { ...exitSession.player, x: HAUNTED_EXIT.x },
+  objective: { phase: 'escape-ready' },
+  threats: { ...exitSession.threats, nextSpawnAtMs: 99_999 },
+  input: pressAction(exitSession.input, 'interact'),
+};
+stepped = stepHauntedSession(exitSession, HAUNTED_STEP_MS);
+exitSession = stepped.state;
+equal(exitSession.objective.phase, 'completed', 'escape-ready Wally completes the run at the exit door');
+ok(stepped.events.some((event) => event.type === 'SESSION_COMPLETED'), 'exit interaction emits completion event');
 
 console.log('haunted Ghost gameplay tests passed');
