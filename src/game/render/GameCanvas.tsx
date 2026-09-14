@@ -2,6 +2,7 @@ import React from 'react';
 import { Canvas, Circle, Group, Rect, RoundedRect } from '@shopify/react-native-skia';
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { DreamSparkProjectile } from '../haunted/HauntedCombat';
+import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
@@ -10,6 +11,7 @@ import { findSystemicObject } from '../systemic/SystemicContent';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
 import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
+import { HauntedWallySprite } from './HauntedWallySprite';
 import {
   IllustratedBedroomBackdrop,
   IllustratedBedroomForeground,
@@ -30,6 +32,7 @@ type Props = {
   nowMs: number;
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
   dreamSparks?: readonly DreamSparkProjectile[];
+  hauntedSession?: HauntedSessionState;
 };
 
 type ObjectPlacement = { x: number; y: number };
@@ -43,7 +46,16 @@ const OBJECT_PLACEMENTS: Record<SystemicObjectId, ObjectPlacement> = {
   window: { x: 108, y: 66 },
 };
 
-export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, playerRenderPosition, dreamSparks = [] }: Props) {
+export function GameCanvas({
+  state,
+  width,
+  height,
+  activeVisualEvents,
+  nowMs,
+  playerRenderPosition,
+  dreamSparks = [],
+  hauntedSession,
+}: Props) {
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
@@ -51,7 +63,7 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, pl
   const playerY = playerRenderPosition?.y ?? PLAYER_GROUND_Y;
   const playerFacing = playerRenderPosition?.facing ?? state.player.facing;
   const cameraX = stageCameraOffsetPx(height, playerX, playerFacing);
-  const wally = resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
+  const legacyWally = hauntedSession ? null : resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
     visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
@@ -82,14 +94,24 @@ export function GameCanvas({ state, width, height, activeVisualEvents, nowMs, pl
           />
         ))}
         <WallyFocusLight state={state} size={height} x={playerX} groundY={playerY} />
-        <IllustratedWally
-          state={state}
-          visual={wally}
-          x={px(playerX)}
-          y={px(playerY)}
-          scale={scale}
-          facing={playerFacing}
-        />
+        {hauntedSession ? (
+          <HauntedWallySprite
+            session={hauntedSession}
+            x={px(playerX)}
+            y={px(playerY)}
+            scale={scale}
+            nowMs={nowMs}
+          />
+        ) : legacyWally ? (
+          <IllustratedWally
+            state={state}
+            visual={legacyWally}
+            x={px(playerX)}
+            y={px(playerY)}
+            scale={scale}
+            facing={playerFacing}
+          />
+        ) : null}
         {dreamSparks.map((projectile) => (
           <PixelDreamSpark
             key={projectile.id}
