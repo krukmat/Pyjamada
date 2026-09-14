@@ -34,6 +34,7 @@ export const GHOST_RULES = {
   contactRadiusY: 12,
   sparkHitRadiusX: 8,
   sparkHitRadiusY: 10,
+  edgeSafetyX: 40,
 } as const;
 
 const LEFT_SPAWN_X = 6;
@@ -119,7 +120,7 @@ export function stepHauntedThreats(
   if (nowMs >= nextSpawnAtMs && present < GHOST_RULES.maxActive) {
     const random = nextSeededRandom(nextRngState);
     nextRngState = random.state;
-    const spawnOnLeft = random.value < 0.5;
+    const spawnOnLeft = chooseSpawnOnLeft(player.x, random.value);
     const ghost: HauntedGhostState = {
       id: nextEnemyId,
       x: spawnOnLeft ? LEFT_SPAWN_X : RIGHT_SPAWN_X,
@@ -140,6 +141,12 @@ export function stepHauntedThreats(
     playerHitDirection,
     events,
   };
+}
+
+function chooseSpawnOnLeft(playerX: number, randomValue: number): boolean {
+  if (playerX <= GHOST_RULES.edgeSafetyX) return false;
+  if (playerX >= 128 - GHOST_RULES.edgeSafetyX) return true;
+  return randomValue < 0.5;
 }
 
 function spawnIntervalMs(noise: number): number {
