@@ -1,5 +1,12 @@
 import { createSystemicRun, type SystemicRunState } from '../systemic/SystemicState';
-import { createHauntedCombatState, DREAM_SPARK, stepDreamSparks, tryFireDreamSpark, type HauntedCombatState } from './HauntedCombat';
+import {
+  applyHauntedPlayerHit,
+  createHauntedCombatState,
+  DREAM_SPARK,
+  stepDreamSparks,
+  tryFireDreamSpark,
+  type HauntedCombatState,
+} from './HauntedCombat';
 import {
   applyHauntedClockState,
   applyHauntedMovementNoise,
@@ -9,8 +16,19 @@ import {
   syncDomesticPlayer,
 } from './HauntedDomesticAdapter';
 import { consumeTransientActions, createHauntedInputState, type HauntedInputState } from './HauntedInput';
-import { createHauntedPlayerPhysics, stepHauntedPlayerPhysics, type HauntedPlayerPhysicsState } from './PlayerPhysics';
+import {
+  applyHauntedKnockback,
+  createHauntedPlayerPhysics,
+  stepHauntedPlayerPhysics,
+  type HauntedPlayerPhysicsState,
+} from './PlayerPhysics';
 import { seedFromString } from './SeededRng';
+import {
+  createHauntedThreatState,
+  stepHauntedThreats,
+  type HauntedThreatEvent,
+  type HauntedThreatState,
+} from './HauntedThreats';
 
 export type HauntedObjectivePhase = 'prepare' | 'escape-ready' | 'completed' | 'failed';
 export type HauntedFailureReason = 'house-awake' | 'exhausted' | 'too-late' | 'haunted';
@@ -27,6 +45,7 @@ export type HauntedSessionState = {
   deadlineMs: number;
   movementNoiseCarry: number;
   combat: HauntedCombatState;
+  threats: HauntedThreatState;
   objective: {
     phase: HauntedObjectivePhase;
     reason?: HauntedFailureReason;
@@ -38,7 +57,8 @@ export type HauntedSessionEvent =
   | { type: 'DREAM_SPARK_FIRED'; projectileId: number }
   | { type: 'DOMESTIC_INTERACTION'; objectId?: string; ruleTrace: string[] }
   | { type: 'ESCAPE_READY' }
-  | { type: 'SESSION_FAILED'; reason: HauntedFailureReason };
+  | { type: 'SESSION_FAILED'; reason: HauntedFailureReason }
+  | HauntedThreatEvent;
 
 export type HauntedSessionStep = {
   state: HauntedSessionState;
@@ -61,6 +81,7 @@ export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState
     deadlineMs: HAUNTED_DEFAULT_DEADLINE_MS,
     movementNoiseCarry: 0,
     combat: createHauntedCombatState(),
+    threats: createHauntedThreatState(),
     objective: { phase: 'prepare' },
   };
 }
@@ -70,10 +91,11 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
 
   const dtMs = Math.max(0, deltaMs);
   const dtSeconds = dtMs / 1000;
+  const elapsedMs = state.elapsedMs + dtMs;
   const events: HauntedSessionEvent[] = [];
   const wasGrounded = state.player.grounded;
   const previousX = state.player.x;
-  const player = stepHauntedPlayerPhysics(state.player, state.input, dtSeconds);
+  let player = stepHauntedPlayerPhysics(state.player, state.input, dtSeconds);
   if (state.input.jumpPressed && wasGrounded && !player.grounded) events.push({ type: 'PLAYER_JUMPED' });
 
   let domestic = syncDomesticPlayer(state.domestic, player.x, player.facing);
@@ -90,6 +112,27 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     }
   }
 
+  const threatStep = stepHauntedThreats(
+    state.threats,
+    combat,
+    player,
+    elapsedMs,
+    dtSeconds,
+    domestic.noise,
+    state.rngState,
+  );
+  combat = threatStep.combat;
+  events.push(...threatStep.events);
+
+  if (threatStep.playerHitDirection !== 0) {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, threatStep.playerHitDirection);
+      domestic = syncDomesticPlayer(domestic, player.x, player.facing);
+    }
+  }
+
   let penaltyMs = state.penaltyMs;
   if (state.input.interactPressed) {
     const interaction = interactHauntedDomestic(domestic);
@@ -98,7 +141,6 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     events.push({ type: 'DOMESTIC_INTERACTION', objectId: interaction.objectId, ruleTrace: interaction.ruleTrace });
   }
 
-  const elapsedMs = state.elapsedMs + dtMs;
   const logicalElapsedMs = elapsedMs + penaltyMs;
   domestic = applyHauntedClockState(domestic, logicalElapsedMs, state.deadlineMs);
 
@@ -118,6 +160,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
   return {
     state: {
       ...state,
+      rngState: threatStep.rngState,
       domestic,
       player,
       input: consumeTransientActions(state.input),
@@ -125,6 +168,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
       penaltyMs,
       movementNoiseCarry: movementNoise.carry,
       combat,
+      threats: threatStep.threats,
       objective,
     },
     events,
