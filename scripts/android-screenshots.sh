@@ -8,47 +8,35 @@ SCREENSHOTS_DIR="$REPO_ROOT/artifacts/android-screenshots"
 FAILED_DIR="$REPO_ROOT/artifacts/android-screenshots-failed"
 STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-screenshots-staging.XXXXXX")"
 MAESTRO_REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-maestro.XXXXXX")"
-# T-05 follow-up: Gradle's ExecOperations does not forward EXPO_PUBLIC_* shell
-# exports to the Metro/export:embed subprocess it spawns (confirmed by probing
-# System.getenv() inside the Gradle JVM, which does see the var, versus the
-# compiled bundle, which never contains the debug-only string it should gate).
-# Expo's own dotenv loading happens inside that subprocess by reading files
-# from disk, so it is unaffected by Gradle's exec env gap.
-#
-# It must be `.env.local`, NOT `.env.production.local`: @expo/env's
-# getEnvFiles() derives the candidate list from process.env.NODE_ENV, and
-# NODE_ENV is lost through the very same ExecOperations gap. Without it the
-# resolver falls back to ['.env.local', '.env'] and never even looks at
-# `.env.production.local`. Verified directly against the installed resolver:
-#   NODE_ENV=production -> ['.env.production.local', '.env.local', ...]
-#   NODE_ENV unset      -> ['.env.local', '.env']
-# `.env.local` is the only candidate present in both lists, so it is the one
-# file that reaches the bundler regardless of whether NODE_ENV survives.
+# Screenshot-only scenario controls are gated on an Expo public env var that
+# Metro inlines at build time. Gradle's ExecOperations does not reliably
+# forward EXPO_PUBLIC_* shell exports to the Metro/export:embed subprocess, so
+# write the value to .env.local for this build only. Ordinary builds never
+# create this file and therefore never expose the capture harness.
 ENV_LOCAL_FILE="$REPO_ROOT/.env.local"
 ENV_LOCAL_BACKUP="$(mktemp "${TMPDIR:-/tmp}/pyjamada-env-local-backup.XXXXXX")"
 ENV_LOCAL_HAD_BACKUP=0
 EXPECTED_SCREENSHOTS=(
   "01_main_menu.png"
   "02_settings.png"
-  "03_run_start_sleepy.png"
-  "04_bed_wake.png"
-  "05_slippers.png"
-  "06_alarm.png"
-  "07_startled.png"
-  "08_wardrobe_fumble.png"
-  "09_success.png"
-  "10_restart.png"
-  "11_continue_restore.png"
-  "12_fail_house_awake.png"
-  "13_fail_exhausted.png"
-  "14_fail_too_late.png"
+  "03_haunted_sleepy.png"
+  "04_haunted_wake.png"
+  "05_ghost_telegraph.png"
+  "06_ghost_active.png"
+  "07_wally_jump.png"
+  "08_dream_spark_attack.png"
+  "09_ghost_defeated.png"
+  "10_player_hit.png"
+  "11_dressed_under_pressure.png"
+  "12_escape_ready.png"
+  "13_escaped.png"
+  "14_haunted_failure.png"
 )
 
-# T-02: the run is staged in STAGING_DIR/MAESTRO_REPORT_DIR and never touches
-# SCREENSHOTS_DIR (the last published evidence) until every check has passed.
-# Any failure — a command failing under `set -e`, or an explicit `fail` call —
-# archives whatever partial evidence exists into FAILED_DIR instead, so a
-# broken run can never silently wipe out the last good evidence set.
+# The run is staged and never touches SCREENSHOTS_DIR (the last published
+# evidence) until every check has passed. Any failure archives whatever partial
+# evidence exists into FAILED_DIR instead, so a broken run cannot silently wipe
+# out the last good evidence set.
 PUBLISHED=0
 
 archive_failed_attempt() {
@@ -124,21 +112,9 @@ if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
     cp "$ENV_LOCAL_FILE" "$ENV_LOCAL_BACKUP"
     ENV_LOCAL_HAD_BACKUP=1
   fi
-  # T-05: enables GameScreen's hidden debug-readiness element for this build
-  # only. Gradle's ExecOperations does not forward this process's exported
-  # env vars to the Metro/export:embed subprocess it spawns (verified: the
-  # Gradle JVM sees the shell export, the subprocess does not), so the value
-  # is written to a file Expo's bundler loads from disk instead. An ordinary
-  # `npm run android` or release build never creates this file and never
-  # renders the hook. See src/app/testHooks.ts.
   echo "EXPO_PUBLIC_PYJAMADA_TEST_HOOKS=1" > "$ENV_LOCAL_FILE"
-  # Metro's transform cache keys on file content, not on env var values, so
-  # babel-preset-expo's expoInlineEnvVars can permanently bake in a stale
-  # process.env.EXPO_PUBLIC_PYJAMADA_TEST_HOOKS from a previous build where
-  # this file did not exist yet — confirmed by extracting the built Hermes
-  # bundle and finding isTestHooksEnabled() inlined to a literal `false` with
-  # a warm cache, and `true` after clearing it. Always start cold here so the
-  # value in this run's .env.production.local is the one that gets inlined.
+  # Metro's transform cache keys on file content rather than env var values, so
+  # clear it to prevent a previous ordinary build from baking test hooks off.
   rm -rf "${TMPDIR:-/tmp}/metro-cache"
   (
     cd "$REPO_ROOT"
@@ -153,7 +129,7 @@ fi
 adb -s "$EMULATOR_SERIAL" install -r "$APK_PATH"
 adb -s "$EMULATOR_SERIAL" shell input keyevent 82 >/dev/null 2>&1 || true
 
-echo "Capturing Android screens with Maestro..."
+echo "Capturing Haunted Arcade Android screens with Maestro..."
 maestro --device "$EMULATOR_SERIAL" test \
   --test-output-dir "$MAESTRO_REPORT_DIR" \
   "$FLOW_PATH"
@@ -172,8 +148,6 @@ if [[ "$PNG_COUNT" -ne "$EXPECTED_COUNT" ]]; then
   fail "expected exactly $EXPECTED_COUNT screenshots, found $PNG_COUNT"
 fi
 
-# Publish: every check above passed, so it is now safe to replace the last
-# published evidence set with this run's staged one.
 rm -rf "${SCREENSHOTS_DIR}.previous"
 if [[ -d "$SCREENSHOTS_DIR" ]]; then
   mv "$SCREENSHOTS_DIR" "${SCREENSHOTS_DIR}.previous"
@@ -183,4 +157,4 @@ mv "$STAGING_DIR" "$SCREENSHOTS_DIR"
 rm -rf "${SCREENSHOTS_DIR}.previous" "$FAILED_DIR"
 PUBLISHED=1
 
-echo "$PNG_COUNT Android screenshots published to $SCREENSHOTS_DIR"
+echo "$PNG_COUNT Haunted Arcade Android screenshots published to $SCREENSHOTS_DIR"
