@@ -112,9 +112,11 @@ export function stepHauntedThreats(
     });
 
   // Dream Spark resolves before contact damage so a well-timed shot can save Wally.
+  // Telegraphing Ghosts are deliberately vulnerable: the warning is also the
+  // player's reaction window, not an unexplained invulnerable state.
   const consumedProjectileIds = new Set<number>();
   ghosts = ghosts.map((ghost) => {
-    if (ghost.phase !== 'active') return ghost;
+    if (ghost.phase !== 'active' && ghost.phase !== 'telegraph') return ghost;
     const projectile = projectiles.find((spark) =>
       !consumedProjectileIds.has(spark.id) &&
       Math.abs(spark.x - ghost.x) <= GHOST_RULES.sparkHitRadiusX &&
