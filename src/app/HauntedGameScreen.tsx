@@ -48,6 +48,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
           activeVisualEvents={activeVisualEvents}
           nowMs={nowMs}
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
+          dreamSparks={session.combat.projectiles}
         />
 
         <View pointerEvents="none" style={styles.hud}>
