@@ -81,6 +81,13 @@ export function GameCanvas({
         <IllustratedBedroomBackdrop state={state} size={height} />
         <ArcadeStageAtmosphere state={state} size={height} />
         <RoomContactShadows state={state} px={px} />
+        {hauntedSession && (
+          <HauntedExitDoor
+            px={px}
+            ready={hauntedSession.objective.phase === 'escape-ready' || hauntedSession.objective.phase === 'completed'}
+            pulse={Math.floor(nowMs / 140) % 2}
+          />
+        )}
         {target && (
           <InteractionFocus objectId={target.id} placement={OBJECT_PLACEMENTS[target.id]} px={px} phase={Math.floor(nowMs / 240) % 2} />
         )}
@@ -142,6 +149,19 @@ export function GameCanvas({
         <IllustratedBedroomForeground state={state} size={height} />
       </Group>
     </Canvas>
+  );
+}
+
+function HauntedExitDoor({ px, ready, pulse }: { px: (value: number) => number; ready: boolean; pulse: number }) {
+  const glowAlpha = ready ? (pulse === 0 ? 0.18 : 0.32) : 0.06;
+  return (
+    <>
+      <RoundedRect x={px(111)} y={px(68)} width={px(15)} height={px(37)} r={px(1.5)} color={ready ? '#15365f' : '#25203d'} />
+      <Rect x={px(114)} y={px(72)} width={px(9)} height={px(31)} color={ready ? '#1f6e8d' : '#352c4c'} />
+      <Rect x={px(116)} y={px(75)} width={px(5)} height={px(25)} color={ready ? '#5beeff' : '#493b5c'} opacity={ready ? 0.35 : 0.18} />
+      <Circle cx={px(121)} cy={px(88)} r={px(1)} color={ready ? '#ffe45c' : '#776d7c'} />
+      <RoundedRect x={px(109)} y={px(102)} width={px(19)} height={px(4)} r={px(2)} color={`rgba(91,238,255,${glowAlpha})`} />
+    </>
   );
 }
 
