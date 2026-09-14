@@ -68,6 +68,10 @@ export type HauntedSessionStep = {
 
 export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
+export const HAUNTED_PRESSURE = {
+  alarmSpawnDelayMs: 800,
+  escapeSpawnDelayMs: 650,
+} as const;
 
 export function isAtHauntedExit(playerX: number): boolean {
   return Math.abs(playerX - HAUNTED_EXIT.x) <= HAUNTED_EXIT.radius;
@@ -128,6 +132,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     state.rngState,
   );
   combat = threatStep.combat;
+  let threats = threatStep.threats;
   events.push(...threatStep.events);
 
   if (threatStep.playerHitDirection !== 0) {
@@ -147,6 +152,9 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     domestic = interaction.state;
     penaltyMs += interaction.clockPenaltyMs;
     events.push({ type: 'DOMESTIC_INTERACTION', objectId: interaction.objectId, ruleTrace: interaction.ruleTrace });
+    if (interaction.objectId === 'alarm-clock') {
+      threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.alarmSpawnDelayMs);
+    }
   }
 
   const logicalElapsedMs = elapsedMs + penaltyMs;
@@ -165,6 +173,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     events.push({ type: 'SESSION_COMPLETED' });
   } else if (objective.phase === 'prepare' && domestic.flags.dressed && domestic.collected.includes('keys')) {
     objective = { phase: 'escape-ready' };
+    threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.escapeSpawnDelayMs);
     events.push({ type: 'ESCAPE_READY' });
   }
 
@@ -179,9 +188,13 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
       penaltyMs,
       movementNoiseCarry: movementNoise.carry,
       combat,
-      threats: threatStep.threats,
+      threats,
       objective,
     },
     events,
   };
+}
+
+function bringSpawnForward(threats: HauntedThreatState, targetMs: number): HauntedThreatState {
+  return targetMs < threats.nextSpawnAtMs ? { ...threats, nextSpawnAtMs: targetMs } : threats;
 }
