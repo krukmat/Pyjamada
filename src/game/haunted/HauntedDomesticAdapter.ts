@@ -20,6 +20,11 @@ export function syncDomesticPlayer(state: SystemicRunState, x: number, facing: '
   return { ...state, player: { x: Math.round(x), facing } };
 }
 
+export function applyHauntedNoise(state: SystemicRunState, amount: number): SystemicRunState {
+  if (amount === 0) return state;
+  return withHighNoiseState({ ...state, noise: clampNoise(state.noise + amount) });
+}
+
 export function applyHauntedMovementNoise(
   state: SystemicRunState,
   movedDistance: number,
@@ -28,7 +33,7 @@ export function applyHauntedMovementNoise(
   const rate = state.equipped.includes('slippers') ? SLIPPERS_MOVEMENT_NOISE_PER_UNIT : BASE_MOVEMENT_NOISE_PER_UNIT;
   const total = Math.max(0, carry) + Math.abs(movedDistance) * rate;
   const wholeNoise = Math.floor(total);
-  const next = wholeNoise > 0 ? withHighNoiseState({ ...state, noise: clampNoise(state.noise + wholeNoise) }) : state;
+  const next = wholeNoise > 0 ? applyHauntedNoise(state, wholeNoise) : state;
   return { state: next, carry: total - wholeNoise };
 }
 
