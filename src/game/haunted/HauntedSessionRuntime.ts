@@ -1,7 +1,9 @@
 import { createSystemicRun, type SystemicRunState } from '../systemic/SystemicState';
+import { createHauntedCombatState, DREAM_SPARK, stepDreamSparks, tryFireDreamSpark, type HauntedCombatState } from './HauntedCombat';
 import {
   applyHauntedClockState,
   applyHauntedMovementNoise,
+  applyHauntedNoise,
   hauntedDomesticFailureReason,
   interactHauntedDomestic,
   syncDomesticPlayer,
@@ -24,11 +26,7 @@ export type HauntedSessionState = {
   penaltyMs: number;
   deadlineMs: number;
   movementNoiseCarry: number;
-  combat: {
-    hp: number;
-    maxHp: number;
-    invulnerableUntilMs: number;
-  };
+  combat: HauntedCombatState;
   objective: {
     phase: HauntedObjectivePhase;
     reason?: HauntedFailureReason;
@@ -37,9 +35,9 @@ export type HauntedSessionState = {
 
 export type HauntedSessionEvent =
   | { type: 'PLAYER_JUMPED' }
+  | { type: 'DREAM_SPARK_FIRED'; projectileId: number }
   | { type: 'DOMESTIC_INTERACTION'; objectId?: string; ruleTrace: string[] }
   | { type: 'ESCAPE_READY' }
-  | { type: 'ATTACK_REQUESTED' }
   | { type: 'SESSION_FAILED'; reason: HauntedFailureReason };
 
 export type HauntedSessionStep = {
@@ -62,7 +60,7 @@ export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState
     penaltyMs: 0,
     deadlineMs: HAUNTED_DEFAULT_DEADLINE_MS,
     movementNoiseCarry: 0,
-    combat: { hp: 3, maxHp: 3, invulnerableUntilMs: 0 },
+    combat: createHauntedCombatState(),
     objective: { phase: 'prepare' },
   };
 }
@@ -77,11 +75,20 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
   const previousX = state.player.x;
   const player = stepHauntedPlayerPhysics(state.player, state.input, dtSeconds);
   if (state.input.jumpPressed && wasGrounded && !player.grounded) events.push({ type: 'PLAYER_JUMPED' });
-  if (state.input.attackPressed) events.push({ type: 'ATTACK_REQUESTED' });
 
   let domestic = syncDomesticPlayer(state.domestic, player.x, player.facing);
   const movementNoise = applyHauntedMovementNoise(domestic, Math.abs(player.x - previousX), state.movementNoiseCarry);
   domestic = movementNoise.state;
+
+  let combat = stepDreamSparks(state.combat, dtSeconds);
+  if (state.input.attackPressed) {
+    const fired = tryFireDreamSpark(combat, player, state.elapsedMs);
+    combat = fired.combat;
+    if (fired.projectile) {
+      domestic = applyHauntedNoise(domestic, DREAM_SPARK.noisePerShot);
+      events.push({ type: 'DREAM_SPARK_FIRED', projectileId: fired.projectile.id });
+    }
+  }
 
   let penaltyMs = state.penaltyMs;
   if (state.input.interactPressed) {
@@ -96,7 +103,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
   domestic = applyHauntedClockState(domestic, logicalElapsedMs, state.deadlineMs);
 
   let objective = state.objective;
-  const failure = state.combat.hp <= 0
+  const failure = combat.hp <= 0
     ? 'haunted' as const
     : hauntedDomesticFailureReason(domestic, logicalElapsedMs, state.deadlineMs);
 
@@ -117,6 +124,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
       elapsedMs,
       penaltyMs,
       movementNoiseCarry: movementNoise.carry,
+      combat,
       objective,
     },
     events,
