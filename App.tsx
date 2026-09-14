@@ -85,7 +85,7 @@ export default function App() {
         next = stepped.state;
         if (stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION')) saveReason = 'interaction';
         if (stepped.events.some((event) => event.type === 'ESCAPE_READY')) saveReason = 'milestone';
-        if (stepped.events.some((event) => event.type === 'SESSION_FAILED')) saveReason = 'terminal';
+        if (stepped.events.some((event) => event.type === 'SESSION_FAILED' || event.type === 'SESSION_COMPLETED')) saveReason = 'terminal';
       }
 
       activateSession(next);
