@@ -69,6 +69,7 @@ export type HauntedSessionStep = {
 export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
 export const HAUNTED_PRESSURE = {
+  wakeSpawnDelayMs: 1_800,
   alarmSpawnDelayMs: 800,
   escapeSpawnDelayMs: 150,
 } as const;
@@ -148,10 +149,15 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
 
   let penaltyMs = state.penaltyMs;
   if (state.input.interactPressed && !escapeRequested) {
+    const wasSleepy = domestic.wallyState === 'sleepy';
     const interaction = interactHauntedDomestic(domestic);
     domestic = interaction.state;
     penaltyMs += interaction.clockPenaltyMs;
     events.push({ type: 'DOMESTIC_INTERACTION', objectId: interaction.objectId, ruleTrace: interaction.ruleTrace });
+
+    if (wasSleepy && domestic.wallyState !== 'sleepy') {
+      threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.wakeSpawnDelayMs);
+    }
     if (interaction.objectId === 'alarm-clock') {
       threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.alarmSpawnDelayMs);
     }
