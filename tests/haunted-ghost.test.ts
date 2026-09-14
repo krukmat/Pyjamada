@@ -1,6 +1,6 @@
 import { HAUNTED_STEP_MS } from '../src/game/haunted/FixedStepClock';
 import { pressAction } from '../src/game/haunted/HauntedInput';
-import { HAUNTED_EXIT, HAUNTED_PRESSURE, createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
+import { HAUNTED_ESCAPE_GHOST_X, HAUNTED_EXIT, HAUNTED_PRESSURE, createHauntedSession, stepHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
 import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 import { HAUNTED_GHOST_ATLAS } from '../src/game/presentation/atlas/HauntedGhostAtlas';
 import { validateSpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
@@ -148,11 +148,10 @@ pressureSession = {
 stepped = stepHauntedSession(pressureSession, HAUNTED_STEP_MS);
 pressureSession = stepped.state;
 equal(pressureSession.objective.phase, 'escape-ready', 'prepared Wally enters escape-ready phase');
-equal(
-  pressureSession.threats.nextSpawnAtMs,
-  pressureSession.elapsedMs + HAUNTED_PRESSURE.escapeSpawnDelayMs,
-  'escape-ready schedules a final Ghost pressure beat',
-);
+ok(stepped.events.some((event) => event.type === 'GHOST_TELEGRAPHED'), 'escape-ready immediately telegraphs the final Ghost');
+equal(pressureSession.threats.ghosts.length, 1, 'escape lane receives one final Ghost when capacity allows');
+equal(pressureSession.threats.ghosts[0]?.x, HAUNTED_ESCAPE_GHOST_X, 'final Ghost blocks the window/exit lane');
+equal(pressureSession.threats.ghosts[0]?.phase, 'telegraph', 'final Ghost remains fair through its telegraph window');
 
 let exitSession = createHauntedSession('haunted-exit');
 exitSession = {
