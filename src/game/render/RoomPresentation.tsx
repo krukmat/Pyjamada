@@ -3,6 +3,8 @@ import { Circle, Rect, RoundedRect } from '@shopify/react-native-skia';
 import type { RoomId } from '../adventure/AdventureState';
 import { findActiveRoom } from '../adventure/RoomRegistry';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import { resolveObjectVisualFrame } from '../presentation/ObjectAnimator';
+import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { findSystemicObject, type SystemicObjectDefinition } from '../systemic/SystemicContent';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
@@ -27,6 +29,7 @@ type Props = {
   roomId: RoomId;
   state: SystemicRunState;
   hauntedSession?: HauntedSessionState;
+  activeVisualEvents: readonly ActiveVisualEvent[];
   size: number;
   playerX: number;
   playerY: number;
@@ -59,11 +62,11 @@ export function RoomPresentation(props: Props) {
   }
 }
 
-function BedroomPresentation({ state, hauntedSession, size, playerX, playerY, nowMs, scale, px }: Props) {
+function BedroomPresentation({ state, hauntedSession, activeVisualEvents, size, playerX, playerY, nowMs, scale, px }: Props) {
   const target = roomInteractionTarget('bedroom', state);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
-    visual: undefined,
+    visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
     placement: OBJECT_PLACEMENTS[objectId],
   }));
 
@@ -82,11 +85,11 @@ function BedroomPresentation({ state, hauntedSession, size, playerX, playerY, no
       {target && (
         <InteractionFocus objectId={target.id} placement={OBJECT_PLACEMENTS[target.id]} px={px} phase={Math.floor(nowMs / 240) % 2} />
       )}
-      {objects.map(({ objectId, placement }) => (
+      {objects.map(({ objectId, visual, placement }) => (
         <IllustratedObject
           key={objectId}
           objectId={objectId}
-          visual={resolveRoomObjectVisual(state, objectId, nowMs)}
+          visual={visual}
           x={px(placement.x)}
           y={px(placement.y)}
           scale={scale}
@@ -123,19 +126,9 @@ function PlaceholderHallwayPresentation({ hauntedSession, playerX, playerY, px }
       <Rect x={px(63.5)} y={px(38)} width={px(1)} height={px(5)} color="#e8d26e" />
       <Rect x={px(64)} y={px(42)} width={px(pulse === 0 ? 4 : 3)} height={px(1)} color="#7ae9ff" />
       <RoundedRect x={px(27)} y={px(100)} width={px(74)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.10)" />
-      {hauntedSession && (
-        <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />
-      )}
+      {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
     </>
   );
-}
-
-function resolveRoomObjectVisual(state: SystemicRunState, objectId: SystemicObjectId, nowMs: number) {
-  // Delayed import avoidance is not worth duplicating object animation semantics.
-  // The renderer remains the only consumer of this small adapter.
-  const visualState = state.objectStates[objectId];
-  const frame = visualState === 'idle' ? 0 : 1;
-  return { objectId, frame, phase: Math.floor(nowMs / 180) % 2 } as never;
 }
 
 function InteractionFocus({ objectId, placement, px, phase }: {
