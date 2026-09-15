@@ -1,10 +1,10 @@
 import React from 'react';
 import { Group, type SkImage } from '@shopify/react-native-skia';
-import type { HauntedGhostState } from '../haunted/HauntedThreats';
+import { GHOST_RULES, type HauntedGhostState } from '../haunted/HauntedThreats';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_GHOST_ATLAS } from '../presentation/atlas/HauntedGhostAtlas';
-import { EnemyPresenceCue, EnemyTelegraphCue } from './EnemyPresentation';
+import { EnemyDeathCue, EnemyPresenceCue, EnemyTelegraphCue } from './EnemyPresentation';
 import { GHOST_VISUAL_PROFILE } from './EnemyVisualProfile';
 import { HauntedGhostFallback } from './HauntedActorFallbacks';
 
@@ -26,6 +26,14 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
   const dying = ghost.phase === 'dying';
   const frame = image ? requireAtlasFrame(INDEX, selectFrameId(ghost, nowMs, playerX)) : null;
   const pulse = Math.floor(nowMs / 90) % 2;
+  const deathProgress = dying
+    ? Math.max(0, Math.min(1, 1 - Math.max(0, ghost.phaseUntilMs - nowMs) / GHOST_RULES.dyingMs))
+    : 0;
+  const spriteOpacity = telegraph
+    ? 0.42
+    : dying
+      ? Math.max(0.16, 0.46 - deathProgress * 0.28)
+      : 1;
 
   return (
     <Group>
@@ -37,17 +45,25 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
           scale={scale}
           pulse={pulse}
         />
+      ) : dying ? (
+        <EnemyDeathCue
+          profile={GHOST_VISUAL_PROFILE}
+          x={x}
+          y={y}
+          scale={scale}
+          pulse={pulse}
+          progress={deathProgress}
+        />
       ) : (
         <EnemyPresenceCue
           profile={GHOST_VISUAL_PROFILE}
           x={x}
           y={y}
           scale={scale}
-          dying={dying}
         />
       )}
 
-      <Group opacity={telegraph ? 0.42 : dying ? 0.78 : 1}>
+      <Group opacity={spriteOpacity}>
         {image && frame ? (
           <AtlasSprite image={image} frame={frame} x={x} y={y} scale={scale} facing={facing} />
         ) : (
