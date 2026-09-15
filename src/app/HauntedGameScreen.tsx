@@ -249,5 +249,4 @@ const styles = StyleSheet.create({
   outcomeText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 16, fontWeight: '900', letterSpacing: 1.4 },
   exitButton: { minHeight: 24, justifyContent: 'center', paddingHorizontal: 12 },
   exitText: { color: '#a999a5', fontFamily: 'monospace', fontSize: 7, fontWeight: '800', letterSpacing: 0.8 },
-  pressed: { opacity: 0.7, transform: [{ translateY: 1 }] },
 });
