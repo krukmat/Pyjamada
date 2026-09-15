@@ -102,8 +102,18 @@ export function KitchenPresentation({ adventure, hauntedSession, playerX, player
         </>
       )}
 
-      <RoundedRect x={px(58)} y={px(22)} width={px(13)} height={px(3)} r={px(1.5)} color={overloaded ? '#3b3c42' : rerouted ? '#9edee5' : '#d5ccb1'} />
-      {!overloaded && <Circle cx={px(64.5)} cy={px(30)} r={px(16)} color={rerouted ? 'rgba(121,232,255,0.05)' : 'rgba(248,218,118,0.05)'} />}
+      <RoundedRect x={px(58)} y={px(22)} width={px(13)} height={px(3)} r={px(1.5)} color={rerouted ? '#9edee5' : overloaded ? '#3b3c42' : '#5f6268'} />
+      {rerouted && <Circle cx={px(64.5)} cy={px(30)} r={px(16)} color="rgba(121,232,255,0.05)" />}
+
+      <RoundedRect x={px(119)} y={px(44)} width={px(12)} height={px(59)} r={px(2)} color={rerouted ? '#426878' : '#353941'} />
+      <Rect x={px(122)} y={px(49)} width={px(8)} height={px(52)} color={rerouted ? '#17303b' : '#20252c'} />
+      {rerouted && (
+        <>
+          <Rect x={px(119)} y={px(101)} width={px(12)} height={px(2)} color="rgba(121,232,255,0.45)" />
+          <Circle cx={px(123)} cy={px(77)} r={px(1)} color="#f1d75c" />
+        </>
+      )}
+
       {overloaded && <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={flicker ? 'rgba(5,8,14,0.18)' : 'rgba(5,8,14,0.34)'} />}
 
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
