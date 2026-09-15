@@ -2,11 +2,15 @@
 
 ## Status
 
-**ACTIVE**
+**ACTIVE — GATE B CODE COMPLETE / ANDROID REVIEW PENDING**
 
-Current implementation focus: **Gate A — Enter the Living Room**.
+Completed implementation blocks:
+- **Gate A — Enter the Living Room** ✅
+- **Gate B — Mystery Hook** ✅ code/test implementation
 
-W1 is accepted and its High/Medium structural debt is closed. W2 must now prove two things without reopening that debt:
+Next acceptance evidence is the local Android review of the Living Room TV states.
+
+W1 is accepted and its High/Medium structural debt is closed. W2 proves two things without reopening that debt:
 
 1. a third room can be added cheaply through the room registry/presentation seams;
 2. interactive mystery content can grow without turning `AdventureExplorationRuntime` back into a room-specific `if/else` chain.
@@ -44,18 +48,13 @@ Out of W2:
 
 ## Task plan
 
-### W2-T0 — Close W1 and activate W2 — P0
+### W2-T0 — Close W1 and activate W2 — P0 — COMPLETE
 
-Update the master roadmap so W1 is `ACCEPTED` and W2 is `ACTIVE`.
+Master roadmap now treats W1 as accepted and W2 as active.
 
-Definition of Done:
-- master roadmap reflects the accepted W1 gate;
-- W1 debt closure remains documented;
-- W2 task/DAG document is canonical for this wave.
+### W2-T1 — Activate Living Room in the room registry — P0 — COMPLETE
 
-### W2-T1 — Activate Living Room in the room registry — P0
-
-Add:
+Implemented:
 - `living-room` presentation id;
 - `living-room-from-hallway` entry;
 - `hallway-to-living-room` exit;
@@ -63,20 +62,11 @@ Add:
 - `hallway-from-living-room` return entry;
 - real Hallway Living Room door interaction.
 
-The same `living-room-unlocked` Hallway switch that controls the visible door must also gate the registered transition. Interaction availability and transition legality must not diverge.
+The same `living-room-unlocked` Hallway switch gates both interaction availability and transition legality.
 
-Definition of Done:
-- Living Room cannot be entered before the backward-clock reveal;
-- after reveal, Hallway -> Living Room is legal;
-- Living Room -> Hallway is legal;
-- deterministic spawn/facing is defined in both directions;
-- visited room tracking remains correct.
+### W2-T2 — Extract room-effect dispatch seam — P0 — COMPLETE
 
-### W2-T2 — Extract room-effect dispatch seam — P0
-
-Room interactions remain data in `RoomRegistry`, but effect execution must not grow directly inside `AdventureExplorationRuntime`.
-
-Target direction:
+Implemented direction:
 
 ```text
 RoomDefinition.interactions
@@ -88,38 +78,22 @@ AdventureExplorationRuntime
 applyRoomInteractionEffect()
         |
         +-- Hallway effects
-        +-- Living Room effects (W2-T4+)
+        +-- Living Room effects
 ```
 
-This is deliberately a small dispatcher, not a scripting engine.
+Effect-specific mutation/events live in `RoomInteractionEffects.ts`; the runtime stays responsible for movement, target resolution and dispatch only.
 
-Definition of Done:
-- `AdventureExplorationRuntime` resolves target + exit/effect category;
-- effect-specific mutation/events live outside the runtime;
-- existing backward-clock behavior remains deterministic and tested.
+### W2-T3 — Living Room base presentation — P0 — COMPLETE
 
-### W2-T3 — Living Room base presentation — P0
+Implemented through the existing `RoomPresentation` seam with:
+- Hallway return door;
+- sofa/furniture;
+- television as the dominant future interaction;
+- contextual exploration HUD and controls.
 
-Create the base room through the existing `RoomPresentation` seam.
+## Gate A — Enter the Living Room — COMPLETE
 
-Initial visual hierarchy:
-1. Wally;
-2. television;
-3. Hallway door;
-4. sofa/furniture supporting room identity.
-
-The TV may exist visually during Gate A but is not yet an interactive story beat.
-
-Definition of Done:
-- Living Room has a distinct readable presentation;
-- top-level `GameCanvas` is not duplicated;
-- shared Wally/camera/exploration controls still work;
-- HUD remains contextual exploration HUD;
-- room can be entered and exited normally.
-
-## Gate A — Enter the Living Room
-
-Required path:
+Validated path:
 
 ```text
 Hallway
@@ -132,30 +106,13 @@ Hallway
   -> Hallway
 ```
 
-Required persistence:
+Persistence covers restoring Living Room after save/load and deterministic round-trip spawn points.
 
-```text
-Living Room
-  -> save
-  -> continue
-  -> Living Room restored
-```
+### W2-T4 — Television interaction — P0 — COMPLETE
 
-Automated acceptance:
-- registry availability and direct transition are both locked before clock reveal;
-- both become valid after reveal;
-- round-trip spawn points are deterministic;
-- visited rooms include Bedroom, Hallway, Living Room;
-- save/load restores Living Room;
-- existing W1 end-to-end remains green.
+The TV is registered as real Living Room content at the room-definition layer.
 
-Gate A deliberately contains no TV interaction or transmission.
-
-### W2-T4 — Television interaction — P0
-
-Add the TV as room content and the central interaction target.
-
-Minimum state progression:
+State progression:
 
 ```text
 TV OFF
@@ -163,58 +120,80 @@ TV OFF
 STATIC / INTERFERENCE
 ```
 
-Persist activation/inspection locally in Living Room state.
+First interaction persists:
+- Living Room switch `tv-on = true`;
+- room interaction `tv-activated`;
+- event `LIVING_ROOM_TV_ACTIVATED`.
 
-Do not add long dialogue or a generic media/cutscene engine.
+The milestone is persisted immediately by the application save coordinator.
 
-### W2-T5 — Distorted laboratory transmission — P0
+### W2-T5 — Distorted laboratory transmission — P0 — COMPLETE
 
-After TV activation, deliver a short, fragmented transmission such as:
+A second TV interaction cuts through the static and exposes the first deliberately technological clue:
 
 ```text
 RESONANCE STABLE...
-...SUBJECT STILL...
-[SIGNAL LOST]
+SUBJECT...
+static
 ```
 
-The player should infer deliberate observation without learning the entire experiment.
+The UI deliberately avoids naming Dr. Vesper or explaining the Resonator. The intended inference is that the haunting is being observed or driven by an experiment.
 
-Do not name/explain Dr. Vesper in full here.
+The Living Room renderer distinguishes:
+- TV off;
+- static/interference;
+- distorted transmission residue.
 
-### W2-T6 — Story state and persistence — P0
+### W2-T6 — Story state and persistence — P0 — COMPLETE
 
-Introduce an explicit global story flag when the transmission becomes meaningful, provisionally:
+Implemented explicit global story flag:
 
 `labTransmissionSeen`
 
-Room-local state records the TV interaction; global story state records narrative knowledge required by later waves.
+First meaningful transmission sets it once and also persists local evidence:
+- inspected id `television`;
+- interaction `tv-transmission`;
+- TV power state.
 
-Definition of Done:
-- first transmission sets the story flag exactly once;
-- room-local TV state persists;
-- save/load restores both;
-- leaving and re-entering Living Room does not incorrectly replay first-discovery semantics.
+Save/load restores the global flag and local TV state. Pre-Gate-B v3 saves that do not contain `labTransmissionSeen` migrate it to `false` rather than becoming incompatible.
 
-## Gate B — Mystery Hook
+## Gate B — Mystery Hook — CODE COMPLETE
 
-Required path:
+Required path now exists:
 
 ```text
 Living Room
  -> discover TV
  -> activate TV
  -> interference
+ -> interact again
  -> distorted lab transmission
  -> labTransmissionSeen
+ -> FIND THE SOURCE
 ```
 
 Player takeaway:
 
 > The haunting is not random. Something is monitoring or driving it.
 
-### W2-T7 — Secondary environmental storytelling — P1
+Automated Gate B coverage validates:
+- TV starts off;
+- first interaction produces static and does not prematurely reveal the lab;
+- second interaction sets the global story milestone;
+- repeated interaction does not replay first-discovery semantics;
+- local TV state and global story state survive save/load;
+- pre-Gate-B saves migrate safely.
 
-Only after the TV beat works, add at most 2–3 supporting details, e.g.:
+Focused Android review states now are:
+- `19_living_room_arrival`
+- `20_living_room_static`
+- `21_lab_transmission`
+
+`22_post_transmission` remains available for Gate C only if a separate post-signal visual state proves useful; it is not required merely to increase screenshot count.
+
+### W2-T7 — Secondary environmental storytelling — P1 — NEXT AFTER GATE B REVIEW
+
+Only after the TV beat is visually accepted, add at most 2–3 supporting details, e.g.:
 - photo/frame anomaly;
 - radio/static;
 - impossible cable routing or electrical artifact.
@@ -231,95 +210,76 @@ Avoid coupling exploration to Haunted combat again merely because the TV is elec
 
 ### W2-T9 — Hook toward W3 — P1
 
-After the transmission, provide a small forward cue such as an electrical sound elsewhere or a new objective (`FIND THE SOURCE`).
+Gate B already introduces `FIND THE SOURCE` as the forward objective. A small environmental cue can be added after review, but Kitchen remains outside W2.
 
-Do not implement Kitchen in W2.
+### W2-T10 — Deterministic review + E2E — IN PROGRESS
 
-### W2-T10 — Deterministic review + E2E — P0
-
-Target focused review states:
-- `19_living_room_arrival`
-- `20_tv_static`
-- `21_lab_transmission`
-- `22_post_transmission`
-
-Target continuous E2E:
+Implemented continuous automated coverage:
 
 ```text
 Hallway
  -> Living Room
- -> TV
+ -> TV static
  -> transmission
  -> story flag
  -> save/load
  -> Living Room restored
 ```
 
-Also cover Living Room -> Hallway -> Living Room without losing progression.
+Current deterministic review states:
+- `19_living_room_arrival`
+- `20_living_room_static`
+- `21_lab_transmission`
 
-### W2-T11 — Android acceptance — Gate
+### W2-T11 — Android acceptance — NEXT GATE
 
 User-run local Android review validates:
 - room readability;
 - TV discoverability;
-- transmission readability/timing;
+- static/interference readability;
+- transmission readability;
 - touch navigation between Hallway and Living Room;
-- Continue behavior;
 - whether W2 needs any threat/noise escalation.
 
 ## Dependency DAG
 
 ```text
-T0 Close W1 / activate W2
+T0 Close W1 / activate W2       COMPLETE
  |
  v
-T1 Living Room registry
+T1 Living Room registry         COMPLETE
  |
  +----------------+
  v                v
-T2 effect seam    T3 base presentation
+T2 effect seam    T3 presentation
+ COMPLETE          COMPLETE
  |                |
  +-------+--------+
          v
-       Gate A
+       Gate A                 COMPLETE
          |
          v
-       T4 TV
+       T4 TV                  COMPLETE
          |
          v
- T5 transmission
+ T5 transmission              COMPLETE
          |
          v
-   T6 story state
-      /      \
-     v        v
-    T7       T9
- environment hook
-      \      /
-       v    v
- T8 threat evaluation (conditional)
+   T6 story state             COMPLETE
          |
          v
-       T10 tests
+       Gate B                 CODE COMPLETE
          |
          v
-       T11 Android
-```
-
-## Critical path
-
-```text
-T1
- -> T2/T3
- -> T4
- -> T5
- -> T6
- -> T10
- -> T11
+ Android review               NEXT
+      /       \
+     v         v
+ T7/T9       T8 evaluation
+         |
+         v
+       T10/T11
 ```
 
 ## Current checkpoint
 
-T0–T3 are the first implementation block. Work stops at Gate A before TV behavior begins.
-
-Gate A is complete only when code, tests and repository validation are green. Android screenshots for the Living Room are not required until the W2 review scenarios are added later, but a manual navigation check is useful if available.
+Gate B implementation is complete. Do not add Ghost/combat, Kitchen, Vesper reveal or broad environmental content before reviewing the two new TV evidence states on Android.
