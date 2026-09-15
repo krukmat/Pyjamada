@@ -1,5 +1,5 @@
 import React from 'react';
-import { Canvas, Circle, Group, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, Rect, RoundedRect, type SkImage } from '@shopify/react-native-skia';
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { DreamSparkProjectile } from '../haunted/HauntedCombat';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
@@ -34,6 +34,8 @@ type Props = {
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
   dreamSparks?: readonly DreamSparkProjectile[];
   hauntedSession?: HauntedSessionState;
+  hauntedWallyImage?: SkImage | null;
+  hauntedGhostImage?: SkImage | null;
 };
 
 type ObjectPlacement = { x: number; y: number };
@@ -56,6 +58,8 @@ export function GameCanvas({
   playerRenderPosition,
   dreamSparks = [],
   hauntedSession,
+  hauntedWallyImage = null,
+  hauntedGhostImage = null,
 }: Props) {
   const scale = stageScale(height);
   const px = (value: number) => stagePx(height, value);
@@ -105,6 +109,7 @@ export function GameCanvas({
         {hauntedSession?.threats.ghosts.map((ghost) => (
           <HauntedGhostSprite
             key={ghost.id}
+            image={hauntedGhostImage}
             ghost={ghost}
             x={px(ghost.x)}
             y={px(ghost.y)}
@@ -117,6 +122,7 @@ export function GameCanvas({
         <WallyFocusLight state={state} size={height} x={playerX} groundY={playerY} />
         {hauntedSession ? (
           <HauntedWallySprite
+            image={hauntedWallyImage}
             session={hauntedSession}
             x={px(playerX)}
             y={px(playerY)}
