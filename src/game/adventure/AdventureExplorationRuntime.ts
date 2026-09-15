@@ -121,6 +121,18 @@ export function isLivingRoomSourceCueRevealed(adventure: AdventureState): boolea
   return getRoomState(adventure, 'living-room').switches['source-hum-traced'] === true;
 }
 
+export function isKitchenCircuitOverloaded(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'kitchen').switches['circuit-overloaded'] === true;
+}
+
+export function isKitchenPowerRerouted(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'kitchen').switches['power-rerouted'] === true;
+}
+
+export function isKitchenBreakerInspected(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'kitchen').inspected.includes('breaker-panel');
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
