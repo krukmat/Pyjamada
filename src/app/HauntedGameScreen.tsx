@@ -3,9 +3,11 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { useImage } from '@shopify/react-native-skia';
 import {
   findAdventureInteractionTarget,
+  hasLabTransmissionBeenSeen,
   isAdventureExplorationActive,
   isHallwayClockInspected,
   isLivingRoomPathRevealed,
+  isLivingRoomTvActivated,
 } from '../game/adventure/AdventureExplorationRuntime';
 import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
@@ -152,7 +154,11 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
 function objectiveFor(session: HauntedSessionState, adventure?: AdventureState): string {
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'FIND ANOTHER WAY OUT';
-    if (adventure.currentRoom === 'living-room') return 'CHECK THE LIVING ROOM';
+    if (adventure.currentRoom === 'living-room') {
+      if (!isLivingRoomTvActivated(adventure)) return 'CHECK THE LIVING ROOM';
+      if (!hasLabTransmissionBeenSeen(adventure)) return 'CHECK THE SIGNAL';
+      return 'FIND THE SOURCE';
+    }
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
     return 'ENTER THE LIVING ROOM';
   }
@@ -194,7 +200,11 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
 function reactionFor(session: HauntedSessionState, adventure?: AdventureState): string {
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'That door did not lead outside. The room is wrong.';
-    if (adventure.currentRoom === 'living-room') return 'The television is dark. The room is listening.';
+    if (adventure.currentRoom === 'living-room') {
+      if (hasLabTransmissionBeenSeen(adventure)) return 'A voice cuts through: RESONANCE STABLE... SUBJECT... Then static.';
+      if (isLivingRoomTvActivated(adventure)) return 'Static. Not a channel. Something is underneath it.';
+      return 'The television is dark. The room is listening.';
+    }
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
   }
