@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room';
 
 export type RoomEntryPoint = {
   id: string;
@@ -20,9 +20,10 @@ export type RoomExit = {
   targetRoom: RoomId;
   targetEntry: string;
   requiresStoryFlag?: StoryFlag;
+  requiresRoomSwitch?: string;
 };
 
-export type RoomInteractionEffect = 'inspect-backward-clock' | 'reach-living-room-door';
+export type RoomInteractionEffect = 'inspect-backward-clock';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -34,7 +35,6 @@ export type RoomInteractionDefinition = {
   unavailableLabel?: string;
   x: number;
   radius: number;
-  requiresRoomSwitch?: string;
   behavior: RoomInteractionBehavior;
 };
 
@@ -51,7 +51,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -84,9 +84,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'hallway',
     entries: [
       { id: 'hallway-from-bedroom', x: 14, y: 104, facing: 'right' },
+      { id: 'hallway-from-living-room', x: 108, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'hallway-to-bedroom', targetRoom: 'bedroom', targetEntry: 'bedroom-from-hallway' },
+      {
+        id: 'hallway-to-living-room',
+        targetRoom: 'living-room',
+        targetEntry: 'living-room-from-hallway',
+        requiresRoomSwitch: 'living-room-unlocked',
+      },
     ],
     interactions: [
       {
@@ -109,8 +116,26 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         unavailableLabel: 'SEALED DOOR',
         x: 114,
         radius: 8,
-        requiresRoomSwitch: 'living-room-unlocked',
-        behavior: { type: 'effect', effect: 'reach-living-room-door' },
+        behavior: { type: 'exit', exitId: 'hallway-to-living-room' },
+      },
+    ],
+  },
+  'living-room': {
+    id: 'living-room',
+    presentationId: 'living-room',
+    entries: [
+      { id: 'living-room-from-hallway', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'living-room-to-hallway', targetRoom: 'hallway', targetEntry: 'hallway-from-living-room' },
+    ],
+    interactions: [
+      {
+        id: 'living-room-hallway-door',
+        label: 'HALLWAY',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'living-room-to-hallway' },
       },
     ],
   },
@@ -138,8 +163,10 @@ export function getRoomInteraction(roomId: RoomId, interactionId: string): RoomI
   return findActiveRoom(roomId)?.interactions.find(interaction => interaction.id === interactionId);
 }
 
-export function isRoomExitAvailable(state: AdventureState, exit: RoomExit): boolean {
-  return !exit.requiresStoryFlag || state.storyFlags[exit.requiresStoryFlag];
+export function isRoomExitAvailable(state: AdventureState, roomId: RoomId, exit: RoomExit): boolean {
+  if (exit.requiresStoryFlag && !state.storyFlags[exit.requiresStoryFlag]) return false;
+  if (exit.requiresRoomSwitch && getRoomState(state, roomId).switches[exit.requiresRoomSwitch] !== true) return false;
+  return true;
 }
 
 export function isRoomInteractionAvailable(
@@ -147,14 +174,9 @@ export function isRoomInteractionAvailable(
   roomId: RoomId,
   interaction: RoomInteractionDefinition,
 ): boolean {
-  if (interaction.behavior.type === 'exit') {
-    const exit = getRoomExit(roomId, interaction.behavior.exitId);
-    if (!exit || !isRoomExitAvailable(state, exit)) return false;
-  }
-  if (interaction.requiresRoomSwitch) {
-    return getRoomState(state, roomId).switches[interaction.requiresRoomSwitch] === true;
-  }
-  return true;
+  if (interaction.behavior.type !== 'exit') return true;
+  const exit = getRoomExit(roomId, interaction.behavior.exitId);
+  return Boolean(exit && isRoomExitAvailable(state, roomId, exit));
 }
 
 export function resolveRoomInteractionTarget(
@@ -194,10 +216,11 @@ export function transitionAdventure(
       reason: `Transition ${state.currentRoom} -> ${targetRoom}:${targetEntry} is not registered.`,
     };
   }
-  if (!isRoomExitAvailable(state, allowed)) {
+  if (!isRoomExitAvailable(state, source.id, allowed)) {
+    const requirement = allowed.requiresStoryFlag ?? allowed.requiresRoomSwitch ?? 'unknown requirement';
     return {
       status: 'invalid',
-      reason: `Transition ${allowed.id} requires story flag ${allowed.requiresStoryFlag}.`,
+      reason: `Transition ${allowed.id} requires ${requirement}.`,
     };
   }
 
