@@ -36,6 +36,10 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'kitchen-arrival',
   'kitchen-overload',
   'kitchen-power-rerouted',
+  'bathroom-arrival',
+  'bathroom-mirror-mismatch',
+  'bathroom-reflected-route',
+  'bathroom-route-revealed',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -55,6 +59,10 @@ type AdventureScreenshotScenario = Extract<
   | 'kitchen-arrival'
   | 'kitchen-overload'
   | 'kitchen-power-rerouted'
+  | 'bathroom-arrival'
+  | 'bathroom-mirror-mismatch'
+  | 'bathroom-reflected-route'
+  | 'bathroom-route-revealed'
 >;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -206,7 +214,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
   if (scenario === 'living-door') {
     adventure = markRoomInteraction(adventure, 'hallway', 'living-room-door');
   }
-  if (isLivingOrKitchenScenario(scenario)) {
+  if (isLivingOrDeeperScenario(scenario)) {
     const livingRoom = transitionAdventure(adventure, 'living-room', 'living-room-from-hallway');
     if (livingRoom.status !== 'ok') throw new Error(livingRoom.reason);
     adventure = livingRoom.state;
@@ -230,24 +238,42 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = setRoomSwitch(adventure, 'living-room', 'radio-focused', true);
     adventure = setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true);
   }
-  if (isKitchenScenario(scenario)) {
+  if (isKitchenOrBathroomScenario(scenario)) {
     const kitchen = transitionAdventure(adventure, 'kitchen', 'kitchen-from-living-room');
     if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
     adventure = kitchen.state;
   }
-  if (scenario === 'kitchen-overload' || scenario === 'kitchen-power-rerouted') {
+  if (scenario === 'kitchen-overload' || scenario === 'kitchen-power-rerouted' || isBathroomScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'kitchen', 'microwave');
     adventure = markRoomInteraction(adventure, 'kitchen', 'microwave-overload');
     adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', true);
     adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', true);
   }
-  if (scenario === 'kitchen-power-rerouted') {
+  if (scenario === 'kitchen-power-rerouted' || isBathroomScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'kitchen', 'breaker-panel');
     adventure = markRoomInteraction(adventure, 'kitchen', 'breaker-inspected');
     adventure = markRoomInteraction(adventure, 'kitchen', 'power-rerouted');
     adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', false);
     adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', false);
     adventure = setRoomSwitch(adventure, 'kitchen', 'power-rerouted', true);
+  }
+  if (isBathroomScenario(scenario)) {
+    const bathroom = transitionAdventure(adventure, 'bathroom', 'bathroom-from-kitchen');
+    if (bathroom.status !== 'ok') throw new Error(bathroom.reason);
+    adventure = bathroom.state;
+  }
+  if (scenario === 'bathroom-mirror-mismatch' || scenario === 'bathroom-reflected-route' || scenario === 'bathroom-route-revealed') {
+    adventure = markRoomInspected(adventure, 'bathroom', 'mirror-mismatch');
+    adventure = markRoomInteraction(adventure, 'bathroom', 'mirror-inspected');
+    adventure = setRoomSwitch(adventure, 'bathroom', 'mirror-anomaly-seen', true);
+  }
+  if (scenario === 'bathroom-reflected-route' || scenario === 'bathroom-route-revealed') {
+    adventure = markRoomInteraction(adventure, 'bathroom', 'light-switch-tested');
+    adventure = setRoomSwitch(adventure, 'bathroom', 'bathroom-light-off', true);
+  }
+  if (scenario === 'bathroom-route-revealed') {
+    adventure = markRoomInteraction(adventure, 'bathroom', 'mirror-route-confirmed');
+    adventure = setRoomSwitch(adventure, 'bathroom', 'mirror-route-revealed', true);
   }
   return adventure;
 }
@@ -269,10 +295,18 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
               : scenario === 'kitchen-arrival'
                 ? 20
                 : scenario === 'kitchen-overload'
-                  ? 64
+                  ? 108
                   : scenario === 'kitchen-power-rerouted'
-                    ? 108
-                    : 99;
+                    ? 116
+                    : scenario === 'bathroom-arrival'
+                      ? 20
+                      : scenario === 'bathroom-mirror-mismatch'
+                        ? 64
+                        : scenario === 'bathroom-reflected-route'
+                          ? 64
+                          : scenario === 'bathroom-route-revealed'
+                            ? 108
+                            : 99;
   return withPlayer(falseEscape.session, x);
 }
 
@@ -286,10 +320,10 @@ function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionSta
   };
 }
 
-function isLivingOrKitchenScenario(scenario: AdventureScreenshotScenario): boolean {
+function isLivingOrDeeperScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'living-room-arrival'
     || isTvOnScenario(scenario)
-    || isKitchenScenario(scenario);
+    || isKitchenOrBathroomScenario(scenario);
 }
 
 function isTvOnScenario(scenario: AdventureScreenshotScenario): boolean {
@@ -304,13 +338,21 @@ function isTransmissionScenario(scenario: AdventureScreenshotScenario): boolean 
 
 function isSourceCueScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'living-room-source-cue'
-    || isKitchenScenario(scenario);
+    || isKitchenOrBathroomScenario(scenario);
 }
 
-function isKitchenScenario(scenario: AdventureScreenshotScenario): boolean {
+function isKitchenOrBathroomScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'kitchen-arrival'
     || scenario === 'kitchen-overload'
-    || scenario === 'kitchen-power-rerouted';
+    || scenario === 'kitchen-power-rerouted'
+    || isBathroomScenario(scenario);
+}
+
+function isBathroomScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'bathroom-arrival'
+    || scenario === 'bathroom-mirror-mismatch'
+    || scenario === 'bathroom-reflected-route'
+    || scenario === 'bathroom-route-revealed';
 }
 
 function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
@@ -324,7 +366,11 @@ function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is A
     || scenario === 'living-room-source-cue'
     || scenario === 'kitchen-arrival'
     || scenario === 'kitchen-overload'
-    || scenario === 'kitchen-power-rerouted';
+    || scenario === 'kitchen-power-rerouted'
+    || scenario === 'bathroom-arrival'
+    || scenario === 'bathroom-mirror-mismatch'
+    || scenario === 'bathroom-reflected-route'
+    || scenario === 'bathroom-route-revealed';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -346,7 +392,7 @@ function withPlayer(session: HauntedSessionState, x: number): HauntedSessionStat
   return {
     ...session,
     player: { ...session.player, x, y: PLAYER_GROUND_Y, vx: 0, vy: 0, grounded: true, facing: 'right' },
-    domestic: { ...session.domestic, player: { ...session.domestic.player, x: Math.round(x), facing: 'right' } },
+    domestic: { ...session.domestic, player: { x: Math.round(x), facing: 'right' } },
   };
 }
 
