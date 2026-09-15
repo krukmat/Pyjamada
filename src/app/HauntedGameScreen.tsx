@@ -5,7 +5,6 @@ import {
   findAdventureInteractionTarget,
   isAdventureExplorationActive,
   isHallwayClockInspected,
-  isLivingRoomDoorReached,
   isLivingRoomPathRevealed,
 } from '../game/adventure/AdventureExplorationRuntime';
 import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
@@ -145,15 +144,17 @@ export function HauntedGameScreen({
 
 function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (!exploration) return 'HAUNTED MORNING';
-  return roomId === 'hallway' ? 'HAUNTED HOUSE · HALLWAY' : 'HAUNTED HOUSE · BEDROOM';
+  if (roomId === 'hallway') return 'HAUNTED HOUSE · HALLWAY';
+  if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
+  return 'HAUNTED HOUSE · BEDROOM';
 }
 
 function objectiveFor(session: HauntedSessionState, adventure?: AdventureState): string {
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'FIND ANOTHER WAY OUT';
+    if (adventure.currentRoom === 'living-room') return 'CHECK THE LIVING ROOM';
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
-    if (!isLivingRoomDoorReached(adventure)) return 'LIVING ROOM UNLOCKED · REACH THE DOOR';
-    return 'THE SIGNAL CONTINUES BEYOND THIS DOOR';
+    return 'ENTER THE LIVING ROOM';
   }
   return session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS';
 }
@@ -193,7 +194,7 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
 function reactionFor(session: HauntedSessionState, adventure?: AdventureState): string {
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'That door did not lead outside. The room is wrong.';
-    if (isLivingRoomDoorReached(adventure)) return 'Something electrical is humming behind this door.';
+    if (adventure.currentRoom === 'living-room') return 'The television is dark. The room is listening.';
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
   }
