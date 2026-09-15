@@ -297,7 +297,7 @@ tags:
     id: screenshot-scenario-kitchen-arrival
 - extendedWaitUntil:
     visible:
-      text: "Everything is off. Something in the wall is still drawing power."
+      text: "The appliances are dead. Something in the wall is still drawing power."
     timeout: 5000
 - assertVisible: "HAUNTED HOUSE · KITCHEN"
 - assertVisible: "TRACE THE POWER"
@@ -313,7 +313,7 @@ tags:
       text: "The microwave killed the lights. The breaker is buzzing now."
     timeout: 5000
 - assertVisible: "CHECK THE BREAKER"
-- assertVisible: "INTERACT · MICROWAVE"
+- assertVisible: "INTERACT · BREAKER"
 - takeScreenshot:
     path: 24_kitchen_overload
 
@@ -326,6 +326,57 @@ tags:
       text: "The circuit settles. The same pulse is moving deeper into the house."
     timeout: 5000
 - assertVisible: "FOLLOW THE PULSE"
-- assertVisible: "INTERACT · BREAKER"
+- assertVisible: "INTERACT · BATHROOM"
 - takeScreenshot:
     path: 25_kitchen_power_rerouted
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The pulse stops at the sink."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · BATHROOM"
+- assertVisible: "FOLLOW THE PULSE"
+- takeScreenshot:
+    path: 26_bathroom_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-mirror-mismatch
+- extendedWaitUntil:
+    visible:
+      text: "The pulse stops here. In the mirror, it keeps going."
+    timeout: 5000
+- assertVisible: "TEST THE REFLECTION"
+- assertVisible: "INTERACT · MIRROR"
+- takeScreenshot:
+    path: 27_bathroom_mirror_mismatch
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-reflected-route
+- extendedWaitUntil:
+    visible:
+      text: "The room went dark. The reflection did not."
+    timeout: 5000
+- assertVisible: "CHECK THE MIRROR"
+- assertVisible: "INTERACT · MIRROR"
+- takeScreenshot:
+    path: 28_bathroom_reflected_route
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-route-revealed
+- extendedWaitUntil:
+    visible:
+      text: "The wall is copying the mirror. A hidden stair climbs behind it."
+    timeout: 5000
+- assertVisible: "ATTIC ACCESS REVEALED"
+- takeScreenshot:
+    path: 29_bathroom_route_revealed
