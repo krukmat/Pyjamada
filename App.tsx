@@ -21,7 +21,7 @@ import {
 import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/adventure/AdventureSaveCoordinator';
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
-import { createAdventureState, setStoryFlag, type AdventureState } from './src/game/adventure/AdventureState';
+import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
 import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
@@ -314,7 +314,9 @@ export default function App() {
     if (screenshotScenarioRef.current !== null || transitionLockRef.current) return;
     const current = sessionRef.current;
     if (!current || current.objective.phase === 'failed') return;
-    if (!isAdventureExplorationActive(adventureRef.current) && current.objective.phase === 'completed') return;
+    const exploration = isAdventureExplorationActive(adventureRef.current);
+    if (!exploration && current.objective.phase === 'completed') return;
+    if (exploration && control === 'attack') return;
     activateSession({ ...current, input: pressAction(current.input, control) });
   }
 
@@ -350,15 +352,11 @@ export default function App() {
     const currentSession = sessionRef.current;
     if (!currentSession) return;
     let currentAdventure = adventureCoordinatorRef.current.snapshot();
-    if (!currentAdventure.storyFlags.hallwayUnlocked) {
-      currentAdventure = setStoryFlag(setStoryFlag(currentAdventure, 'bedroomEscapeAttempted', true), 'hallwayUnlocked', true);
-      activateAdventure(currentAdventure);
-      if (currentSession.objective.phase !== 'exploration') {
-        const prepared = applyFalseEscape({ ...currentSession, objective: { phase: 'completed' } }, currentAdventure);
-        activateAdventure(prepared.adventure);
-        activateSession(prepared.session);
-        currentAdventure = prepared.adventure;
-      }
+    if (!isAdventureExplorationActive(currentAdventure) || !currentAdventure.storyFlags.hallwayUnlocked) {
+      const prepared = applyFalseEscape({ ...currentSession, objective: { phase: 'completed' } }, currentAdventure);
+      activateAdventure(prepared.adventure);
+      activateSession(prepared.session);
+      currentAdventure = prepared.adventure;
     }
     const request: TransitionRequest = currentAdventure.currentRoom === 'bedroom'
       ? { type: 'ROOM_TRANSITION_REQUESTED', targetRoom: 'hallway', targetEntry: 'hallway-from-bedroom' }
