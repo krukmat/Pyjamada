@@ -65,9 +65,9 @@ equal(fail.combat.hp, 0, 'haunted failure has no hearts remaining');
 
 const alteredBedroom = createHauntedScreenshotScenario('altered-bedroom');
 const alteredAdventure = createScreenshotAdventureState('altered-bedroom');
-equal(alteredBedroom.objective.phase, 'exploration', 'altered Bedroom screenshot is post-false-escape exploration');
+equal(alteredBedroom.objective.phase, 'completed', 'Haunted slice remains completed after the false escape');
 equal(alteredAdventure.currentRoom, 'bedroom', 'altered Bedroom remains in Bedroom');
-equal(alteredAdventure.storyFlags.bedroomEscapeAttempted, true, 'altered Bedroom remembers false escape');
+equal(alteredAdventure.storyFlags.bedroomEscapeAttempted, true, 'Adventure state owns post-false-escape exploration');
 
 const hallwayArrival = createScreenshotAdventureState('hallway-arrival');
 equal(hallwayArrival.currentRoom, 'hallway', 'hallway arrival screenshot selects Hallway');
