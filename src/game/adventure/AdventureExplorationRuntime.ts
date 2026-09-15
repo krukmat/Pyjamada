@@ -3,13 +3,15 @@ import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import {
   getRoomState,
-  markRoomInspected,
   markRoomInteraction,
-  setRoomSwitch,
   setStoryFlag,
   type AdventureState,
   type RoomId,
 } from './AdventureState';
+import {
+  applyRoomInteractionEffect,
+  type RoomInteractionEffectEvent,
+} from './RoomInteractionEffects';
 import {
   getRoomExit,
   resolveRoomInteractionTarget,
@@ -20,9 +22,8 @@ export type AdventureInteractionTarget = ResolvedRoomInteractionTarget;
 
 export type AdventureExplorationEvent =
   | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: RoomId; targetEntry: string }
-  | { type: 'HALLWAY_CLOCK_INSPECTED' }
-  | { type: 'LIVING_ROOM_PATH_REVEALED' }
-  | { type: 'LIVING_ROOM_DOOR_REACHED' };
+  | { type: 'LIVING_ROOM_DOOR_REACHED' }
+  | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
   session: HauntedSessionState;
@@ -92,6 +93,7 @@ export function isLivingRoomPathRevealed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').switches['living-room-unlocked'] === true;
 }
 
+/** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
 }
@@ -119,19 +121,9 @@ export function stepAdventureExploration(
         });
       }
     } else if (target?.available && target.behavior.type === 'effect') {
-      if (target.behavior.effect === 'inspect-backward-clock') {
-        const wasInspected = isHallwayClockInspected(nextAdventure);
-        nextAdventure = markRoomInspected(nextAdventure, 'hallway', 'backward-clock');
-        nextAdventure = setRoomSwitch(nextAdventure, 'hallway', 'living-room-unlocked', true);
-        if (!wasInspected) {
-          events.push({ type: 'HALLWAY_CLOCK_INSPECTED' });
-          events.push({ type: 'LIVING_ROOM_PATH_REVEALED' });
-        }
-      } else if (target.behavior.effect === 'reach-living-room-door') {
-        const wasReached = isLivingRoomDoorReached(nextAdventure);
-        nextAdventure = markRoomInteraction(nextAdventure, 'hallway', 'living-room-door');
-        if (!wasReached) events.push({ type: 'LIVING_ROOM_DOOR_REACHED' });
-      }
+      const effect = applyRoomInteractionEffect(nextAdventure, adventure.currentRoom, target.behavior.effect);
+      nextAdventure = effect.adventure;
+      events.push(...effect.events);
     }
   }
 
