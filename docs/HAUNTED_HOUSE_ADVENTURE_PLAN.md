@@ -14,7 +14,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W1 — The House Opens | **ACCEPTED** | False escape + altered Bedroom + Hallway + backward-clock anomaly + Living Room threshold |
 | W2 — Living Room | **ACCEPTED** | Mystery hook + lab transmission + directional source cue |
 | W3A — Kitchen | **ACTIVE — GATE A REVIEW** | Domestic electrical manipulation: overload → reroute → follow pulse |
-| W3B — Bathroom | Planned | Dream geometry |
+| W3B — Bathroom | **REFINED — NOT STARTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | Planned | Vesper/W-01 revelation |
 | W5 — Basement | Planned | Mad-science transition |
 | W6 — Laboratory | Planned | Final boss |
@@ -26,6 +26,7 @@ Implementation/task checkpoints:
 - `docs/W1_DEBT_CLOSURE.md`
 - `docs/W2_LIVING_ROOM_TASKS.md`
 - `docs/W3_KITCHEN_TASKS.md`
+- `docs/W3_BATHROOM_TASKS.md`
 
 ## Narrative spine
 
@@ -54,16 +55,18 @@ Hallway ── Living Room
               │
            Kitchen
               │
-         future routes
-        /             \
-   Bathroom          Attic
-                       │
-                   Basement
-                       │
-                  Laboratory
+          Bathroom
+              │
+        Attic boundary
+              │
+           Attic
+              │
+          Basement
+              │
+         Laboratory
 ```
 
-Exact topology may evolve when gameplay requires it, but the narrative order should remain recognizable.
+The topology may evolve when gameplay proves a better route, but W3B now deliberately turns Kitchen's `FOLLOW THE PULSE` into Bathroom dream-geometry progression and then a concrete Attic boundary.
 
 ## Wave plan
 
@@ -168,19 +171,58 @@ Gate A does **not** add:
 
 **Gate A acceptance target:** player understands through play that creating an electrical load lets them reroute the house's power and continue tracing the same anomalous signal.
 
-After Android review, decide whether Kitchen needs one small secondary mechanic. Do not automatically expand scope.
+Android review found the mechanic successful. Before formal acceptance, close two small presentation debts:
+- initial Kitchen lighting must not visually contradict its low/dead-power reaction;
+- overload deterministic framing should position Wally near the breaker/next action rather than leave an unrelated microwave prompt dominant.
 
-### W3B — Bathroom / Dream Geometry — PLANNED
+No additional Kitchen appliance mechanic is justified by the current evidence.
 
-**Goal:** introduce non-normal spatial logic and exploration-based progression.
+### W3B — Bathroom / Reflection Geometry — REFINED / NOT STARTED
 
-Candidate scope:
-- mirror anomaly;
-- reflected room differs from real room;
-- reflection reveals a clue/route absent in reality;
-- limited dream-geometry trick without a generic portal engine.
+**Goal:** introduce useful impossible spatial logic while reducing dependence on explanatory captions.
 
-**Gate:** player discovers progress through an environmental anomaly rather than combat.
+W3B should convert Kitchen's final signal into a different gameplay question:
+
+```text
+Kitchen power rerouted
+ -> FOLLOW THE PULSE
+ -> Bathroom
+ -> pulse appears to stop in real space
+ -> mirror shows it continuing through impossible geometry
+ -> inspect mismatch
+ -> TEST THE REFLECTION
+ -> switch off the real light
+ -> reflection remains unnaturally lit / cyan
+ -> reflected route becomes clear
+ -> real wall partially adopts the reflected seam
+ -> concrete Attic boundary is revealed
+```
+
+Chosen mechanic:
+- **mirror mismatch** is the primary anomaly;
+- **light switch** is the only supporting interaction required initially;
+- the mirror shows a continuation of the cyan pulse and a route seam absent from the real room;
+- after the player tests the room lighting, the reflected geometry becomes unmistakable;
+- confirmation persists `mirror-route-revealed` and gives the real room a restrained matching distortion/seam.
+
+Product rules carried forward from Kitchen review:
+- visual state must explain the anomaly before the reaction caption does;
+- lighting and text must never contradict each other accidentally;
+- deterministic screenshots must frame the currently relevant interaction;
+- the final state must expose an actionable Attic boundary rather than another unexplained dead-end.
+
+W3B does **not** introduce:
+- generic mirror/portal engine;
+- arbitrary teleportation;
+- inventory/key-item puzzle;
+- Bathroom combat/new enemies;
+- a full reflection simulation;
+- Attic interior/content;
+- Vesper/W-01 explicit reveal.
+
+**Gate:** player discovers progression by interpreting a reflection that exposes a hidden version of the house, then manipulates one ordinary room state to make that geometry actionable.
+
+Detailed checkpoint: `docs/W3_BATHROOM_TASKS.md`.
 
 ### W4 — Attic / Revelation — PLANNED
 
@@ -280,11 +322,12 @@ applyRoomInteractionEffect()
         +-- Hallway
         +-- Living Room
         +-- Kitchen
+        +-- Bathroom (planned)
 ```
 
 The runtime owns movement, target resolution and dispatch. Room-specific mutations/events stay outside it.
 
-W3 does **not** generalize the microwave/breaker relationship into a generic power engine. A second concrete reuse case is required before extracting one.
+W3 does **not** generalize the microwave/breaker relationship into a generic power engine, nor the Bathroom reflection into a generic portal engine. A second concrete reuse case is required before extracting either abstraction.
 
 ### Presentation seam
 
@@ -295,7 +338,8 @@ RoomPresentation
    ├── Bedroom
    ├── Hallway
    ├── Living Room
-   └── Kitchen
+   ├── Kitchen
+   └── Bathroom (planned)
 ```
 
 Shared Wally/camera/control systems remain above room presentation.
@@ -307,10 +351,11 @@ Global story flags are reserved for cross-wave knowledge:
 - `hallwayUnlocked`;
 - `labTransmissionSeen`.
 
-Room-local switches/history remain local unless a later wave proves cross-room dependence. Current examples:
+Room-local switches/history remain local unless a later wave proves cross-room dependence. Current/planned examples:
 - Hallway `living-room-unlocked`;
 - Living Room `source-hum-traced`;
-- Kitchen `circuit-overloaded` / `power-rerouted`.
+- Kitchen `circuit-overloaded` / `power-rerouted`;
+- Bathroom `mirror-anomaly-seen` / `bathroom-light-off` / `mirror-route-revealed` (planned).
 
 ### Deterministic review
 
@@ -340,6 +385,15 @@ W3A Gate A review:
 25_kitchen_power_rerouted
 ```
 
+Provisional W3B focused review:
+
+```text
+26_bathroom_arrival
+27_bathroom_mirror_mismatch
+28_bathroom_reflected_route
+29_bathroom_route_revealed
+```
+
 The Android flow validates real UI state/text rather than a synthetic renderer-ready gate.
 
 ## Development policy
@@ -354,19 +408,16 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W3A Gate A — Kitchen Power Loop / Android review.**
+**W3A Gate A closeout — Kitchen presentation polish.**
 
-Required evidence:
+Required closeout:
 
 ```text
-1. Kitchen remains locked until Living Room source-hum-traced
-2. Living Room -> Kitchen -> Living Room navigation is deterministic
-3. 23_kitchen_arrival reads as a distinct domestic room
-4. 24_kitchen_overload clearly communicates the microwave-caused power failure
-5. 25_kitchen_power_rerouted clearly communicates a stable redirected pulse
-6. breaker-first clue makes the causal relationship understandable
-7. solved state survives Continue/save-load
-8. W0–W2 regression and repository validation remain green
+1. make initial Kitchen power/light presentation consistent with its reaction
+2. improve overload screenshot framing around the breaker/next action
+3. rerun focused Android evidence 23–25
+4. if clean, mark W3A ACCEPTED
+5. only then begin W3B Bathroom implementation from docs/W3_BATHROOM_TASKS.md
 ```
 
-No Bathroom or additional Kitchen system starts before Gate A review.
+Bathroom design is refined, but implementation remains blocked behind W3A formal acceptance.
