@@ -45,9 +45,10 @@ tags:
 
 # Screenshot builds expose a transparent test-only hotspot in the bottom-right
 # corner. It opens a scenario picker, then disappears completely after a
-# selection so the screenshots contain only player-facing UI. Scenarios are
-# deterministic and frozen: this tour reviews rendering, composition and
-# gameplay readability without racing the real-time simulation.
+# selection so the screenshots contain only player-facing UI. Every haunted
+# scenario also waits for haunted-render-ready: that marker appears only after
+# Wally + Ghost atlases have decoded and the selected scenario has had time to
+# commit Skia frames, preventing blank/partial Canvas captures.
 
 - tapOn:
     id: screenshot-scenario-menu
@@ -61,6 +62,10 @@ tags:
     visible:
       id: game-screen
     timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Wake up first. Bed or alarm."
 - takeScreenshot:
     path: 03_haunted_sleepy
@@ -69,6 +74,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-wake
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Awake. The room is waking up too."
 - takeScreenshot:
     path: 04_haunted_wake
@@ -77,6 +86,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-ghost-telegraph
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Something is phasing into the room..."
 - takeScreenshot:
     path: 05_ghost_telegraph
@@ -85,6 +98,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-ghost-active
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Ghost active. Shoot or keep moving."
 - takeScreenshot:
     path: 06_ghost_active
@@ -93,6 +110,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-jump
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: HAUNTED MORNING
 - takeScreenshot:
     path: 07_wally_jump
@@ -101,6 +122,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-attack
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Ghost active. Shoot or keep moving."
 - takeScreenshot:
     path: 08_dream_spark_attack
@@ -109,6 +134,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-ghost-defeated
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: HAUNTED MORNING
 - takeScreenshot:
     path: 09_ghost_defeated
@@ -117,6 +146,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-hit
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "HP ♥♥·"
 - takeScreenshot:
     path: 10_player_hit
@@ -125,6 +158,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-dressed
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "Ghost active. Shoot or keep moving."
 - takeScreenshot:
     path: 11_dressed_under_pressure
@@ -133,6 +170,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-escape-ready
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - assertVisible: "ESCAPE READY · CLEAR THE DOOR"
 - assertVisible: "Exit lane haunted. Fire, dodge, get out."
 - takeScreenshot:
@@ -142,6 +183,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-success
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - extendedWaitUntil:
     visible:
       id: restart-button
@@ -155,6 +200,10 @@ tags:
     id: screenshot-scenario-menu
 - tapOn:
     id: screenshot-scenario-haunted-fail
+- extendedWaitUntil:
+    visible:
+      id: haunted-render-ready
+    timeout: 8000
 - extendedWaitUntil:
     visible:
       id: restart-button
