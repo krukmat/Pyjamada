@@ -84,6 +84,7 @@ export function GameCanvas({
   const fx = resolveFxFrames(activeVisualEvents, nowMs);
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
   const playerInvulnerable = Boolean(hauntedSession && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs);
+  const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
 
   return (
     <Canvas style={{ width, height }}>
@@ -175,11 +176,28 @@ export function GameCanvas({
             y={px(playerY - 23)}
             px={px}
             pulse={Math.floor(nowMs / 90) % 2}
+            direction={hitDirection}
           />
         )}
       </Group>
     </Canvas>
   );
+}
+
+function resolveHauntedHitDirection(
+  session: HauntedSessionState | undefined,
+  playerX: number,
+  active: boolean,
+): -1 | 0 | 1 {
+  if (!session || !active) return 0;
+  const source = session.threats.ghosts
+    .filter((ghost) => ghost.phase === 'active')
+    .reduce<(typeof session.threats.ghosts)[number] | undefined>((nearest, ghost) => {
+      if (!nearest) return ghost;
+      return Math.abs(ghost.x - playerX) < Math.abs(nearest.x - playerX) ? ghost : nearest;
+    }, undefined);
+  if (!source || source.x === playerX) return 0;
+  return source.x > playerX ? -1 : 1;
 }
 
 function InteractionFocus({ objectId, placement, px, phase }: {
