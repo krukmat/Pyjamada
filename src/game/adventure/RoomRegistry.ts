@@ -1,6 +1,6 @@
-import { createRoomPersistentState, type AdventureState, type RoomId } from './AdventureState';
+import { createRoomPersistentState, type AdventureState, type RoomId, type StoryFlag } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway-placeholder';
+export type RoomPresentationId = 'bedroom' | 'hallway';
 
 export type RoomEntryPoint = {
   id: string;
@@ -13,6 +13,7 @@ export type RoomExit = {
   id: string;
   targetRoom: RoomId;
   targetEntry: string;
+  requiresStoryFlag?: StoryFlag;
 };
 
 export type RoomDefinition = {
@@ -30,17 +31,22 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'bedroom',
     entries: [
       { id: 'bedroom-default', x: 12, y: 104, facing: 'right' },
-      { id: 'bedroom-from-hallway', x: 112, y: 104, facing: 'left' },
+      { id: 'bedroom-from-hallway', x: 108, y: 104, facing: 'left' },
     ],
     exits: [
-      { id: 'bedroom-to-hallway', targetRoom: 'hallway', targetEntry: 'hallway-from-bedroom' },
+      {
+        id: 'bedroom-to-hallway',
+        targetRoom: 'hallway',
+        targetEntry: 'hallway-from-bedroom',
+        requiresStoryFlag: 'hallwayUnlocked',
+      },
     ],
   },
   hallway: {
     id: 'hallway',
-    presentationId: 'hallway-placeholder',
+    presentationId: 'hallway',
     entries: [
-      { id: 'hallway-from-bedroom', x: 12, y: 104, facing: 'right' },
+      { id: 'hallway-from-bedroom', x: 14, y: 104, facing: 'right' },
     ],
     exits: [
       { id: 'hallway-to-bedroom', targetRoom: 'bedroom', targetEntry: 'bedroom-from-hallway' },
@@ -75,6 +81,12 @@ export function transitionAdventure(
     return {
       status: 'invalid',
       reason: `Transition ${state.currentRoom} -> ${targetRoom}:${targetEntry} is not registered.`,
+    };
+  }
+  if (allowed.requiresStoryFlag && !state.storyFlags[allowed.requiresStoryFlag]) {
+    return {
+      status: 'invalid',
+      reason: `Transition ${allowed.id} requires story flag ${allowed.requiresStoryFlag}.`,
     };
   }
 
