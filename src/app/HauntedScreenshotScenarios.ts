@@ -33,6 +33,9 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'living-room-static',
   'living-room-transmission',
   'living-room-source-cue',
+  'kitchen-arrival',
+  'kitchen-overload',
+  'kitchen-power-rerouted',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -49,6 +52,9 @@ type AdventureScreenshotScenario = Extract<
   | 'living-room-static'
   | 'living-room-transmission'
   | 'living-room-source-cue'
+  | 'kitchen-arrival'
+  | 'kitchen-overload'
+  | 'kitchen-power-rerouted'
 >;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -200,21 +206,21 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
   if (scenario === 'living-door') {
     adventure = markRoomInteraction(adventure, 'hallway', 'living-room-door');
   }
-  if (isLivingRoomScenario(scenario)) {
+  if (isLivingOrKitchenScenario(scenario)) {
     const livingRoom = transitionAdventure(adventure, 'living-room', 'living-room-from-hallway');
     if (livingRoom.status !== 'ok') throw new Error(livingRoom.reason);
     adventure = livingRoom.state;
   }
-  if (scenario === 'living-room-static' || scenario === 'living-room-transmission' || scenario === 'living-room-source-cue') {
+  if (isTvOnScenario(scenario)) {
     adventure = setRoomSwitch(adventure, 'living-room', 'tv-on', true);
     adventure = markRoomInteraction(adventure, 'living-room', 'tv-activated');
   }
-  if (scenario === 'living-room-transmission' || scenario === 'living-room-source-cue') {
+  if (isTransmissionScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'living-room', 'television');
     adventure = markRoomInteraction(adventure, 'living-room', 'tv-transmission');
     adventure = setStoryFlag(adventure, 'labTransmissionSeen', true);
   }
-  if (scenario === 'living-room-source-cue') {
+  if (isSourceCueScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'living-room', 'photo-reflection');
     adventure = markRoomInteraction(adventure, 'living-room', 'photo-inspected');
     adventure = markRoomInspected(adventure, 'living-room', 'radio-static');
@@ -223,6 +229,25 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = setRoomSwitch(adventure, 'living-room', 'photo-focused', false);
     adventure = setRoomSwitch(adventure, 'living-room', 'radio-focused', true);
     adventure = setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true);
+  }
+  if (isKitchenScenario(scenario)) {
+    const kitchen = transitionAdventure(adventure, 'kitchen', 'kitchen-from-living-room');
+    if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
+    adventure = kitchen.state;
+  }
+  if (scenario === 'kitchen-overload' || scenario === 'kitchen-power-rerouted') {
+    adventure = markRoomInspected(adventure, 'kitchen', 'microwave');
+    adventure = markRoomInteraction(adventure, 'kitchen', 'microwave-overload');
+    adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', true);
+    adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', true);
+  }
+  if (scenario === 'kitchen-power-rerouted') {
+    adventure = markRoomInspected(adventure, 'kitchen', 'breaker-panel');
+    adventure = markRoomInteraction(adventure, 'kitchen', 'breaker-inspected');
+    adventure = markRoomInteraction(adventure, 'kitchen', 'power-rerouted');
+    adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', false);
+    adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', false);
+    adventure = setRoomSwitch(adventure, 'kitchen', 'power-rerouted', true);
   }
   return adventure;
 }
@@ -241,7 +266,13 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
             ? 20
             : scenario === 'living-room-source-cue'
               ? 84
-              : 99;
+              : scenario === 'kitchen-arrival'
+                ? 20
+                : scenario === 'kitchen-overload'
+                  ? 64
+                  : scenario === 'kitchen-power-rerouted'
+                    ? 108
+                    : 99;
   return withPlayer(falseEscape.session, x);
 }
 
@@ -255,11 +286,31 @@ function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionSta
   };
 }
 
-function isLivingRoomScenario(scenario: AdventureScreenshotScenario): boolean {
+function isLivingOrKitchenScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'living-room-arrival'
-    || scenario === 'living-room-static'
-    || scenario === 'living-room-transmission'
-    || scenario === 'living-room-source-cue';
+    || isTvOnScenario(scenario)
+    || isKitchenScenario(scenario);
+}
+
+function isTvOnScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'living-room-static'
+    || isTransmissionScenario(scenario);
+}
+
+function isTransmissionScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'living-room-transmission'
+    || isSourceCueScenario(scenario);
+}
+
+function isSourceCueScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'living-room-source-cue'
+    || isKitchenScenario(scenario);
+}
+
+function isKitchenScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'kitchen-arrival'
+    || scenario === 'kitchen-overload'
+    || scenario === 'kitchen-power-rerouted';
 }
 
 function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
@@ -270,7 +321,10 @@ function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is A
     || scenario === 'living-room-arrival'
     || scenario === 'living-room-static'
     || scenario === 'living-room-transmission'
-    || scenario === 'living-room-source-cue';
+    || scenario === 'living-room-source-cue'
+    || scenario === 'kitchen-arrival'
+    || scenario === 'kitchen-overload'
+    || scenario === 'kitchen-power-rerouted';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
