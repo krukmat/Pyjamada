@@ -20,6 +20,7 @@ import {
   IllustratedBedroomLightOverlay,
 } from './IllustratedBedroomScene';
 import { IllustratedObject } from './IllustratedObject';
+import { KitchenPresentation } from './KitchenPresentation';
 import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
@@ -61,6 +62,17 @@ export function RoomPresentation(props: Props) {
     case 'living-room':
       return (
         <LivingRoomPresentation
+          adventure={props.adventure}
+          hauntedSession={props.hauntedSession}
+          playerX={props.playerX}
+          playerY={props.playerY}
+          nowMs={props.nowMs}
+          px={props.px}
+        />
+      );
+    case 'kitchen':
+      return (
+        <KitchenPresentation
           adventure={props.adventure}
           hauntedSession={props.hauntedSession}
           playerX={props.playerX}
