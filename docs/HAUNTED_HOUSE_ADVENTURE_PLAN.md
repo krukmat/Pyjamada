@@ -12,7 +12,7 @@ The current Bedroom gameplay is not discarded. It is Act I and the mechanical/na
 |---|---|---|
 | W0 — Adventure Foundation | **IMPLEMENTED** | Connected-room architecture, persistence and Bedroom ↔ Hallway foundation |
 | W1 — The House Opens | **ACCEPTED** | False escape + altered Bedroom + Hallway + backward-clock anomaly + Living Room threshold |
-| W2 — Living Room | **ACTIVE** | Mystery hook / lab transmission |
+| W2 — Living Room | **ACTIVE — CLOSEOUT REVIEW** | Mystery hook accepted; final source-cue Android review pending |
 | W3A — Kitchen | Planned | Domestic mechanic expansion |
 | W3B — Bathroom | Planned | Dream geometry |
 | W4 — Attic | Planned | Vesper/W-01 revelation |
@@ -105,32 +105,46 @@ High/Medium debt closed before W2:
 
 The accepted W1 endpoint is the unlocked Living Room threshold. W2 owns crossing that threshold and all Living Room content.
 
-### W2 — Living Room / Mystery Hook — ACTIVE
+### W2 — Living Room / Mystery Hook — ACTIVE / CLOSEOUT REVIEW
 
-**Goal:** establish that someone or something is actively causing/observing the haunting.
+**Goal:** establish that someone or something is actively causing/observing the haunting, then leave a concrete reason to continue exploring without opening W3 prematurely.
 
-Planned scope:
-- Living Room room data and presentation;
-- Hallway ↔ Living Room navigation;
-- television as central interaction;
-- distorted laboratory transmission (`RESONANCE STABLE...`);
-- explicit narrative knowledge flag for the transmission;
-- limited environmental storytelling through furniture/electrical clues;
-- threat/noise escalation only if playtest evidence shows it adds value.
+Delivered so far:
+- real Hallway ↔ Living Room navigation and deterministic spawns;
+- Living Room presentation through the existing room seam;
+- small room-effect dispatcher outside `AdventureExplorationRuntime`;
+- TV interaction with OFF -> static/interference -> distorted transmission states;
+- explicit global story flag `labTransmissionSeen` with save migration;
+- Android-accepted mystery hook through `RESONANCE STABLE... SUBJECT...`;
+- optional photo-reflection anomaly;
+- optional radio/static clue;
+- post-transmission radio pulse that reveals a directional source cue;
+- cable/pulse presentation pointing deeper into the house;
+- automated persistence/idempotence coverage for the closeout state.
 
-Current implementation block: **T0–T3 / Gate A**.
+Accepted Gate B sequence:
 
-Implemented in this block:
-- `living-room` activated in the room registry;
-- Hallway -> Living Room transition uses the existing `living-room-unlocked` switch as a real exit gate;
-- deterministic Living Room -> Hallway return entry;
-- room-effect execution extracted behind `applyRoomInteractionEffect()` so future TV effects do not expand `AdventureExplorationRuntime` directly;
-- base Living Room presentation added through the existing `RoomPresentation` seam;
-- focused Gate A tests cover lock/unlock, round-trip navigation, visited rooms and save/load.
+```text
+Living Room
+ -> TV static
+ -> distorted transmission
+ -> labTransmissionSeen
+ -> FIND THE SOURCE
+```
 
-**Gate A:** Hallway -> Living Room -> Hallway works through production interactions, Living Room can be restored from save, and repository validation remains green.
+Closeout sequence under final Android review:
 
-**Final W2 gate:** player leaves the Living Room with the clear question: **Who is observing or controlling the house?**
+```text
+FIND THE SOURCE
+ -> inspect radio
+ -> matching pulse
+ -> source-hum-traced
+ -> cable/pulse points deeper into house
+```
+
+Threat/noise evaluation result: **no Living Room combat escalation in W2**. Gate B worked without evidence that a Ghost encounter would improve the room; reopening the Haunted combat boundary would add complexity without demonstrated value.
+
+**Final W2 gate:** player leaves the Living Room understanding that the haunting is being monitored/driven and that the signal continues deeper into the house, while Kitchen/Bathroom remain unimplemented.
 
 Full W2 task/DAG checkpoint: `docs/W2_LIVING_ROOM_TASKS.md`.
 
@@ -255,7 +269,7 @@ Do not replace this with a generic graph/scripting engine unless later gameplay 
 
 ### Interaction effects
 
-W2 adds a small effect boundary:
+W2 uses a small effect boundary:
 
 ```text
 AdventureExplorationRuntime
@@ -287,20 +301,27 @@ Shared systems stay above room presentation:
 - exploration controls;
 - Haunted enemies/projectiles/FX when that mode is active.
 
-The Living Room base presentation contains its major visual anchors but TV interaction/transmission belongs to later W2 tasks.
+Living Room presentation owns room-specific TV, photo, radio and cable visuals while their state remains in Adventure progression.
 
 ### Story state
 
 Use explicit flags/triggers, not hidden inference from arbitrary object state.
 
-Current progression includes:
+Current global progression includes:
 - `bedroomEscapeAttempted`;
 - `hallwayUnlocked`;
-- Bedroom history: `false-escape`;
-- Hallway inspection: `backward-clock`;
-- Hallway switch: `living-room-unlocked`.
+- `labTransmissionSeen`.
 
-W2 will add a global transmission-knowledge flag only when the transmission actually exists.
+Relevant local history/switches include:
+- Bedroom interaction `false-escape`;
+- Hallway inspection `backward-clock`;
+- Hallway switch `living-room-unlocked`;
+- Living Room `tv-on` / `tv-transmission`;
+- Living Room `photo-reflection`;
+- Living Room `radio-static`;
+- Living Room `source-hum-traced`.
+
+Do not promote room-local clues into global flags unless a later wave genuinely depends on them.
 
 ### Deterministic review
 
@@ -315,13 +336,13 @@ Accepted W1 review states:
 18_living_room_door
 ```
 
-Planned W2 focused states:
+W2 focused states:
 
 ```text
 19_living_room_arrival
-20_tv_static
+20_living_room_static
 21_lab_transmission
-22_post_transmission
+22_living_room_source_cue
 ```
 
 The Android screenshot flow continues to validate real UI state/text rather than a synthetic renderer-ready gate.
@@ -338,25 +359,18 @@ The Android screenshot flow continues to validate real UI state/text rather than
 
 ## Current priority
 
-**W2 Gate A — Enter the Living Room.**
+**W2 T11 — final Android closeout acceptance.**
 
 Current required evidence:
 
 ```text
-1. Hallway -> Living Room is blocked before backward-clock reveal
-2. clock reveal unlocks both interaction and actual transition
-3. Hallway -> Living Room -> Hallway uses deterministic entries/spawns
-4. Living Room is tracked in visited rooms
-5. save/load can restore currentRoom = living-room
-6. W1 regression and repository validation remain green
+1. 19–21 remain visually stable after the closeout changes
+2. photo/radio read as secondary clues, not competing quest targets
+3. 22_living_room_source_cue clearly communicates a matching pulse deeper in the house
+4. cable glow is directional but not over-emphasized
+5. touch PHOTO / RADIO interactions feel natural
+6. Continue preserves source-hum-traced
+7. repository validation remains green
 ```
 
-Once Gate A is green, the next implementation block is:
-
-```text
-W2-T4 TV interaction
-  -> W2-T5 distorted transmission
-  -> W2-T6 labTransmissionSeen + persistence
-```
-
-No Kitchen, new enemy or Living Room combat work starts as part of Gate A.
+If this gate passes, mark W2 `ACCEPTED` and plan W3 without implementing Kitchen/Bathroom during W2 closeout.
