@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen';
 
 export type RoomEntryPoint = {
   id: string;
@@ -27,7 +27,9 @@ export type RoomInteractionEffect =
   | 'inspect-backward-clock'
   | 'use-living-room-tv'
   | 'inspect-living-room-photo'
-  | 'inspect-living-room-radio';
+  | 'inspect-living-room-radio'
+  | 'use-kitchen-microwave'
+  | 'use-kitchen-breaker';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -55,7 +57,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -129,9 +131,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'living-room',
     entries: [
       { id: 'living-room-from-hallway', x: 14, y: 104, facing: 'right' },
+      { id: 'living-room-from-kitchen', x: 110, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'living-room-to-hallway', targetRoom: 'hallway', targetEntry: 'hallway-from-living-room' },
+      {
+        id: 'living-room-to-kitchen',
+        targetRoom: 'kitchen',
+        targetEntry: 'kitchen-from-living-room',
+        requiresRoomSwitch: 'source-hum-traced',
+      },
     ],
     interactions: [
       {
@@ -161,6 +170,47 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 109,
         radius: 12,
         behavior: { type: 'effect', effect: 'use-living-room-tv' },
+      },
+      {
+        id: 'living-room-kitchen-door',
+        label: 'KITCHEN',
+        unavailableLabel: 'KITCHEN · NO SIGNAL',
+        x: 116,
+        radius: 6,
+        behavior: { type: 'exit', exitId: 'living-room-to-kitchen' },
+      },
+    ],
+  },
+  kitchen: {
+    id: 'kitchen',
+    presentationId: 'kitchen',
+    entries: [
+      { id: 'kitchen-from-living-room', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'kitchen-to-living-room', targetRoom: 'living-room', targetEntry: 'living-room-from-kitchen' },
+    ],
+    interactions: [
+      {
+        id: 'kitchen-living-room-door',
+        label: 'LIVING ROOM',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'kitchen-to-living-room' },
+      },
+      {
+        id: 'kitchen-microwave',
+        label: 'MICROWAVE',
+        x: 64,
+        radius: 10,
+        behavior: { type: 'effect', effect: 'use-kitchen-microwave' },
+      },
+      {
+        id: 'kitchen-breaker',
+        label: 'BREAKER',
+        x: 108,
+        radius: 9,
+        behavior: { type: 'effect', effect: 'use-kitchen-breaker' },
       },
     ],
   },
