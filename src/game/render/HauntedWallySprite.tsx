@@ -1,7 +1,6 @@
 import React from 'react';
-import { Group, useImage } from '@shopify/react-native-skia';
+import { Group, type SkImage } from '@shopify/react-native-skia';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
-import { HAUNTED_WALLY_ATLAS_SOURCE } from '../presentation/AssetSources';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_WALLY_ATLAS } from '../presentation/atlas/HauntedWallyAtlas';
@@ -10,6 +9,7 @@ import { hauntedWallyFrameIndex, selectHauntedWallyPose } from './HauntedWallyVi
 const INDEX = createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS);
 
 type Props = {
+  image: SkImage | null;
   session: HauntedSessionState;
   x: number;
   y: number;
@@ -17,8 +17,7 @@ type Props = {
   nowMs: number;
 };
 
-export function HauntedWallySprite({ session, x, y, scale, nowMs }: Props) {
-  const image = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
+export function HauntedWallySprite({ image, session, x, y, scale, nowMs }: Props) {
   const palette = session.domestic.flags.dressed ? 'dressed' : 'pajamas';
   const pose = selectHauntedWallyPose(session);
   const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
