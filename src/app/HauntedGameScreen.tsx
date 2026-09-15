@@ -6,6 +6,9 @@ import {
   hasLabTransmissionBeenSeen,
   isAdventureExplorationActive,
   isHallwayClockInspected,
+  isKitchenBreakerInspected,
+  isKitchenCircuitOverloaded,
+  isKitchenPowerRerouted,
   isLivingRoomPathRevealed,
   isLivingRoomPhotoFocused,
   isLivingRoomRadioFocused,
@@ -151,6 +154,7 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (!exploration) return 'HAUNTED MORNING';
   if (roomId === 'hallway') return 'HAUNTED HOUSE · HALLWAY';
   if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
+  if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
   return 'HAUNTED HOUSE · BEDROOM';
 }
 
@@ -161,6 +165,11 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (!isLivingRoomTvActivated(adventure)) return 'CHECK THE LIVING ROOM';
       if (!hasLabTransmissionBeenSeen(adventure)) return 'CHECK THE SIGNAL';
       return 'FIND THE SOURCE';
+    }
+    if (adventure.currentRoom === 'kitchen') {
+      if (isKitchenPowerRerouted(adventure)) return 'FOLLOW THE PULSE';
+      if (isKitchenCircuitOverloaded(adventure)) return 'CHECK THE BREAKER';
+      return 'TRACE THE POWER';
     }
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
     return 'ENTER THE LIVING ROOM';
@@ -210,6 +219,12 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (hasLabTransmissionBeenSeen(adventure)) return 'A voice cuts through: RESONANCE STABLE... SUBJECT... Then static.';
       if (isLivingRoomTvActivated(adventure)) return 'Static. Not a channel. Something is underneath it.';
       return 'The television is dark. The room is listening.';
+    }
+    if (adventure.currentRoom === 'kitchen') {
+      if (isKitchenPowerRerouted(adventure)) return 'The circuit settles. The same pulse is moving deeper into the house.';
+      if (isKitchenCircuitOverloaded(adventure)) return 'The microwave killed the lights. The breaker is buzzing now.';
+      if (isKitchenBreakerInspected(adventure)) return 'The breaker hums, but nothing has tripped. It needs a load.';
+      return 'Everything is off. Something in the wall is still drawing power.';
     }
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
