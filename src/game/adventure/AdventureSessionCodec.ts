@@ -4,7 +4,6 @@ import {
   STORY_FLAGS,
   type AdventureState,
   type RoomId,
-  type RoomPersistentState,
   type StoryFlag,
 } from './AdventureState';
 import type { AdventureGameSessionState } from './AdventureGameSession';
@@ -107,5 +106,3 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function invalid(reason: string): { status: 'invalid'; reason: string } {
   return { status: 'invalid', reason };
 }
-
-void (null as unknown as RoomPersistentState);
