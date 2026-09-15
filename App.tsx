@@ -135,7 +135,11 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED' || event.type === 'LIVING_ROOM_DOOR_REACHED')) {
+        if (events.some(event =>
+          event.type === 'HALLWAY_CLOCK_INSPECTED'
+          || event.type === 'LIVING_ROOM_DOOR_REACHED'
+          || event.type === 'LIVING_ROOM_TV_ACTIVATED'
+          || event.type === 'LAB_TRANSMISSION_SEEN')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
