@@ -31,6 +31,10 @@ EXPECTED_SCREENSHOTS=(
   "12_escape_ready.png"
   "13_escaped.png"
   "14_haunted_failure.png"
+  "15_altered_bedroom.png"
+  "16_hallway_arrival.png"
+  "17_hallway_clock.png"
+  "18_living_room_door.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published
@@ -129,7 +133,7 @@ fi
 adb -s "$EMULATOR_SERIAL" install -r "$APK_PATH"
 adb -s "$EMULATOR_SERIAL" shell input keyevent 82 >/dev/null 2>&1 || true
 
-echo "Capturing Haunted Arcade Android screens with Maestro..."
+echo "Capturing Haunted House Android screens with Maestro..."
 maestro --device "$EMULATOR_SERIAL" test \
   --test-output-dir "$MAESTRO_REPORT_DIR" \
   "$FLOW_PATH"
@@ -157,4 +161,4 @@ mv "$STAGING_DIR" "$SCREENSHOTS_DIR"
 rm -rf "${SCREENSHOTS_DIR}.previous" "$FAILED_DIR"
 PUBLISHED=1
 
-echo "$PNG_COUNT Haunted Arcade Android screenshots published to $SCREENSHOTS_DIR"
+echo "$PNG_COUNT Haunted House Android screenshots published to $SCREENSHOTS_DIR"
