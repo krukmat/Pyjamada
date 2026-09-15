@@ -8,7 +8,9 @@ import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
+import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { PixelMeter } from './RetroUiKit';
+import { isTestHooksEnabled } from './testHooks';
 
 type Props = {
   session: HauntedSessionState;
@@ -30,6 +32,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   const done = session.objective.phase === 'completed' || session.objective.phase === 'failed';
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
+  const testHooksEnabled = isTestHooksEnabled();
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -95,6 +98,8 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
       <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
         <Text style={styles.exitText}>BACK TO MENU</Text>
       </Pressable>
+
+      {testHooksEnabled && <HauntedRenderReadyProbe scenarioKey={session.runId} />}
     </View>
   );
 }
