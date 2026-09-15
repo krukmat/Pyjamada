@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom';
 
 export type RoomEntryPoint = {
   id: string;
@@ -29,7 +29,9 @@ export type RoomInteractionEffect =
   | 'inspect-living-room-photo'
   | 'inspect-living-room-radio'
   | 'use-kitchen-microwave'
-  | 'use-kitchen-breaker';
+  | 'use-kitchen-breaker'
+  | 'inspect-bathroom-mirror'
+  | 'use-bathroom-light';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -57,7 +59,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -186,9 +188,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'kitchen',
     entries: [
       { id: 'kitchen-from-living-room', x: 14, y: 104, facing: 'right' },
+      { id: 'kitchen-from-bathroom', x: 110, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'kitchen-to-living-room', targetRoom: 'living-room', targetEntry: 'living-room-from-kitchen' },
+      {
+        id: 'kitchen-to-bathroom',
+        targetRoom: 'bathroom',
+        targetEntry: 'bathroom-from-kitchen',
+        requiresRoomSwitch: 'power-rerouted',
+      },
     ],
     interactions: [
       {
@@ -211,6 +220,47 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 108,
         radius: 9,
         behavior: { type: 'effect', effect: 'use-kitchen-breaker' },
+      },
+      {
+        id: 'kitchen-bathroom-door',
+        label: 'BATHROOM',
+        unavailableLabel: 'DARK DOOR',
+        x: 122,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'kitchen-to-bathroom' },
+      },
+    ],
+  },
+  bathroom: {
+    id: 'bathroom',
+    presentationId: 'bathroom',
+    entries: [
+      { id: 'bathroom-from-kitchen', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'bathroom-to-kitchen', targetRoom: 'kitchen', targetEntry: 'kitchen-from-bathroom' },
+    ],
+    interactions: [
+      {
+        id: 'bathroom-kitchen-door',
+        label: 'KITCHEN',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'bathroom-to-kitchen' },
+      },
+      {
+        id: 'bathroom-mirror',
+        label: 'MIRROR',
+        x: 64,
+        radius: 11,
+        behavior: { type: 'effect', effect: 'inspect-bathroom-mirror' },
+      },
+      {
+        id: 'bathroom-light-switch',
+        label: 'LIGHT SWITCH',
+        x: 99,
+        radius: 8,
+        behavior: { type: 'effect', effect: 'use-bathroom-light' },
       },
     ],
   },
