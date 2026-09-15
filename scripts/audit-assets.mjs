@@ -148,6 +148,7 @@ export function auditAssetBytes(assetPath, manifest, bytes, validateSpriteAtlasM
 const PRODUCTION_ASSETS = [
   { path: 'assets/game/wally/wally.png', manifestId: 'wally' },
   { path: 'assets/game/wally/haunted-wally.png', manifestId: 'haunted-wally' },
+  { path: 'assets/game/monsters/haunted-ghost.png', manifestId: 'haunted-ghost' },
   { path: 'assets/game/objects/bedroom-objects.png', manifestId: 'bedroom-objects' },
   { path: 'assets/game/fx/domestic-fx.png', manifestId: 'domestic-fx' },
 ];
