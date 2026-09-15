@@ -236,7 +236,7 @@ npm run screenshots:android
 
 ### W1-T10 — End-to-end W1 gate
 
-**Status:** IMPLEMENTED; FINAL AUTOMATED CI + DEVICE REVIEW REQUIRED
+**Status:** AUTOMATED PASS; DEVICE REVIEW PENDING
 
 `tests/w1-house-opens-playthrough.test.ts` proves one continuous deterministic path:
 
@@ -255,6 +255,13 @@ escape-ready Bedroom
 ```
 
 The test deliberately verifies that W1 stops in Hallway and does not enter W2.
+
+Repository validation is green through the full automated stack:
+- asset validation;
+- game/settings/presentation/adventure tests;
+- W1 end-to-end playthrough;
+- TypeScript typecheck;
+- static architecture audit.
 
 ---
 
@@ -287,7 +294,7 @@ Not part of W1:
 - [x] save/load preserves W1 progression;
 - [x] deterministic W1 screenshot fixtures exist;
 - [x] deterministic end-to-end W1 playthrough exists;
-- [ ] latest repository CI is green after the final W1 test/documentation changes;
+- [x] repository CI is green through the final W1 implementation and master-plan checkpoint;
 - [ ] local Android screenshot/playtest gate has been reviewed.
 
-Until the final two gates pass, W1 is **code-complete but not accepted**. W2 must not start before W1 acceptance.
+W1 is **code-complete and automated-gate complete, but not yet visually accepted on device**. W2 must not start before the local Android review passes.
