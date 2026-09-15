@@ -21,9 +21,18 @@ export function encodeHauntedSession(state: HauntedSessionState): string {
 export function decodeHauntedSession(raw: string): DecodeHauntedSessionResult {
   let value: unknown;
   try { value = JSON.parse(raw); } catch { return invalid('Haunted save is not valid JSON.'); }
+  value = migrateLegacyExplorationPhase(value);
   const validated = validateSave(value);
   if (validated.status === 'invalid') return validated;
   return { status: 'ok', state: { ...validated.state, input: createHauntedInputState() } };
+}
+
+function migrateLegacyExplorationPhase(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.objective) || value.objective.phase !== 'exploration') return value;
+  return {
+    ...value,
+    objective: { phase: 'completed' },
+  };
 }
 
 function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState } | { status: 'invalid'; reason: string } {
