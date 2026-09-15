@@ -39,7 +39,7 @@ ok(hit.combat.invulnerableUntilMs > hit.elapsedMs, 'hit preset freezes Wally ins
 ok(hit.player.vx < 0, 'hit preset preserves visible knockback direction');
 ok(hit.player.grounded === false, 'hit preset captures Wally airborne after contact');
 const hitGhost = hit.threats.ghosts[0];
-ok(Boolean(hitGhost) && Math.abs((hitGhost?.x ?? hit.player.x) - hit.player.x) >= 20, 'hit preset keeps actors separated after contact');
+ok(Boolean(hitGhost) && Math.abs((hitGhost?.x ?? hit.player.x) - hit.player.x) >= 28, 'hit preset leaves an unmistakable post-contact gap between actors');
 
 const dressed = createHauntedScreenshotScenario('dressed');
 equal(dressed.domestic.flags.dressed, true, 'dressed preset uses the alternate Wally palette');
