@@ -19,7 +19,11 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
   const livingRoom = adventure ? getRoomState(adventure, 'living-room') : undefined;
   const tvOn = livingRoom?.switches['tv-on'] === true;
   const transmissionSeen = adventure?.storyFlags.labTransmissionSeen === true;
+  const photoInspected = livingRoom?.inspected.includes('photo-reflection') === true;
+  const radioInspected = livingRoom?.inspected.includes('radio-static') === true;
+  const sourceCueRevealed = livingRoom?.switches['source-hum-traced'] === true;
   const screenPulse = Math.floor(nowMs / 220) % 3;
+  const radioPulse = Math.floor(nowMs / 180) % 3;
 
   return (
     <>
@@ -44,11 +48,26 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
       <Rect x={px(39)} y={px(98)} width={px(5)} height={px(5)} color="#111923" />
       <Rect x={px(68)} y={px(98)} width={px(5)} height={px(5)} color="#111923" />
 
-      <Rect x={px(79)} y={px(84)} width={px(13)} height={px(3)} color="#483b36" />
-      <Rect x={px(81)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
-      <Rect x={px(88)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
-      <Circle cx={px(85.5)} cy={px(80)} r={px(4)} color="rgba(248,218,118,0.12)" />
-      <Line p1={vec(px(85.5), px(84))} p2={vec(px(85.5), px(98))} color="#7d6850" strokeWidth={px(1)} />
+      <Rect x={px(78)} y={px(84)} width={px(15)} height={px(3)} color="#483b36" />
+      <Rect x={px(80)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
+      <Rect x={px(89)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
+
+      <RoundedRect x={px(79)} y={px(77)} width={px(8)} height={px(6)} r={px(1)} color="#1b2029" />
+      <Circle cx={px(81.5)} cy={px(80)} r={px(1.5)} color="#3e4a55" />
+      <Circle cx={px(85.2)} cy={px(79.4)} r={px(0.65)} color={radioInspected ? '#79e8ff' : '#8b7d69'} />
+      <Rect x={px(84.2)} y={px(81)} width={px(2.2)} height={px(0.7)} color={radioInspected ? 'rgba(121,232,255,0.45)' : '#51483e'} />
+      {(radioInspected || sourceCueRevealed) && (
+        <Rect
+          x={px(79.5 + radioPulse)}
+          y={px(76 - radioPulse * 0.6)}
+          width={px(6 - radioPulse)}
+          height={px(0.7)}
+          color={sourceCueRevealed ? 'rgba(121,232,255,0.70)' : 'rgba(196,227,235,0.30)'}
+        />
+      )}
+
+      <Circle cx={px(90.5)} cy={px(80)} r={px(4)} color="rgba(248,218,118,0.12)" />
+      <Line p1={vec(px(90.5), px(84))} p2={vec(px(90.5), px(98))} color="#7d6850" strokeWidth={px(1)} />
 
       {tvOn && <Circle cx={px(109.5)} cy={px(60)} r={px(20)} color={transmissionSeen ? "rgba(91,238,255,0.12)" : "rgba(196,227,235,0.08)"} />}
       <RoundedRect x={px(96)} y={px(48)} width={px(27)} height={px(24)} r={px(2)} color="#0a0f18" />
@@ -101,8 +120,34 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
       <Rect x={px(98)} y={px(83)} width={px(23)} height={px(20)} color="#272633" />
       <Rect x={px(101)} y={px(86)} width={px(17)} height={px(5)} color="#32313e" />
 
+      <Line
+        p1={vec(px(119), px(96))}
+        p2={vec(px(128), px(96))}
+        color={sourceCueRevealed ? 'rgba(121,232,255,0.70)' : '#151925'}
+        strokeWidth={px(sourceCueRevealed ? 1 : 0.7)}
+      />
+      <Line
+        p1={vec(px(127.5), px(96))}
+        p2={vec(px(127.5), px(87))}
+        color={sourceCueRevealed ? 'rgba(121,232,255,0.45)' : '#151925'}
+        strokeWidth={px(0.7)}
+      />
+      {sourceCueRevealed && (
+        <>
+          <Circle cx={px(126 - radioPulse * 2)} cy={px(96)} r={px(1.2)} color="rgba(121,232,255,0.72)" />
+          <Circle cx={px(127)} cy={px(87)} r={px(4 + radioPulse)} color="rgba(91,238,255,0.04)" />
+        </>
+      )}
+
       <RoundedRect x={px(49)} y={px(34)} width={px(13)} height={px(17)} r={px(1)} color="#161b27" />
       <Rect x={px(51)} y={px(36)} width={px(9)} height={px(13)} color="#465263" />
+      {photoInspected && (
+        <>
+          <Rect x={px(52)} y={px(37)} width={px(7)} height={px(11)} color="rgba(22,45,58,0.52)" />
+          <Line p1={vec(px(52.5), px(47))} p2={vec(px(58.5), px(38))} color="rgba(121,232,255,0.48)" strokeWidth={px(0.7)} />
+          <Circle cx={px(56.5)} cy={px(41.5)} r={px(1.3)} color="rgba(121,232,255,0.30)" />
+        </>
+      )}
       <RoundedRect x={px(70)} y={px(31)} width={px(12)} height={px(18)} r={px(1)} color="#161b27" />
       <Rect x={px(72)} y={px(33)} width={px(8)} height={px(14)} color="#5a4655" />
 
