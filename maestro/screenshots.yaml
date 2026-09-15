@@ -290,3 +290,42 @@ tags:
 - assertVisible: "INTERACT · RADIO"
 - takeScreenshot:
     path: 22_living_room_source_cue
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-arrival
+- extendedWaitUntil:
+    visible:
+      text: "Everything is off. Something in the wall is still drawing power."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · KITCHEN"
+- assertVisible: "TRACE THE POWER"
+- takeScreenshot:
+    path: 23_kitchen_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-overload
+- extendedWaitUntil:
+    visible:
+      text: "The microwave killed the lights. The breaker is buzzing now."
+    timeout: 5000
+- assertVisible: "CHECK THE BREAKER"
+- assertVisible: "INTERACT · MICROWAVE"
+- takeScreenshot:
+    path: 24_kitchen_overload
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-power-rerouted
+- extendedWaitUntil:
+    visible:
+      text: "The circuit settles. The same pulse is moving deeper into the house."
+    timeout: 5000
+- assertVisible: "FOLLOW THE PULSE"
+- assertVisible: "INTERACT · BREAKER"
+- takeScreenshot:
+    path: 25_kitchen_power_rerouted
