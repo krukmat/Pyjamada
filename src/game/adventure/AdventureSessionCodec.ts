@@ -31,9 +31,10 @@ export function decodeAdventureGameSession(raw: string): DecodeAdventureGameSess
   const haunted = decodeHauntedSession(JSON.stringify(value.haunted));
   if (haunted.status === 'invalid') return invalid(`Invalid haunted session: ${haunted.reason}`);
 
-  const adventureError = validateAdventureState(value.adventure);
+  const normalizedAdventure = normalizeAdventureState(value.adventure);
+  const adventureError = validateAdventureState(normalizedAdventure);
   if (adventureError) return invalid(adventureError);
-  const adventure = value.adventure as unknown as AdventureState;
+  const adventure = normalizedAdventure as unknown as AdventureState;
 
   return {
     status: 'ok',
@@ -43,6 +44,15 @@ export function decodeAdventureGameSession(raw: string): DecodeAdventureGameSess
       adventure,
     },
   };
+}
+
+function normalizeAdventureState(value: Record<string, unknown>): Record<string, unknown> {
+  if (value.schemaVersion !== 1 || !isRecord(value.storyFlags)) return value;
+  const storyFlags: Record<string, unknown> = { ...value.storyFlags };
+  for (const flag of STORY_FLAGS) {
+    if (storyFlags[flag] === undefined) storyFlags[flag] = false;
+  }
+  return { ...value, storyFlags };
 }
 
 function validateAdventureState(value: unknown): string | null {
