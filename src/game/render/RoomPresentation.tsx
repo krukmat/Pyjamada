@@ -20,6 +20,7 @@ import {
   IllustratedBedroomLightOverlay,
 } from './IllustratedBedroomScene';
 import { IllustratedObject } from './IllustratedObject';
+import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
 type Px = (value: number) => number;
@@ -57,6 +58,16 @@ export function RoomPresentation(props: Props) {
   switch (presentationId) {
     case 'hallway':
       return <HallwayPresentation {...props} />;
+    case 'living-room':
+      return (
+        <LivingRoomPresentation
+          hauntedSession={props.hauntedSession}
+          playerX={props.playerX}
+          playerY={props.playerY}
+          nowMs={props.nowMs}
+          px={props.px}
+        />
+      );
     case 'bedroom':
     default:
       return <BedroomPresentation {...props} />;
