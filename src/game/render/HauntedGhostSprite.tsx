@@ -4,6 +4,7 @@ import type { HauntedGhostState } from '../haunted/HauntedThreats';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_GHOST_ATLAS } from '../presentation/atlas/HauntedGhostAtlas';
+import { HauntedGhostFallback } from './HauntedActorFallbacks';
 
 const INDEX = createSpriteAtlasIndex(HAUNTED_GHOST_ATLAS);
 
@@ -19,8 +20,13 @@ type Props = {
 
 export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }: Props) {
   const facing = ghost.x <= playerX ? 'right' : 'left';
-  const frame = requireAtlasFrame(INDEX, selectFrameId(ghost, nowMs, playerX));
   const telegraph = ghost.phase === 'telegraph';
+
+  if (!image) {
+    return <HauntedGhostFallback ghost={ghost} x={x} y={y} scale={scale} playerX={playerX} />;
+  }
+
+  const frame = requireAtlasFrame(INDEX, selectFrameId(ghost, nowMs, playerX));
 
   return (
     <Group opacity={telegraph ? 0.58 + (Math.floor(nowMs / 90) % 2) * 0.32 : 1}>
