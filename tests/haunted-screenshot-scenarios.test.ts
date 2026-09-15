@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 19, 'visual tour has nineteen deterministic gameplay/adventure presets through W2 Gate B');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 20, 'visual tour has twenty deterministic gameplay/adventure presets through W2 closeout');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -97,5 +97,13 @@ equal(livingRoomTransmission.currentRoom, 'living-room', 'transmission screensho
 equal(livingRoomTransmission.storyFlags.labTransmissionSeen, true, 'transmission screenshot records the global mystery hook');
 equal(getRoomState(livingRoomTransmission, 'living-room').inspected.includes('television'), true, 'transmission screenshot records TV discovery');
 equal(getRoomState(livingRoomTransmission, 'living-room').interactions.includes('tv-transmission'), true, 'transmission screenshot records TV interaction history');
+
+const sourceCue = createScreenshotAdventureState('living-room-source-cue');
+equal(sourceCue.currentRoom, 'living-room', 'source-cue screenshot stays inside W2');
+equal(sourceCue.storyFlags.labTransmissionSeen, true, 'source cue follows the lab transmission');
+equal(getRoomState(sourceCue, 'living-room').inspected.includes('photo-reflection'), true, 'source-cue screenshot includes the photo anomaly');
+equal(getRoomState(sourceCue, 'living-room').inspected.includes('radio-static'), true, 'source-cue screenshot includes the radio clue');
+equal(getRoomState(sourceCue, 'living-room').switches['source-hum-traced'], true, 'source-cue screenshot exposes the directional hook');
+equal(getRoomState(sourceCue, 'living-room').switches['radio-focused'], true, 'source-cue screenshot focuses the radio feedback');
 
 console.log('haunted screenshot scenario tests passed');
