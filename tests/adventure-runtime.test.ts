@@ -12,6 +12,24 @@ import {
 import { transitionAdventure } from '../src/game/adventure/RoomRegistry';
 import type { AdventureGameSavePort, AdventureGameSaveReadResult } from '../src/game/ports/AdventureGameSavePort';
 
+class FakeAdventureSavePort implements AdventureGameSavePort {
+  saveCount = 0;
+  state: AdventureGameSessionState | null = null;
+
+  async read(): Promise<AdventureGameSaveReadResult> {
+    return this.state ? { status: 'ok', state: this.state } : { status: 'none' };
+  }
+
+  async save(state: AdventureGameSessionState): Promise<void> {
+    this.saveCount += 1;
+    this.state = state;
+  }
+
+  async clear(): Promise<void> {
+    this.state = null;
+  }
+}
+
 void test('adventure starts in Bedroom with only Bedroom visited', () => {
   const state = createAdventureState();
   equal(state.currentRoom, 'bedroom', 'initial room');
@@ -117,23 +135,5 @@ void test('adventure save coordinator throttles only periodic writes', async () 
   equal(saved, true, 'room transition bypasses throttle');
   equal(port.saveCount, 2, 'only meaningful writes reached storage');
 });
-
-class FakeAdventureSavePort implements AdventureGameSavePort {
-  saveCount = 0;
-  state: AdventureGameSessionState | null = null;
-
-  async read(): Promise<AdventureGameSaveReadResult> {
-    return this.state ? { status: 'ok', state: this.state } : { status: 'none' };
-  }
-
-  async save(state: AdventureGameSessionState): Promise<void> {
-    this.saveCount += 1;
-    this.state = state;
-  }
-
-  async clear(): Promise<void> {
-    this.state = null;
-  }
-}
 
 console.log('adventure runtime tests passed');
