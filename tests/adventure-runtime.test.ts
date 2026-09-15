@@ -3,7 +3,6 @@ import {
   applyFalseEscape,
   findAdventureInteractionTarget,
   isHallwayClockInspected,
-  isLivingRoomDoorReached,
   isLivingRoomPathRevealed,
   stepAdventureExploration,
 } from '../src/game/adventure/AdventureExplorationRuntime';
@@ -72,7 +71,7 @@ void test('story flag setting is immutable and idempotent', () => {
   equal(setStoryFlag(flagged, 'hallwayUnlocked'), flagged, 'repeated set reuses state');
 });
 
-void test('room registry owns W1 interaction and exit definitions', () => {
+void test('room registry owns interaction and navigation definitions', () => {
   const bedroomDoor = getRoomInteraction('bedroom', 'bedroom-hallway-door');
   equal(bedroomDoor?.behavior.type, 'exit', 'Bedroom Hallway interaction is an exit definition');
   if (bedroomDoor?.behavior.type === 'exit') equal(bedroomDoor.behavior.exitId, 'bedroom-to-hallway', 'interaction points to registered exit');
@@ -80,6 +79,13 @@ void test('room registry owns W1 interaction and exit definitions', () => {
   const clock = getRoomInteraction('hallway', 'backward-clock');
   equal(clock?.behavior.type, 'effect', 'Hallway clock is declarative room content');
   if (clock?.behavior.type === 'effect') equal(clock.behavior.effect, 'inspect-backward-clock', 'clock effect is explicit');
+
+  const livingDoor = getRoomInteraction('hallway', 'living-room-door');
+  equal(livingDoor?.behavior.type, 'exit', 'Living Room door is a real room exit');
+  if (livingDoor?.behavior.type === 'exit') equal(livingDoor.behavior.exitId, 'hallway-to-living-room', 'Hallway door points to Living Room exit');
+
+  const livingReturn = getRoomInteraction('living-room', 'living-room-hallway-door');
+  equal(livingReturn?.behavior.type, 'exit', 'Living Room exposes a Hallway return interaction');
 });
 
 void test('Bedroom to Hallway is locked until the false escape opens the house', () => {
@@ -139,6 +145,7 @@ void test('Hallway clock reveals Living Room path and persists the anomaly', () 
   const livingBefore = findAdventureInteractionTarget(hallway.state, 114);
   equal(livingBefore?.available, false, 'Living Room door starts sealed');
   equal(livingBefore?.displayLabel, 'SEALED DOOR', 'sealed presentation comes from room definition');
+  equal(transitionAdventure(hallway.state, 'living-room', 'living-room-from-hallway').status, 'invalid', 'direct Living Room transition is also locked');
 
   const atClock = {
     ...falseEscape.session,
@@ -156,26 +163,31 @@ void test('Hallway clock reveals Living Room path and persists the anomaly', () 
   equal(livingAfter?.displayLabel, 'LIVING ROOM', 'unlocked label comes from room definition');
 });
 
-void test('reaching the Living Room door closes the W1 progression gate without entering W2', () => {
-  const falseEscape = applyFalseEscape(preparedCompletedSession('living-door'), createAdventureState());
+void test('Living Room unlock gates both interaction and transition, then supports round trip', () => {
+  const falseEscape = applyFalseEscape(preparedCompletedSession('living-room-round-trip'), createAdventureState());
   const hallway = transitionAdventure(falseEscape.adventure, 'hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
-  const clockSession = {
+  const blocked = transitionAdventure(hallway.state, 'living-room', 'living-room-from-hallway');
+  equal(blocked.status, 'invalid', 'Living Room transition is blocked before clock reveal');
+
+  const atClock = {
     ...falseEscape.session,
     player: { ...falseEscape.session.player, x: 64 },
     input: pressAction(falseEscape.session.input, 'interact'),
   };
-  const inspected = stepAdventureExploration(clockSession, hallway.state, 33);
-  const doorSession = {
-    ...inspected.session,
-    player: { ...inspected.session.player, x: 114 },
-    input: pressAction(inspected.session.input, 'interact'),
-  };
-  const reached = stepAdventureExploration(doorSession, inspected.adventure, 33);
-  equal(isLivingRoomDoorReached(reached.adventure), true, 'Living Room door reached');
-  equal(reached.adventure.currentRoom, 'hallway', 'W1 stops in Hallway rather than entering Living Room');
-  equal(reached.events.some(event => event.type === 'LIVING_ROOM_DOOR_REACHED'), true, 'W1 completion event emitted');
+  const inspected = stepAdventureExploration(atClock, hallway.state, 33);
+  const living = transitionAdventure(inspected.adventure, 'living-room', 'living-room-from-hallway');
+  if (living.status !== 'ok') throw new Error(living.reason);
+  equal(living.state.currentRoom, 'living-room', 'entered Living Room');
+  deepEqual(living.state.visitedRooms, ['bedroom', 'hallway', 'living-room'], 'Living Room marked visited');
+  equal(living.spawn.x, 14, 'Living Room spawn is deterministic');
+
+  const returnTrip = transitionAdventure(living.state, 'hallway', 'hallway-from-living-room');
+  if (returnTrip.status !== 'ok') throw new Error(returnTrip.reason);
+  equal(returnTrip.state.currentRoom, 'hallway', 'Living Room returns to Hallway');
+  equal(returnTrip.spawn.facing, 'left', 'Hallway return spawn faces into the room');
+  deepEqual(returnTrip.state.visitedRooms, ['bedroom', 'hallway', 'living-room'], 'visited rooms persist across round trip');
 });
 
 void test('coordinator preserves story and room-local state across round trip', () => {
@@ -198,7 +210,7 @@ void test('coordinator preserves story and room-local state across round trip', 
   equal(hasStoryFlag(state, 'hallwayUnlocked'), true, 'story flag survived transitions');
   const hallwayState = getRoomState(state, 'hallway');
   deepEqual(hallwayState.inspected, ['backward-clock'], 'inspected anomaly persisted');
-  deepEqual(hallwayState.interactions, ['living-room-door'], 'interaction persisted');
+  deepEqual(hallwayState.interactions, ['living-room-door'], 'legacy W1 interaction history persisted');
   equal(hallwayState.switches['living-room-unlocked'], true, 'local switch persisted');
 });
 
