@@ -35,6 +35,7 @@ EXPECTED_SCREENSHOTS=(
   "16_hallway_arrival.png"
   "17_hallway_clock.png"
   "18_living_room_door.png"
+  "19_living_room_arrival.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published
