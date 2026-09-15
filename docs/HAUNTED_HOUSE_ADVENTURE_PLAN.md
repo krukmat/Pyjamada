@@ -2,9 +2,25 @@
 
 ## Purpose
 
-This document is the stable roadmap for evolving the current Haunted Arcade bedroom vertical slice into a complete haunted-house adventure inspired by late-80s/early-90s adventure structure: one connected house, room-by-room discovery, environmental storytelling, supernatural comedy, and a final confrontation with a mad scientist.
+This document is the stable roadmap for evolving the Haunted Arcade bedroom vertical slice into a complete haunted-house adventure inspired by late-80s/early-90s adventure structure: one connected house, room-by-room discovery, environmental storytelling, supernatural comedy, and a final confrontation with a mad scientist.
 
 The current bedroom gameplay is not discarded. It becomes Act I and the mechanical/narrative baseline for the rest of the game.
+
+## Wave status
+
+| Wave | Status | Gate |
+|---|---|---|
+| W0 — Adventure Foundation | **IMPLEMENTED** | Connected-room architecture, persistence and placeholder Bedroom ↔ Hallway round trip |
+| W1 — The House Opens | **NEXT** | False escape + altered Bedroom + real Hallway |
+| W2 — Living Room | Planned | Mystery hook / lab transmission |
+| W3A — Kitchen | Planned | Domestic mechanic expansion |
+| W3B — Bathroom | Planned | Dream geometry |
+| W4 — Attic | Planned | Vesper/W-01 revelation |
+| W5 — Basement | Planned | Mad-science transition |
+| W6 — Laboratory | Planned | Final boss |
+| W7 — Ending/Cohesion | Planned | Product hardening |
+
+Implementation detail for the completed foundation lives in `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`.
 
 ## Narrative spine
 
@@ -46,21 +62,20 @@ The exact topology may evolve when gameplay requires it, but the narrative order
 
 ## Wave plan
 
-### W0 — Adventure Foundation
+### W0 — Adventure Foundation — IMPLEMENTED
 
 **Goal:** make the current single-room runtime capable of supporting a connected adventure without changing the bedroom gameplay yet.
 
-Deliverables:
-- Room identity and room registry.
-- Adventure/session state with current room, visited rooms and story flags.
-- Room transition contract and deterministic spawn points.
-- Per-room persistent state contract.
-- Story trigger/flag infrastructure.
-- Save schema evolution for adventure data.
-- Room-aware presentation seam so `GameCanvas` does not become a switchboard of room-specific conditions.
-- Deterministic tests for Bedroom -> placeholder Hallway -> Bedroom navigation and persistence.
+Delivered:
+- `AdventureState` with current room, visited rooms, story flags and local room state.
+- Declarative Bedroom/Hallway registry with deterministic spawn entries and legal exits.
+- `AdventureSessionCoordinator` for progression orchestration.
+- v3 top-level save envelope pairing Haunted v2 simulation with Adventure v1 progression.
+- room-aware `RoomPresentation` seam below `GameCanvas`.
+- placeholder Hallway presentation and test-only navigation hook.
+- deterministic adventure/save tests integrated into `test:all`.
 
-**Gate:** programmatic round trip Bedroom -> Hallway -> Bedroom works while preserving session state.
+**Gate:** Bedroom -> placeholder Hallway -> Bedroom works while story and room-local state survive navigation/save-load. Full implementation checkpoint: `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`.
 
 ### W1 — The House Opens
 
@@ -71,7 +86,7 @@ Scope:
 - Replace terminal success at the door with the false escape twist.
 - Fade/transition and return to an altered Bedroom.
 - Open the path to Hallway.
-- Implement Hallway as the first real additional room.
+- Replace the W0 placeholder with Hallway as the first real additional room.
 - Add the first environmental anomaly: reverse clock / altered pictures / impossible sound.
 - Prepare but do not complete Living Room access.
 
@@ -174,71 +189,58 @@ Scope:
 
 ### Adventure state
 
-Keep narrative/progression state separate from immediate combat/physics state.
+Narrative/progression state stays separate from immediate combat/physics state.
 
-Expected responsibilities:
+Implemented boundary:
 
 ```text
-AdventureState
-├── currentRoom
-├── visitedRooms
-├── storyFlags
-├── roomStates
-└── progression
+AdventureGameSessionState (save envelope v3)
+├── HauntedSessionState (simulation v2)
+└── AdventureState (progression v1)
+    ├── currentRoom/currentEntry
+    ├── visitedRooms
+    ├── storyFlags
+    └── room-local persistence
 ```
 
 ### Room registry
 
-Rooms should be data/config driven where practical:
+Room connectivity is declarative and intentionally small:
 
 ```text
 RoomDefinition
 ├── id
-├── exits
-├── spawnPoints
-├── interactables
-├── objective
-├── atmosphere/presentation id
-└── story triggers
+├── presentationId
+├── entries/spawn points
+└── exits
 ```
 
-Avoid large room-specific condition trees in `GameCanvas`.
+Do not replace this with a generic graph/scripting engine unless later gameplay demonstrates a concrete need.
 
 ### Presentation seam
 
-Preferred direction:
+Implemented direction:
 
 ```text
 GameCanvas
    ↓
 RoomPresentation
    ↓
-room-specific renderer
+room-specific presentation
 ```
 
-Shared systems remain above room presentation:
-- Wally
-- enemies
-- projectiles
-- combat FX
-- HUD
-- camera
+Shared systems stay above room presentation:
+- Wally;
+- enemies;
+- projectiles;
+- combat FX;
+- camera.
+
+HUD remains application-level.
 
 ### Story state
 
-Use explicit flags/triggers, not hidden inference from arbitrary object state.
-
-Examples:
-
-```text
-bedroomEscapeAttempted
-hallwayUnlocked
-tvTransmissionSeen
-mirrorSecretFound
-vesperIdentityKnown
-basementUnlocked
-resonatorDiscovered
-```
+Use explicit flags/triggers, not hidden inference from arbitrary object state. W0 implements only flags required by the first transition (`bedroomEscapeAttempted`, `hallwayUnlocked`). Future flags should be introduced when their wave needs them.
 
 ### Deterministic review
 
@@ -254,12 +256,25 @@ Do not create 14 screenshots for every room. Add only representative determinist
 - Do not implement later waves before the current wave gate passes.
 - Do not add Goblin/Skull merely because they were previously planned; derive enemy needs from room gameplay and story.
 - Preserve the current Bedroom/Ghost slice as a regression baseline.
-- No broad rewrite of Haunted runtime unless W0 proves an explicit structural limitation.
+- No broad rewrite of Haunted runtime unless a wave proves an explicit structural limitation.
 - Prefer small reusable seams over generalized adventure-engine abstractions.
 - Android/device visual validation remains a local user-run gate; automated TypeScript/tests/architecture checks remain repository gates.
 
 ## Current priority
 
-The active scope is **W0 — Adventure Foundation** only.
+**W1 — The House Opens** is the next allowed implementation scope after W0 validation is confirmed green.
 
-The next milestone after W0 is **M1 — The House Opens**, covering the false escape and Hallway. No Living Room, Kitchen, new enemy or boss work starts before that milestone is deliberately entered.
+W1 should be developed incrementally in this order:
+
+```text
+false escape semantics
+→ transition/fade
+→ altered Bedroom state
+→ production Bedroom → Hallway navigation
+→ real Hallway presentation
+→ first Hallway anomaly
+→ Living Room door setup
+→ W1 playtest gate
+```
+
+No Living Room interior, Kitchen, new enemy or boss work starts before the W1 gate deliberately passes.
