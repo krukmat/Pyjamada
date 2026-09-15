@@ -4,15 +4,15 @@
 
 This document is the stable roadmap for evolving the Haunted Arcade bedroom vertical slice into a complete haunted-house adventure inspired by late-80s/early-90s adventure structure: one connected house, room-by-room discovery, environmental storytelling, supernatural comedy, and a final confrontation with a mad scientist.
 
-The current bedroom gameplay is not discarded. It becomes Act I and the mechanical/narrative baseline for the rest of the game.
+The current Bedroom gameplay is not discarded. It is Act I and the mechanical/narrative baseline for the rest of the game.
 
 ## Wave status
 
 | Wave | Status | Gate |
 |---|---|---|
 | W0 — Adventure Foundation | **IMPLEMENTED** | Connected-room architecture, persistence and Bedroom ↔ Hallway foundation |
-| W1 — The House Opens | **CODE-COMPLETE / ACCEPTANCE PENDING** | False escape + altered Bedroom + Hallway + first anomaly + Living Room threshold |
-| W2 — Living Room | **BLOCKED BY W1 ACCEPTANCE** | Mystery hook / lab transmission |
+| W1 — The House Opens | **ACCEPTED** | False escape + altered Bedroom + Hallway + backward-clock anomaly + Living Room threshold |
+| W2 — Living Room | **ACTIVE** | Mystery hook / lab transmission |
 | W3A — Kitchen | Planned | Domestic mechanic expansion |
 | W3B — Bathroom | Planned | Dream geometry |
 | W4 — Attic | Planned | Vesper/W-01 revelation |
@@ -20,9 +20,11 @@ The current bedroom gameplay is not discarded. It becomes Act I and the mechanic
 | W6 — Laboratory | Planned | Final boss |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
-Implementation detail lives in:
+Implementation/task checkpoints:
 - `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`
 - `docs/W1_THE_HOUSE_OPENS_TASKS.md`
+- `docs/W1_DEBT_CLOSURE.md`
+- `docs/W2_LIVING_ROOM_TASKS.md`
 
 ## Narrative spine
 
@@ -66,53 +68,71 @@ The exact topology may evolve when gameplay requires it, but the narrative order
 
 ### W0 — Adventure Foundation — IMPLEMENTED
 
-**Goal:** make the current single-room runtime capable of supporting a connected adventure without changing the bedroom gameplay yet.
+**Goal:** make the current single-room runtime capable of supporting a connected adventure without changing Bedroom gameplay yet.
 
 Delivered:
 - `AdventureState` with current room, visited rooms, story flags and local room state.
-- Declarative Bedroom/Hallway registry with deterministic spawn entries and legal exits.
-- `AdventureSessionCoordinator` for progression orchestration.
-- v3 top-level save envelope pairing Haunted v2 simulation with Adventure v1 progression.
-- room-aware `RoomPresentation` seam below `GameCanvas`.
-- placeholder Hallway presentation and test-only navigation hook.
+- declarative room registry with deterministic spawn entries and legal exits;
+- `AdventureSessionCoordinator` for progression orchestration;
+- v3 top-level save envelope pairing Haunted simulation with Adventure progression;
+- room-aware `RoomPresentation` seam below `GameCanvas`;
 - deterministic adventure/save tests integrated into `test:all`.
 
-**Gate:** Bedroom -> placeholder Hallway -> Bedroom works while story and room-local state survive navigation/save-load. Full implementation checkpoint: `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`.
+**Gate:** Bedroom -> Hallway -> Bedroom works while story and room-local state survive navigation/save-load.
 
-### W1 — The House Opens — CODE-COMPLETE / ACCEPTANCE PENDING
+### W1 — The House Opens — ACCEPTED
 
-**Goal:** turn the existing bedroom slice into the real Act I and introduce the first explorable room.
+**Goal:** turn the existing Bedroom slice into the real Act I and introduce the first explorable room.
 
-Implemented:
-- The original wake -> dress -> keys -> Ghost -> escape loop remains intact until the exit seam.
-- Terminal Bedroom success is intercepted by the false-escape story event.
-- Reusable short fade transition with input lock.
-- Altered Bedroom state with `FIND ANOTHER WAY OUT` objective.
-- Production Bedroom -> Hallway interaction using the W0 room registry/coordinator.
-- W0 placeholder replaced by the real W1 Hallway presentation.
-- Backward-clock environmental anomaly with persisted inspection state.
-- Clock reveal unlocks the Living Room path.
-- W1 stops at the Living Room door and deliberately does not enter W2.
-- Exploration progression survives the v3 save/load envelope.
-- Four focused W1 deterministic review states were added: altered Bedroom, Hallway arrival, backward clock, Living Room threshold.
-- One continuous deterministic W1 playthrough test covers the full story path and save/load roundtrip.
+Delivered:
+- original wake -> dress -> keys -> Ghost -> escape loop preserved until the exit seam;
+- false escape transforms terminal Bedroom success into Adventure progression;
+- reusable fade transition with input lock;
+- altered Bedroom with `FIND ANOTHER WAY OUT` objective;
+- production Bedroom -> Hallway interaction;
+- real Hallway presentation;
+- backward-clock environmental anomaly;
+- Living Room path unlock;
+- W1 deterministic review states and end-to-end progression/save tests;
+- Android visual acceptance completed.
 
-**Gate:** automated repository validation must be green and the local Android screenshot/playtest review must confirm the false escape, altered Bedroom, Hallway, clock anomaly and Living Room threshold are readable in the actual app. W2 remains blocked until that review passes.
+High/Medium debt closed before W2:
+- Adventure owns exploration state instead of adding an `exploration` phase to Haunted;
+- exploration HUD/controls are contextual and do not expose inactive combat systems;
+- room interactions live in room definitions;
+- exit legality and interaction availability use the same registry contract;
+- legacy W1 exploration saves are migrated.
 
-Full task/DAG checkpoint: `docs/W1_THE_HOUSE_OPENS_TASKS.md`.
+The accepted W1 endpoint is the unlocked Living Room threshold. W2 owns crossing that threshold and all Living Room content.
 
-### W2 — Living Room / Mystery Hook
+### W2 — Living Room / Mystery Hook — ACTIVE
 
-**Goal:** establish that someone or something is actively causing the haunting.
+**Goal:** establish that someone or something is actively causing/observing the haunting.
 
-Scope:
-- Living Room renderer and room data.
-- Television as central interaction.
-- Distorted lab transmission (`Resonance stable...`).
-- Connect TV usage to threat/noise where appropriate.
-- Environmental storytelling through furniture, radio, photos and TV interference.
+Planned scope:
+- Living Room room data and presentation;
+- Hallway ↔ Living Room navigation;
+- television as central interaction;
+- distorted laboratory transmission (`RESONANCE STABLE...`);
+- explicit narrative knowledge flag for the transmission;
+- limited environmental storytelling through furniture/electrical clues;
+- threat/noise escalation only if playtest evidence shows it adds value.
 
-**Gate:** player leaves the room with the clear question: "Who is observing or controlling the house?"
+Current implementation block: **T0–T3 / Gate A**.
+
+Implemented in this block:
+- `living-room` activated in the room registry;
+- Hallway -> Living Room transition uses the existing `living-room-unlocked` switch as a real exit gate;
+- deterministic Living Room -> Hallway return entry;
+- room-effect execution extracted behind `applyRoomInteractionEffect()` so future TV effects do not expand `AdventureExplorationRuntime` directly;
+- base Living Room presentation added through the existing `RoomPresentation` seam;
+- focused Gate A tests cover lock/unlock, round-trip navigation, visited rooms and save/load.
+
+**Gate A:** Hallway -> Living Room -> Hallway works through production interactions, Living Room can be restored from save, and repository validation remains green.
+
+**Final W2 gate:** player leaves the Living Room with the clear question: **Who is observing or controlling the house?**
+
+Full W2 task/DAG checkpoint: `docs/W2_LIVING_ROOM_TASKS.md`.
 
 ### W3A — Kitchen / Domestic Gameplay Expansion
 
@@ -133,21 +153,21 @@ Only introduce a new enemy if the room requires a new threat pattern that Ghost 
 **Goal:** introduce non-normal spatial logic and exploration-based progression.
 
 Scope:
-- Mirror anomaly.
-- Reflected room differs from real room.
-- Reflection reveals route/clue that does not exist normally.
-- Limited dream-geometry trick without building a generic portal engine.
+- mirror anomaly;
+- reflected room differs from real room;
+- reflection reveals route/clue that does not exist normally;
+- limited dream-geometry trick without building a generic portal engine.
 
-**Gate:** the player discovers a new route using an environmental anomaly rather than combat.
+**Gate:** player discovers a new route using an environmental anomaly rather than combat.
 
 ### W4 — Attic / Revelation
 
 **Goal:** convert mystery into explicit understanding.
 
 Story objects:
-- Dr. Vesper photograph.
-- Resonator prototype/plan.
-- Dream-energy notes.
+- Dr. Vesper photograph;
+- Resonator prototype/plan;
+- dream-energy notes;
 - `SUBJECT W-01` record.
 
 Information should be fragmented across interactions rather than delivered as one exposition dump.
@@ -159,12 +179,12 @@ Information should be fragmented across interactions rather than delivered as on
 **Goal:** transition the tone from haunted house to haunted-house-plus-mad-science.
 
 Scope:
-- Cables, CRTs, energy conduits and machine infrastructure.
-- Power/door/terminal interactions.
-- Escalated environmental hazards.
-- First explicitly experimental creature only if supported by room gameplay.
+- cables, CRTs, energy conduits and machine infrastructure;
+- power/door/terminal interactions;
+- escalated environmental hazards;
+- first explicitly experimental creature only if supported by room gameplay.
 
-**Gate:** player reaches the laboratory entrance and understands that the experiment is no longer under control.
+**Gate:** player reaches the Laboratory entrance and understands that the experiment is no longer under control.
 
 ### W6 — Laboratory / Final Boss
 
@@ -184,90 +204,109 @@ Reuse visual/memory motifs from Bedroom, Living Room, Bathroom and Attic.
 **Goal:** finish the product after the whole adventure is playable.
 
 Scope:
-- Final awakening sequence.
-- Physical evidence that events were real.
-- Final small Ghost sting.
-- Credits/retry/continue.
-- Audio polish.
-- Animation polish.
-- Visual consistency.
-- Accessibility.
-- Performance and release hardening.
+- final awakening sequence;
+- physical evidence that events were real;
+- final small Ghost sting;
+- credits/retry/continue;
+- audio polish;
+- animation polish;
+- visual consistency;
+- accessibility;
+- performance and release hardening.
 
 ## Cross-cutting architecture
 
 ### Adventure state
 
-Narrative/progression state stays separate from immediate combat/physics state.
-
-Implemented boundary:
+Narrative/progression state stays separate from immediate Haunted combat/physics state.
 
 ```text
 AdventureGameSessionState (save envelope v3)
-├── HauntedSessionState (simulation v2)
-└── AdventureState (progression v1)
+├── HauntedSessionState
+└── AdventureState
     ├── currentRoom/currentEntry
     ├── visitedRooms
     ├── storyFlags
     └── room-local persistence
 ```
 
-W1 adds a narrow `AdventureExplorationRuntime` after the false escape. It reuses player movement/input but does not restart the Bedroom threat/domestic simulation.
+After the false escape, Adventure state owns progression. Haunted remains the completed Act-I simulation container while player movement state is reused by exploration.
 
 ### Room registry
 
-Room connectivity is declarative and intentionally small:
+Room connectivity and interaction discovery are declarative and intentionally small:
 
 ```text
 RoomDefinition
 ├── id
 ├── presentationId
-├── entries/spawn points
-└── exits (+ optional story-flag gate)
+├── entries / spawn points
+├── exits
+│   ├── optional story-flag gate
+│   └── optional room-switch gate
+└── interactions
+    ├── exit reference
+    └── effect reference
 ```
 
-Do not replace this with a generic graph/scripting engine unless later gameplay demonstrates a concrete need.
+An exit interaction references a registered `exitId`; it does not duplicate the target room/entry. Availability and actual transition legality therefore share one contract.
+
+Do not replace this with a generic graph/scripting engine unless later gameplay proves a concrete need.
+
+### Interaction effects
+
+W2 adds a small effect boundary:
+
+```text
+AdventureExplorationRuntime
+        |
+        v
+applyRoomInteractionEffect()
+```
+
+The runtime remains responsible for movement, target resolution and deciding between exit/effect interactions. Effect-specific narrative mutations/events live outside it.
+
+This is intentionally a dispatcher seam, not a quest scripting system.
 
 ### Presentation seam
 
-Implemented direction:
+Current direction:
 
 ```text
 GameCanvas
    ↓
 RoomPresentation
    ├── Bedroom
-   └── Hallway
+   ├── Hallway
+   └── Living Room
 ```
 
 Shared systems stay above room presentation:
 - Wally;
-- enemies;
-- projectiles;
-- combat FX;
-- camera.
+- camera;
+- exploration controls;
+- Haunted enemies/projectiles/FX when that mode is active.
 
-During W1 exploration, combat/enemy/projectile layers are deliberately suppressed; W1's Hallway beat is an exploration/mystery beat rather than a combat-content expansion.
-
-HUD remains application-level.
+The Living Room base presentation contains its major visual anchors but TV interaction/transmission belongs to later W2 tasks.
 
 ### Story state
 
 Use explicit flags/triggers, not hidden inference from arbitrary object state.
 
-Implemented W1 progression uses:
+Current progression includes:
 - `bedroomEscapeAttempted`;
 - `hallwayUnlocked`;
-- Bedroom room history: `false-escape`;
+- Bedroom history: `false-escape`;
 - Hallway inspection: `backward-clock`;
-- Hallway switch: `living-room-unlocked`;
-- Hallway interaction: `living-room-door`.
+- Hallway switch: `living-room-unlocked`.
 
-Future flags should be introduced only when their wave needs them.
+W2 will add a global transmission-knowledge flag only when the transmission actually exists.
 
 ### Deterministic review
 
-Do not create a full Bedroom-sized screenshot suite for every room. W1 adds only four representative states:
+Do not create a full Bedroom-sized screenshot suite for every room.
+
+Accepted W1 review states:
 
 ```text
 15_altered_bedroom
@@ -276,38 +315,48 @@ Do not create a full Bedroom-sized screenshot suite for every room. W1 adds only
 18_living_room_door
 ```
 
-The Android screenshot flow continues to validate real UI state/text rather than using a synthetic renderer-ready gate.
+Planned W2 focused states:
+
+```text
+19_living_room_arrival
+20_tv_static
+21_lab_transmission
+22_post_transmission
+```
+
+The Android screenshot flow continues to validate real UI state/text rather than a synthetic renderer-ready gate.
 
 ## Development policy
 
 - Work incrementally on `feat/haunted-house-adventure`.
 - Do not implement later waves before the current wave gate passes.
 - Do not add Goblin/Skull merely because they were previously planned; derive enemy needs from room gameplay and story.
-- Preserve the current Bedroom/Ghost slice as a regression baseline.
+- Preserve the Bedroom/Ghost slice as a regression baseline.
 - No broad rewrite of Haunted runtime unless a wave proves an explicit structural limitation.
 - Prefer small reusable seams over generalized adventure-engine abstractions.
 - Android/device visual validation remains a local user-run gate; automated TypeScript/tests/architecture checks remain repository gates.
 
 ## Current priority
 
-**W1 acceptance gate.** The implementation is complete; W2 is intentionally blocked until two conditions are satisfied:
+**W2 Gate A — Enter the Living Room.**
+
+Current required evidence:
 
 ```text
-1. repository CI green on final W1 HEAD
-2. local Android review of screenshots / playthrough
+1. Hallway -> Living Room is blocked before backward-clock reveal
+2. clock reveal unlocks both interaction and actual transition
+3. Hallway -> Living Room -> Hallway uses deterministic entries/spawns
+4. Living Room is tracked in visited rooms
+5. save/load can restore currentRoom = living-room
+6. W1 regression and repository validation remain green
 ```
 
-The local evidence command is:
+Once Gate A is green, the next implementation block is:
 
-```bash
-npm run screenshots:android
+```text
+W2-T4 TV interaction
+  -> W2-T5 distorted transmission
+  -> W2-T6 labTransmissionSeen + persistence
 ```
 
-Review should focus especially on:
-- whether the false escape reads as an intentional story twist rather than a reset;
-- whether the altered Bedroom is recognizably the same room but clearly wrong;
-- whether Hallway reads as a new connected room;
-- whether the backward clock is visually discoverable;
-- whether the Living Room door reveal provides a clear W2 hook.
-
-No Living Room interior, Kitchen, new enemy or boss work starts before this W1 acceptance gate deliberately passes.
+No Kitchen, new enemy or Living Room combat work starts as part of Gate A.
