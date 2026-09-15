@@ -105,28 +105,39 @@ export function HauntedHitFeedback({
   direction?: -1 | 0 | 1;
 }) {
   const hit = HAUNTED_STAGE_TOKENS.hit;
-  const reach = pulse === 0 ? 9 : 11;
-  const trailDirection = direction === 0 ? 1 : -direction;
-  const trailX = trailDirection > 0 ? x + px(6) : x - px(18);
+  const pushDirection = direction === 0 ? -1 : direction;
+  const sourceSide = -pushDirection;
+  const impactX = x + px(sourceSide * 6);
+  const trailStartX = pushDirection < 0 ? x - px(18) : x + px(7);
+  const shortTrailX = pushDirection < 0 ? x - px(12) : x + px(7);
 
   return (
     <>
-      <Circle cx={x} cy={y} r={px(11)} color={hit.backing} />
-      <Circle cx={x} cy={y} r={px(pulse === 0 ? 9 : 11)} color={hit.outerGlow} />
-      <Circle cx={x} cy={y} r={px(pulse === 0 ? 6 : 8)} color={hit.glow} />
-      <Circle cx={x} cy={y} r={px(2)} color={hit.core} />
+      {/* One compact contact flash on the enemy-facing side. */}
+      <Circle cx={impactX} cy={y} r={px(pulse === 0 ? 6 : 7)} color={hit.backing} />
+      <Circle cx={impactX} cy={y} r={px(pulse === 0 ? 4 : 5)} color={hit.glow} />
+      <Circle cx={impactX} cy={y} r={px(1.6)} color={hit.core} />
+      <Rect x={impactX - px(5)} y={y - px(1)} width={px(10)} height={px(2)} color={hit.horizontalWarm} />
+      <Rect x={impactX - px(1)} y={y - px(5)} width={px(2)} height={px(10)} color={hit.verticalDanger} />
 
-      <Rect x={x - px(reach)} y={y - px(1)} width={px(5)} height={px(2)} color={hit.horizontalWarm} />
-      <Rect x={x + px(reach - 5)} y={y - px(1)} width={px(5)} height={px(2)} color={hit.horizontalCold} />
-      <Rect x={x - px(1)} y={y - px(reach)} width={px(2)} height={px(5)} color={hit.verticalDanger} />
-      <Rect x={x - px(1)} y={y + px(reach - 5)} width={px(2)} height={px(5)} color={hit.verticalWarm} />
+      {/* Sparse push streaks point in the same direction as knockback. */}
+      <Rect x={trailStartX} y={y - px(6)} width={px(11)} height={px(2)} color={hit.pushTrail} />
+      <Rect x={shortTrailX} y={y + px(5)} width={px(7)} height={px(2)} color={hit.horizontalCold} />
 
-      <Rect x={trailX} y={y - px(7)} width={px(12)} height={px(2)} color={hit.pushTrail} />
-      <Rect x={trailX + (trailDirection > 0 ? px(3) : px(-3))} y={y} width={px(9)} height={px(2)} color={hit.horizontalCold} />
-      <Rect x={trailX + (trailDirection > 0 ? px(6) : px(-6))} y={y + px(6)} width={px(6)} height={px(2)} color={hit.verticalWarm} />
-
-      <Rect x={x - px(7)} y={y - px(8)} width={px(2)} height={px(2)} color={hit.verticalWarm} />
-      <Rect x={x + px(6)} y={y + px(6)} width={px(2)} height={px(2)} color={hit.horizontalCold} />
+      <Rect
+        x={x + px(pushDirection * 10) - px(1)}
+        y={y - px(10)}
+        width={px(2)}
+        height={px(2)}
+        color={hit.verticalWarm}
+      />
+      <Rect
+        x={x + px(pushDirection * 13) - px(1)}
+        y={y + px(8)}
+        width={px(2)}
+        height={px(2)}
+        color={hit.horizontalCold}
+      />
     </>
   );
 }
