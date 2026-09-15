@@ -1,4 +1,12 @@
 import { deepEqual, equal, test } from './assert';
+import {
+  applyFalseEscape,
+  findAdventureInteractionTarget,
+  isHallwayClockInspected,
+  isLivingRoomDoorReached,
+  isLivingRoomPathRevealed,
+  stepAdventureExploration,
+} from '../src/game/adventure/AdventureExplorationRuntime';
 import { AdventureSaveCoordinator } from '../src/game/adventure/AdventureSaveCoordinator';
 import { createAdventureGameSession, type AdventureGameSessionState } from '../src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from '../src/game/adventure/AdventureSessionCoordinator';
@@ -10,6 +18,8 @@ import {
   setStoryFlag,
 } from '../src/game/adventure/AdventureState';
 import { transitionAdventure } from '../src/game/adventure/RoomRegistry';
+import { pressAction } from '../src/game/haunted/HauntedInput';
+import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
 import type { AdventureGameSavePort, AdventureGameSaveReadResult } from '../src/game/ports/AdventureGameSavePort';
 
 class FakeAdventureSavePort implements AdventureGameSavePort {
@@ -30,6 +40,21 @@ class FakeAdventureSavePort implements AdventureGameSavePort {
   }
 }
 
+function preparedCompletedSession(runId: string): HauntedSessionState {
+  const base = createHauntedSession(runId);
+  return {
+    ...base,
+    domestic: {
+      ...base.domestic,
+      flags: { ...base.domestic.flags, dressed: true },
+      collected: ['keys'],
+      interactionCounts: { ...base.domestic.interactionCounts, wardrobe: 1, keys: 1 },
+      objectStates: { ...base.domestic.objectStates, wardrobe: 'used', keys: 'collected' },
+    },
+    objective: { phase: 'completed' },
+  };
+}
+
 void test('adventure starts in Bedroom with only Bedroom visited', () => {
   const state = createAdventureState();
   equal(state.currentRoom, 'bedroom', 'initial room');
@@ -46,13 +71,17 @@ void test('story flag setting is immutable and idempotent', () => {
   equal(setStoryFlag(flagged, 'hallwayUnlocked'), flagged, 'repeated set reuses state');
 });
 
-void test('registered Bedroom and Hallway transitions are deterministic', () => {
+void test('Bedroom to Hallway is locked until the false escape opens the house', () => {
   const state = createAdventureState();
-  const hallway = transitionAdventure(state, 'hallway', 'hallway-from-bedroom');
+  const blocked = transitionAdventure(state, 'hallway', 'hallway-from-bedroom');
+  equal(blocked.status, 'invalid', 'hallway is locked before story flag');
+
+  const unlocked = setStoryFlag(state, 'hallwayUnlocked');
+  const hallway = transitionAdventure(unlocked, 'hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
   equal(hallway.state.currentRoom, 'hallway', 'entered hallway');
   deepEqual(hallway.state.visitedRooms, ['bedroom', 'hallway'], 'hallway marked visited');
-  equal(hallway.spawn.x, 12, 'hallway spawn x');
+  equal(hallway.spawn.x, 14, 'hallway spawn x');
 
   const bedroom = transitionAdventure(hallway.state, 'bedroom', 'bedroom-from-hallway');
   if (bedroom.status !== 'ok') throw new Error(bedroom.reason);
@@ -69,6 +98,73 @@ void test('invalid transition is rejected without changing source state', () => 
   deepEqual(state.visitedRooms, ['bedroom'], 'source visited rooms unchanged');
 });
 
+void test('false escape converts terminal Bedroom success into exploration', () => {
+  const session = preparedCompletedSession('false-escape');
+  const result = applyFalseEscape(session, createAdventureState());
+  equal(result.session.objective.phase, 'exploration', 'haunted slice becomes exploration phase');
+  equal(result.adventure.storyFlags.bedroomEscapeAttempted, true, 'escape attempt remembered');
+  equal(result.adventure.storyFlags.hallwayUnlocked, true, 'hallway unlocked');
+  equal(result.session.player.x, 24, 'Wally rematerializes inside Bedroom');
+  equal(result.session.threats.ghosts.length, 0, 'act-I threats are cleared');
+  equal(getRoomState(result.adventure, 'bedroom').interactions.includes('false-escape'), true, 'false escape persists as room history');
+});
+
+void test('altered Bedroom interaction requests the real Hallway transition', () => {
+  const falseEscape = applyFalseEscape(preparedCompletedSession('bedroom-door'), createAdventureState());
+  const positioned = {
+    ...falseEscape.session,
+    player: { ...falseEscape.session.player, x: 112 },
+    input: pressAction(falseEscape.session.input, 'interact'),
+  };
+  const stepped = stepAdventureExploration(positioned, falseEscape.adventure, 33);
+  equal(stepped.events.some(event => event.type === 'ROOM_TRANSITION_REQUESTED' && event.targetRoom === 'hallway'), true, 'door requests Hallway');
+});
+
+void test('Hallway clock reveals Living Room path and persists the anomaly', () => {
+  const falseEscape = applyFalseEscape(preparedCompletedSession('clock'), createAdventureState());
+  const hallway = transitionAdventure(falseEscape.adventure, 'hallway', 'hallway-from-bedroom');
+  if (hallway.status !== 'ok') throw new Error(hallway.reason);
+
+  const livingBefore = findAdventureInteractionTarget(hallway.state, 114);
+  equal(livingBefore?.available, false, 'Living Room door starts sealed');
+
+  const atClock = {
+    ...falseEscape.session,
+    player: { ...falseEscape.session.player, x: 64 },
+    input: pressAction(falseEscape.session.input, 'interact'),
+  };
+  const inspected = stepAdventureExploration(atClock, hallway.state, 33);
+  equal(isHallwayClockInspected(inspected.adventure), true, 'backward clock recorded');
+  equal(isLivingRoomPathRevealed(inspected.adventure), true, 'clock reveals Living Room path');
+  equal(inspected.events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED'), true, 'clock reveal event emitted');
+  equal(inspected.events.some(event => event.type === 'LIVING_ROOM_PATH_REVEALED'), true, 'door reveal event emitted');
+
+  const livingAfter = findAdventureInteractionTarget(inspected.adventure, 114);
+  equal(livingAfter?.available, true, 'Living Room door becomes available after clock');
+});
+
+void test('reaching the Living Room door closes the W1 progression gate without entering W2', () => {
+  const falseEscape = applyFalseEscape(preparedCompletedSession('living-door'), createAdventureState());
+  const hallway = transitionAdventure(falseEscape.adventure, 'hallway', 'hallway-from-bedroom');
+  if (hallway.status !== 'ok') throw new Error(hallway.reason);
+
+  const clockSession = {
+    ...falseEscape.session,
+    player: { ...falseEscape.session.player, x: 64 },
+    input: pressAction(falseEscape.session.input, 'interact'),
+  };
+  const inspected = stepAdventureExploration(clockSession, hallway.state, 33);
+  const doorSession = {
+    ...inspected.session,
+    player: { ...inspected.session.player, x: 114 },
+    input: pressAction(inspected.session.input, 'interact'),
+  };
+  const reached = stepAdventureExploration(doorSession, inspected.adventure, 33);
+  equal(isLivingRoomDoorReached(reached.adventure), true, 'Living Room door reached');
+  equal(reached.adventure.currentRoom, 'hallway', 'W1 stops in Hallway rather than entering Living Room');
+  equal(reached.events.some(event => event.type === 'LIVING_ROOM_DOOR_REACHED'), true, 'W1 completion event emitted');
+});
+
 void test('coordinator preserves story and room-local state across round trip', () => {
   const coordinator = new AdventureSessionCoordinator();
   coordinator.setStoryFlag('hallwayUnlocked');
@@ -76,8 +172,8 @@ void test('coordinator preserves story and room-local state across round trip', 
   const hallway = coordinator.transition('hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
   coordinator.markInspected('hallway', 'backward-clock');
-  coordinator.markInteraction('hallway', 'bedroom-door');
-  coordinator.setRoomSwitch('hallway', 'debug-light', true);
+  coordinator.markInteraction('hallway', 'living-room-door');
+  coordinator.setRoomSwitch('hallway', 'living-room-unlocked', true);
 
   const bedroom = coordinator.transition('bedroom', 'bedroom-from-hallway');
   if (bedroom.status !== 'ok') throw new Error(bedroom.reason);
@@ -89,28 +185,33 @@ void test('coordinator preserves story and room-local state across round trip', 
   equal(hasStoryFlag(state, 'hallwayUnlocked'), true, 'story flag survived transitions');
   const hallwayState = getRoomState(state, 'hallway');
   deepEqual(hallwayState.inspected, ['backward-clock'], 'inspected anomaly persisted');
-  deepEqual(hallwayState.interactions, ['bedroom-door'], 'interaction persisted');
-  equal(hallwayState.switches['debug-light'], true, 'local switch persisted');
+  deepEqual(hallwayState.interactions, ['living-room-door'], 'interaction persisted');
+  equal(hallwayState.switches['living-room-unlocked'], true, 'local switch persisted');
 });
 
-void test('v3 save roundtrip restores room, story and local room state', () => {
+void test('v3 save roundtrip restores W1 exploration progression', () => {
   const base = createAdventureGameSession('adventure-codec');
-  const coordinator = new AdventureSessionCoordinator(base.adventure);
-  coordinator.setStoryFlag('hallwayUnlocked');
-  const hallway = coordinator.transition('hallway', 'hallway-from-bedroom');
+  const falseEscape = applyFalseEscape(preparedCompletedSession(base.haunted.runId), base.adventure);
+  const hallway = transitionAdventure(falseEscape.adventure, 'hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
+  const coordinator = new AdventureSessionCoordinator(hallway.state);
   coordinator.markInspected('hallway', 'backward-clock');
-  coordinator.setRoomSwitch('hallway', 'debug-light', true);
+  coordinator.setRoomSwitch('hallway', 'living-room-unlocked', true);
 
-  const encoded = encodeAdventureGameSession({ ...base, adventure: coordinator.snapshot() });
+  const encoded = encodeAdventureGameSession({
+    schemaVersion: 3,
+    haunted: falseEscape.session,
+    adventure: coordinator.snapshot(),
+  });
   const decoded = decodeAdventureGameSession(encoded);
   equal(decoded.status, 'ok', 'adventure codec roundtrip');
   if (decoded.status !== 'ok') return;
   equal(decoded.state.schemaVersion, 3, 'v3 envelope restored');
+  equal(decoded.state.haunted.objective.phase, 'exploration', 'exploration phase restored');
   equal(decoded.state.adventure.currentRoom, 'hallway', 'current room restored');
-  equal(decoded.state.adventure.storyFlags.hallwayUnlocked, true, 'story flag restored');
-  equal(getRoomState(decoded.state.adventure, 'hallway').switches['debug-light'], true, 'room switch restored');
-  equal(decoded.state.haunted.runId, 'adventure-codec', 'haunted session remains paired with adventure');
+  equal(decoded.state.adventure.storyFlags.bedroomEscapeAttempted, true, 'false escape restored');
+  equal(decoded.state.adventure.storyFlags.hallwayUnlocked, true, 'hallway unlock restored');
+  equal(getRoomState(decoded.state.adventure, 'hallway').switches['living-room-unlocked'], true, 'Living Room path restored');
 });
 
 void test('adventure codec rejects legacy and malformed room state', () => {
