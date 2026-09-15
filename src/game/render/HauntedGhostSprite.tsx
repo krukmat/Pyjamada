@@ -32,7 +32,7 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
   const spriteOpacity = telegraph
     ? 0.42
     : dying
-      ? Math.max(0.16, 0.46 - deathProgress * 0.28)
+      ? Math.max(0.05, 0.28 - deathProgress * 0.24)
       : 1;
 
   return (
