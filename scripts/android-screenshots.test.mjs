@@ -19,6 +19,7 @@ const EXPECTED = [
   '09_ghost_defeated.png', '10_player_hit.png', '11_dressed_under_pressure.png',
   '12_escape_ready.png', '13_escaped.png', '14_haunted_failure.png',
   '15_altered_bedroom.png', '16_hallway_arrival.png', '17_hallway_clock.png', '18_living_room_door.png',
+  '19_living_room_arrival.png',
 ];
 
 function writeExecutable(filePath, script) {
