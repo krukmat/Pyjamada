@@ -28,11 +28,17 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'hallway-arrival',
   'hallway-clock',
   'living-door',
+  'living-room-arrival',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
 
 const FROZEN_SPAWN_MS = 999_999;
+
+type AdventureScreenshotScenario = Extract<
+  HauntedScreenshotScenario,
+  'altered-bedroom' | 'hallway-arrival' | 'hallway-clock' | 'living-door' | 'living-room-arrival'
+>;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
   if (isAdventureScenario(scenario)) return explorationScreenshotSession(scenario);
@@ -176,19 +182,32 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
   adventure = hallway.state;
 
-  if (scenario === 'hallway-clock' || scenario === 'living-door') {
+  if (scenario === 'hallway-clock' || scenario === 'living-door' || scenario === 'living-room-arrival') {
     adventure = markRoomInspected(adventure, 'hallway', 'backward-clock');
     adventure = setRoomSwitch(adventure, 'hallway', 'living-room-unlocked', true);
   }
   if (scenario === 'living-door') {
     adventure = markRoomInteraction(adventure, 'hallway', 'living-room-door');
   }
+  if (scenario === 'living-room-arrival') {
+    const livingRoom = transitionAdventure(adventure, 'living-room', 'living-room-from-hallway');
+    if (livingRoom.status !== 'ok') throw new Error(livingRoom.reason);
+    adventure = livingRoom.state;
+  }
   return adventure;
 }
 
-function explorationScreenshotSession(scenario: Extract<HauntedScreenshotScenario, 'altered-bedroom' | 'hallway-arrival' | 'hallway-clock' | 'living-door'>): HauntedSessionState {
+function explorationScreenshotSession(scenario: AdventureScreenshotScenario): HauntedSessionState {
   const falseEscape = applyFalseEscape(explorationSeed(scenario), createAdventureState());
-  const x = scenario === 'altered-bedroom' ? 24 : scenario === 'hallway-arrival' ? 20 : scenario === 'hallway-clock' ? 64 : 110;
+  const x = scenario === 'altered-bedroom'
+    ? 24
+    : scenario === 'hallway-arrival'
+      ? 20
+      : scenario === 'hallway-clock'
+        ? 64
+        : scenario === 'living-door'
+          ? 110
+          : 20;
   return withPlayer(falseEscape.session, x);
 }
 
@@ -202,8 +221,12 @@ function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionSta
   };
 }
 
-function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is Extract<HauntedScreenshotScenario, 'altered-bedroom' | 'hallway-arrival' | 'hallway-clock' | 'living-door'> {
-  return scenario === 'altered-bedroom' || scenario === 'hallway-arrival' || scenario === 'hallway-clock' || scenario === 'living-door';
+function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
+  return scenario === 'altered-bedroom'
+    || scenario === 'hallway-arrival'
+    || scenario === 'hallway-clock'
+    || scenario === 'living-door'
+    || scenario === 'living-room-arrival';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
