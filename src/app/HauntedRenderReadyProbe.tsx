@@ -1,61 +1,59 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
-const SETTLE_MS = 500;
+const SETTLE_MS = 650;
 
 type Props = {
   scenarioKey: string;
   assetsReady: boolean;
 };
 
-// Screenshot-build-only probe. `assetsReady` is supplied by the same Skia
-// images that GameCanvas renders, so this marker cannot race a second set of
-// useImage hooks. Once both actor atlases are decoded we wait a few frames and
-// expose a non-collapsible native node that Maestro can reliably observe.
+// Screenshot-build-only probe. Haunted actors now have synchronous Skia
+// fallbacks, so screenshot readiness no longer depends on asynchronous atlas
+// decoding. The marker means the selected scenario has been mounted and given
+// enough time to commit several frames. `assetsReady` is kept as diagnostic
+// metadata so failures can distinguish atlas vs fallback rendering.
 export function HauntedRenderReadyProbe({ scenarioKey, assetsReady }: Props) {
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     setSettled(false);
-    if (!assetsReady) return undefined;
     const timer = setTimeout(() => setSettled(true), SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [assetsReady, scenarioKey]);
+  }, [scenarioKey]);
 
-  if (!assetsReady || !settled) return null;
+  if (!settled) return null;
 
   return (
-    <View
+    <Text
       testID="haunted-render-ready"
       accessibilityLabel="haunted render ready"
+      accessibilityValue={{ text: assetsReady ? 'atlas' : 'fallback' }}
       accessible
-      collapsable={false}
       importantForAccessibility="yes"
       pointerEvents="none"
       style={styles.probe}
     >
-      <Text style={styles.probeText}>R</Text>
-    </View>
+      READY
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
-  // Keep a real native/accessibility node in-bounds. Foreground and background
-  // intentionally match the screen chrome so the marker is visually inert.
+  // A real Text node with meaningful bounds is much more reliable in Maestro's
+  // Android hierarchy than a tiny empty View. Foreground/background match the
+  // game chrome, making it effectively invisible in captured screenshots.
   probe: {
     position: 'absolute',
-    top: 1,
-    right: 1,
-    width: 8,
-    height: 8,
+    top: 2,
+    right: 2,
+    width: 34,
+    height: 14,
     zIndex: 2000,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#171526',
-  },
-  probeText: {
     color: '#171526',
-    fontSize: 1,
-    lineHeight: 1,
+    backgroundColor: '#171526',
+    fontSize: 8,
+    lineHeight: 12,
+    textAlign: 'center',
   },
 });
