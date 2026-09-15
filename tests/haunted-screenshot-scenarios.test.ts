@@ -1,4 +1,9 @@
-import { createHauntedScreenshotScenario, HAUNTED_SCREENSHOT_SCENARIOS } from '../src/app/HauntedScreenshotScenarios';
+import {
+  createHauntedScreenshotScenario,
+  createScreenshotAdventureState,
+  HAUNTED_SCREENSHOT_SCENARIOS,
+} from '../src/app/HauntedScreenshotScenarios';
+import { getRoomState } from '../src/game/adventure/AdventureState';
 import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 
 function equal(actual: unknown, expected: unknown, label: string) {
@@ -6,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 12, 'visual tour has twelve deterministic haunted gameplay presets');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 16, 'visual tour has sixteen deterministic gameplay and W1 adventure presets');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -57,5 +62,22 @@ const fail = createHauntedScreenshotScenario('haunted-fail');
 equal(fail.objective.phase, 'failed', 'failure preset renders terminal defeat');
 equal(fail.objective.reason, 'haunted', 'failure preset is specifically combat defeat');
 equal(fail.combat.hp, 0, 'haunted failure has no hearts remaining');
+
+const alteredBedroom = createHauntedScreenshotScenario('altered-bedroom');
+const alteredAdventure = createScreenshotAdventureState('altered-bedroom');
+equal(alteredBedroom.objective.phase, 'exploration', 'altered Bedroom screenshot is post-false-escape exploration');
+equal(alteredAdventure.currentRoom, 'bedroom', 'altered Bedroom remains in Bedroom');
+equal(alteredAdventure.storyFlags.bedroomEscapeAttempted, true, 'altered Bedroom remembers false escape');
+
+const hallwayArrival = createScreenshotAdventureState('hallway-arrival');
+equal(hallwayArrival.currentRoom, 'hallway', 'hallway arrival screenshot selects Hallway');
+equal(getRoomState(hallwayArrival, 'hallway').inspected.length, 0, 'arrival precedes anomaly inspection');
+
+const hallwayClock = createScreenshotAdventureState('hallway-clock');
+equal(getRoomState(hallwayClock, 'hallway').inspected.includes('backward-clock'), true, 'clock screenshot records anomaly');
+equal(getRoomState(hallwayClock, 'hallway').switches['living-room-unlocked'], true, 'clock screenshot reveals Living Room path');
+
+const livingDoor = createScreenshotAdventureState('living-door');
+equal(getRoomState(livingDoor, 'hallway').interactions.includes('living-room-door'), true, 'Living Room screenshot captures W1 end gate');
 
 console.log('haunted screenshot scenario tests passed');
