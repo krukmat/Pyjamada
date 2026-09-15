@@ -2,22 +2,20 @@
 
 ## Status
 
-**ACTIVE — CLOSEOUT CODE COMPLETE / FINAL ANDROID REVIEW PENDING**
+**ACCEPTED**
 
-Completed:
+Completed and accepted:
 - **Gate A — Enter the Living Room** ✅
-- **Gate B — Mystery Hook** ✅ accepted on Android
+- **Gate B — Mystery Hook** ✅
 - **T7 — Secondary environmental storytelling** ✅
-- **T8 — Threat/noise evaluation** ✅ no escalation required in W2
+- **T8 — Threat/noise evaluation** ✅ no escalation required
 - **T9 — Hook toward W3** ✅
-- **T10 — Deterministic review + E2E** ✅ automated
+- **T10 — Deterministic review + E2E** ✅
+- **T11 — Android closeout acceptance** ✅
 
-Remaining gate:
-- **T11 — Android closeout acceptance** ⏳
+W1 High/Medium structural debt remains closed. Adventure owns room/story progression while the Haunted slice remains the completed Act-I simulation container.
 
-W1 is accepted and its High/Medium structural debt remains closed. W2 keeps the same separation: Adventure owns room/story progression while the Haunted slice remains the completed Act-I simulation container.
-
-## Product goal
+## Product result
 
 The Living Room changes the player's question from:
 
@@ -27,66 +25,26 @@ into:
 
 > Who or what is actively observing or controlling this?
 
-The television remains the central beat. Secondary clues reinforce it without competing with it or opening W3 content early.
+The television remains the central beat. Secondary clues reinforce it without competing with it.
 
-## Scope guardrails
+## Accepted scope
 
-In W2:
+Delivered:
 - Hallway <-> Living Room production navigation;
 - TV static/interference and distorted laboratory transmission;
 - explicit `labTransmissionSeen` narrative knowledge;
-- at most a few supporting environmental clues;
-- a clear directional reason to continue exploring;
-- persistence and deterministic evidence.
+- optional photo-reflection anomaly;
+- optional radio/static clue;
+- post-transmission directional source cue;
+- persistence/idempotence coverage;
+- Android visual evidence.
 
-Out of W2:
-- Kitchen or Bathroom implementation;
+Deliberately not added:
+- Living Room combat/threat mode;
 - Dr. Vesper physical reveal;
 - `SUBJECT W-01` reveal;
-- new enemy types;
-- generic dialogue/cutscene/scripting engines;
-- Living Room combat/threat mode.
-
-## Task status
-
-### W2-T0 — Close W1 and activate W2 — COMPLETE
-
-Master roadmap treats W1 as accepted and W2 as active.
-
-### W2-T1 — Activate Living Room in the room registry — COMPLETE
-
-Production connectivity:
-
-```text
-Hallway <-> Living Room
-```
-
-The same Hallway switch `living-room-unlocked` gates both interaction availability and transition legality. Spawn/facing and visited-room persistence are deterministic.
-
-### W2-T2 — Extract room-effect dispatch seam — COMPLETE
-
-```text
-RoomDefinition.interactions
-        |
-        v
-AdventureExplorationRuntime
-        |
-        v
-applyRoomInteractionEffect()
-        |
-        +-- Hallway effects
-        +-- Living Room effects
-```
-
-Room-specific mutations/events remain outside `AdventureExplorationRuntime`.
-
-### W2-T3 — Living Room base presentation — COMPLETE
-
-Base room uses the existing `RoomPresentation` seam with:
-- Hallway return door;
-- sofa/furniture;
-- TV as dominant focal object;
-- contextual exploration HUD/controls.
+- new enemies;
+- generic dialogue/cutscene/quest systems.
 
 ## Gate A — Enter the Living Room — ACCEPTED
 
@@ -99,26 +57,20 @@ Hallway
  -> Hallway return
 ```
 
-Navigation, persistence and Android visual identity are accepted.
+Navigation, persistence and room identity passed automated and Android review.
 
-### W2-T4 — Television interaction — COMPLETE
-
-First TV interaction:
+## Gate B — Mystery Hook — ACCEPTED
 
 ```text
-TV OFF
- -> INTERACT
-STATIC / INTERFERENCE
+Living Room
+ -> TV OFF
+ -> STATIC / INTERFERENCE
+ -> distorted lab transmission
+ -> labTransmissionSeen
+ -> FIND THE SOURCE
 ```
 
-Persists:
-- `tv-on = true`;
-- `tv-activated`;
-- `LIVING_ROOM_TV_ACTIVATED` milestone.
-
-### W2-T5 — Distorted laboratory transmission — COMPLETE
-
-Second TV interaction exposes only a fragment:
+Transmission remains intentionally fragmented:
 
 ```text
 RESONANCE STABLE...
@@ -126,142 +78,76 @@ SUBJECT...
 static
 ```
 
-Vesper and the Resonator remain unrevealed. The intended inference is deliberate monitoring/experimentation rather than random haunting.
-
-### W2-T6 — Story state and persistence — COMPLETE
-
-Global narrative knowledge:
-
-`labTransmissionSeen`
-
-Local evidence:
-- inspected `television`;
-- interaction `tv-transmission`;
-- TV power state.
-
-Save/load restores both. Older v3 saves missing the W2 flag migrate it to `false`.
-
-## Gate B — Mystery Hook — ACCEPTED
-
-Accepted Android sequence:
-
-```text
-Living Room arrival
- -> TV static
- -> distorted transmission
- -> labTransmissionSeen
- -> FIND THE SOURCE
-```
+Vesper and the Resonator remain unrevealed at this stage.
 
 Accepted evidence:
 - `19_living_room_arrival`
 - `20_living_room_static`
 - `21_lab_transmission`
 
-The room communicates that the haunting is being driven or observed without over-explaining the experiment.
+## Environmental closeout — ACCEPTED
 
-### W2-T7 — Secondary environmental storytelling — COMPLETE
-
-Added only two optional interactive clues plus one supporting visual cue:
+Supporting clues:
 
 1. **Photo anomaly**
-   - interaction: `PHOTO`;
-   - inspected id: `photo-reflection`;
-   - visual reflection changes after inspection;
+   - interaction `PHOTO`;
+   - inspected `photo-reflection`;
    - reaction: `The glass reflects a room that is not here.`
 
 2. **Radio/static**
-   - interaction: `RADIO`;
-   - inspected id: `radio-static`;
-   - local static/pulse presentation;
-   - reaction before the transmission: `No station. Just a pulse under the static.`
+   - interaction `RADIO`;
+   - inspected `radio-static`;
+   - pre-transmission reaction: `No station. Just a pulse under the static.`
 
-3. **Impossible TV cable**
-   - remains a supporting visual detail;
-   - becomes a stronger directional cue only after the radio matches the laboratory pulse.
+3. **Directional source cue**
+   - after `labTransmissionSeen`, radio can persist `source-hum-traced`;
+   - reaction: `The radio catches the same pulse. Stronger through the wall.`
+   - cable/pulse points deeper into the house.
 
-The TV remains the primary story object.
-
-### W2-T8 — Threat/noise evaluation — COMPLETE: NO ESCALATION
-
-Gate B passed visually without evidence that the Living Room needs combat pressure. W2 therefore does **not** re-enable Ghost/noise/threat systems.
-
-Reason:
-- the room's purpose is discovery and narrative escalation;
-- adding combat here would reopen the Adventure/Haunted boundary without demonstrated gameplay value;
-- later rooms can introduce deliberate threat capability when mechanics justify it.
-
-### W2-T9 — Hook toward W3 — COMPLETE
-
-After `labTransmissionSeen`, interacting with the radio can match the same pulse and persist:
-
-`source-hum-traced = true`
-
-This emits `LIVING_ROOM_SOURCE_CUE_REVEALED` once and changes the environmental read:
-
-```text
-TV transmission
- -> FIND THE SOURCE
- -> radio catches matching pulse
- -> cable/pulse points deeper into the house
-```
-
-Reaction:
-
-`The radio catches the same pulse. Stronger through the wall.`
-
-This provides direction without creating a Kitchen route or implementing W3.
-
-### W2-T10 — Deterministic review + E2E — COMPLETE
-
-Automated coverage now includes:
-- Gate A navigation/save/load;
-- Gate B TV static -> transmission -> story flag -> save/load;
-- optional photo/radio clues;
-- radio cannot reveal source before the lab transmission;
-- post-transmission source cue is idempotent;
-- photo, radio and source cue survive save/load;
-- current room remains Living Room: W3 is not entered.
-
-Deterministic Android review states:
-- `19_living_room_arrival`
-- `20_living_room_static`
-- `21_lab_transmission`
+Accepted closeout evidence:
 - `22_living_room_source_cue`
 
-### W2-T11 — Android closeout acceptance — NEXT GATE
+The final Android review confirmed the TV remains the primary focal object, the radio/photo remain secondary, and the cable/pulse reads as direction rather than a new quest system.
 
-Final user-run review should validate:
-- photo/radio remain secondary to the TV;
-- `22_living_room_source_cue` reads as a directional clue rather than a new objective system;
-- glowing cable/pulse is visible but not over-emphasized;
-- touch interaction with photo/radio feels natural;
-- no combat is needed to make the room engaging;
-- Continue preserves closeout state.
+## Threat evaluation — NO ESCALATION
 
-## Dependency closeout
+No Ghost/noise/combat was added to Living Room.
+
+Reason:
+- the room already works as discovery/narrative escalation;
+- adding combat would reopen the Adventure/Haunted boundary without demonstrated value;
+- later rooms may introduce threats only when mechanics justify them.
+
+## Persistence and regression
+
+Automated coverage validates:
+- room navigation and deterministic spawns;
+- TV static/transmission progression;
+- global `labTransmissionSeen` persistence;
+- optional photo/radio clues;
+- source cue cannot resolve before the transmission;
+- source cue is idempotent;
+- closeout state survives save/load;
+- W1 regression remains green.
+
+## Final W2 state
 
 ```text
 Gate A navigation           ACCEPTED
         |
         v
-Gate B TV mystery hook      ACCEPTED
+Gate B mystery hook         ACCEPTED
         |
         v
-T7 environmental clues      COMPLETE
+environmental clues         ACCEPTED
         |
-        +------ T8 threat evaluation -> NO ESCALATION
-        |
-        v
-T9 source direction         COMPLETE
+        +------ threat evaluation -> NO ESCALATION
         |
         v
-T10 automated evidence      COMPLETE
+source direction            ACCEPTED
         |
         v
-T11 Android closeout        PENDING
+Android closeout            ACCEPTED
 ```
 
-## Current checkpoint
-
-W2 code is complete through the narrative closeout. Do not add Ghost/combat, Kitchen, Vesper reveal or more environmental objects before the final Android review of screenshot `22_living_room_source_cue` and the optional touch flow.
+W2 is closed. Kitchen/Bathroom implementation belongs to W3 and later waves.
