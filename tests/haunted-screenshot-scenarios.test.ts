@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 20, 'visual tour has twenty deterministic gameplay/adventure presets through W2 closeout');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 23, 'visual tour has twenty-three deterministic gameplay/adventure presets through W3 Kitchen Gate A');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -105,5 +105,24 @@ equal(getRoomState(sourceCue, 'living-room').inspected.includes('photo-reflectio
 equal(getRoomState(sourceCue, 'living-room').inspected.includes('radio-static'), true, 'source-cue screenshot includes the radio clue');
 equal(getRoomState(sourceCue, 'living-room').switches['source-hum-traced'], true, 'source-cue screenshot exposes the directional hook');
 equal(getRoomState(sourceCue, 'living-room').switches['radio-focused'], true, 'source-cue screenshot focuses the radio feedback');
+
+const kitchenArrival = createScreenshotAdventureState('kitchen-arrival');
+equal(kitchenArrival.currentRoom, 'kitchen', 'Kitchen arrival screenshot enters the W3 room');
+equal(kitchenArrival.currentEntry, 'kitchen-from-living-room', 'Kitchen screenshot uses the production Living Room entry');
+ok(kitchenArrival.visitedRooms.includes('kitchen'), 'Kitchen becomes visited in deterministic evidence');
+equal(getRoomState(kitchenArrival, 'kitchen').switches['circuit-overloaded'], undefined, 'Kitchen arrival precedes electrical manipulation');
+
+const kitchenOverload = createScreenshotAdventureState('kitchen-overload');
+equal(kitchenOverload.currentRoom, 'kitchen', 'overload screenshot remains in Kitchen');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['microwave-on'], true, 'overload screenshot powers the microwave');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['circuit-overloaded'], true, 'overload screenshot captures failed circuit state');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['power-rerouted'], undefined, 'overload screenshot precedes puzzle solution');
+
+const kitchenRerouted = createScreenshotAdventureState('kitchen-power-rerouted');
+equal(kitchenRerouted.currentRoom, 'kitchen', 'rerouted screenshot remains in Kitchen');
+equal(getRoomState(kitchenRerouted, 'kitchen').inspected.includes('breaker-panel'), true, 'rerouted screenshot records breaker discovery');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['circuit-overloaded'], false, 'rerouted screenshot clears the overload');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['microwave-on'], false, 'rerouted screenshot shuts down the microwave');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['power-rerouted'], true, 'rerouted screenshot captures the W3 Gate A solution');
 
 console.log('haunted screenshot scenario tests passed');
