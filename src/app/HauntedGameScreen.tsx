@@ -7,6 +7,9 @@ import {
   isAdventureExplorationActive,
   isHallwayClockInspected,
   isLivingRoomPathRevealed,
+  isLivingRoomPhotoFocused,
+  isLivingRoomRadioFocused,
+  isLivingRoomSourceCueRevealed,
   isLivingRoomTvActivated,
 } from '../game/adventure/AdventureExplorationRuntime';
 import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
@@ -201,6 +204,9 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'That door did not lead outside. The room is wrong.';
     if (adventure.currentRoom === 'living-room') {
+      if (isLivingRoomSourceCueRevealed(adventure)) return 'The radio catches the same pulse. Stronger through the wall.';
+      if (isLivingRoomPhotoFocused(adventure)) return 'The glass reflects a room that is not here.';
+      if (isLivingRoomRadioFocused(adventure)) return 'No station. Just a pulse under the static.';
       if (hasLabTransmissionBeenSeen(adventure)) return 'A voice cuts through: RESONANCE STABLE... SUBJECT... Then static.';
       if (isLivingRoomTvActivated(adventure)) return 'Static. Not a channel. Something is underneath it.';
       return 'The television is dark. The room is listening.';
