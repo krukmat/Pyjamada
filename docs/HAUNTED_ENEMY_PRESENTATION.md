@@ -8,12 +8,14 @@ Ghost is the reference implementation for Haunted enemies. New enemies should pr
 
 `GameCanvas` owns scene composition only. Register new enemy families in `HauntedEnemyLayer`; do not add Goblin/Skull-specific rendering branches to `GameCanvas`.
 
+The room-level hierarchy is governed separately by `docs/HAUNTED_STAGE_LANGUAGE.md`. Enemy renderers consume that composition; they do not change its layer order or atmosphere budget to gain contrast.
+
 ## Required visual lifecycle
 
 Every enemy must provide readable states for:
 
 1. **Telegraph** — communicates where/what is about to appear before it can hurt Wally.
-2. **Active** — silhouette remains distinguishable from Wally and the room at gameplay scale.
+2. **Active** — silhouette remains distinguishishable from Wally and the room at gameplay scale.
 3. **Attack/contact** — threat direction is readable without relying on HUD text.
 4. **Hit** — successful player action produces immediate feedback.
 5. **Dying** — removal is visually distinct from teleport/despawn.
@@ -38,6 +40,7 @@ A new enemy is not complete until:
 - attack/hit/death are visually unambiguous;
 - deterministic screenshot fixtures cover the important lifecycle states;
 - asset validation and fallback rendering are present;
-- adding the enemy does not require changing `GameCanvas` composition.
+- adding the enemy does not require changing `GameCanvas` composition;
+- existing Haunted stage hierarchy and atmosphere-budget tests stay green.
 
 Ghost screenshots remain the regression baseline while new enemies are added.
