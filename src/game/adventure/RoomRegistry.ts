@@ -1,4 +1,10 @@
-import { createRoomPersistentState, type AdventureState, type RoomId, type StoryFlag } from './AdventureState';
+import {
+  createRoomPersistentState,
+  getRoomState,
+  type AdventureState,
+  type RoomId,
+  type StoryFlag,
+} from './AdventureState';
 
 export type RoomPresentationId = 'bedroom' | 'hallway';
 
@@ -16,11 +22,33 @@ export type RoomExit = {
   requiresStoryFlag?: StoryFlag;
 };
 
+export type RoomInteractionEffect = 'inspect-backward-clock' | 'reach-living-room-door';
+
+export type RoomInteractionBehavior =
+  | { type: 'exit'; exitId: string }
+  | { type: 'effect'; effect: RoomInteractionEffect };
+
+export type RoomInteractionDefinition = {
+  id: string;
+  label: string;
+  unavailableLabel?: string;
+  x: number;
+  radius: number;
+  requiresRoomSwitch?: string;
+  behavior: RoomInteractionBehavior;
+};
+
+export type ResolvedRoomInteractionTarget = RoomInteractionDefinition & {
+  available: boolean;
+  displayLabel: string;
+};
+
 export type RoomDefinition = {
   id: RoomId;
   presentationId: RoomPresentationId;
   entries: readonly RoomEntryPoint[];
   exits: readonly RoomExit[];
+  interactions: readonly RoomInteractionDefinition[];
 };
 
 export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway'] as const satisfies readonly RoomId[];
@@ -41,6 +69,15 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         requiresStoryFlag: 'hallwayUnlocked',
       },
     ],
+    interactions: [
+      {
+        id: 'bedroom-hallway-door',
+        label: 'HALLWAY',
+        x: 112,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'bedroom-to-hallway' },
+      },
+    ],
   },
   hallway: {
     id: 'hallway',
@@ -50,6 +87,31 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     ],
     exits: [
       { id: 'hallway-to-bedroom', targetRoom: 'bedroom', targetEntry: 'bedroom-from-hallway' },
+    ],
+    interactions: [
+      {
+        id: 'hallway-bedroom-door',
+        label: 'BEDROOM',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'hallway-to-bedroom' },
+      },
+      {
+        id: 'backward-clock',
+        label: 'STRANGE CLOCK',
+        x: 64,
+        radius: 9,
+        behavior: { type: 'effect', effect: 'inspect-backward-clock' },
+      },
+      {
+        id: 'living-room-door',
+        label: 'LIVING ROOM',
+        unavailableLabel: 'SEALED DOOR',
+        x: 114,
+        radius: 8,
+        requiresRoomSwitch: 'living-room-unlocked',
+        behavior: { type: 'effect', effect: 'reach-living-room-door' },
+      },
     ],
   },
 };
@@ -68,6 +130,55 @@ export function getRoomEntry(roomId: RoomId, entryId: string): RoomEntryPoint | 
   return findActiveRoom(roomId)?.entries.find(entry => entry.id === entryId);
 }
 
+export function getRoomExit(roomId: RoomId, exitId: string): RoomExit | undefined {
+  return findActiveRoom(roomId)?.exits.find(exit => exit.id === exitId);
+}
+
+export function getRoomInteraction(roomId: RoomId, interactionId: string): RoomInteractionDefinition | undefined {
+  return findActiveRoom(roomId)?.interactions.find(interaction => interaction.id === interactionId);
+}
+
+export function isRoomExitAvailable(state: AdventureState, exit: RoomExit): boolean {
+  return !exit.requiresStoryFlag || state.storyFlags[exit.requiresStoryFlag];
+}
+
+export function isRoomInteractionAvailable(
+  state: AdventureState,
+  roomId: RoomId,
+  interaction: RoomInteractionDefinition,
+): boolean {
+  if (interaction.behavior.type === 'exit') {
+    const exit = getRoomExit(roomId, interaction.behavior.exitId);
+    if (!exit || !isRoomExitAvailable(state, exit)) return false;
+  }
+  if (interaction.requiresRoomSwitch) {
+    return getRoomState(state, roomId).switches[interaction.requiresRoomSwitch] === true;
+  }
+  return true;
+}
+
+export function resolveRoomInteractionTarget(
+  state: AdventureState,
+  playerX: number,
+): ResolvedRoomInteractionTarget | undefined {
+  const room = findActiveRoom(state.currentRoom);
+  if (!room) return undefined;
+
+  return room.interactions
+    .map(interaction => {
+      const available = isRoomInteractionAvailable(state, room.id, interaction);
+      return {
+        ...interaction,
+        available,
+        displayLabel: available ? interaction.label : interaction.unavailableLabel ?? interaction.label,
+        distance: Math.abs(playerX - interaction.x),
+      };
+    })
+    .filter(target => target.distance <= target.radius)
+    .sort((a, b) => a.distance - b.distance || a.x - b.x)
+    .map(({ distance: _distance, ...target }) => target)[0];
+}
+
 export function transitionAdventure(
   state: AdventureState,
   targetRoom: RoomId,
@@ -83,7 +194,7 @@ export function transitionAdventure(
       reason: `Transition ${state.currentRoom} -> ${targetRoom}:${targetEntry} is not registered.`,
     };
   }
-  if (allowed.requiresStoryFlag && !state.storyFlags[allowed.requiresStoryFlag]) {
+  if (!isRoomExitAvailable(state, allowed)) {
     return {
       status: 'invalid',
       reason: `Transition ${allowed.id} requires story flag ${allowed.requiresStoryFlag}.`,
