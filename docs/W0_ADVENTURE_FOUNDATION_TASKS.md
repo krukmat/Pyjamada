@@ -1,316 +1,252 @@
 # W0 — Adventure Foundation Tasks
 
-## Objective
+## Status
 
-Prepare Pyjamada to support multiple connected rooms and narrative progression while preserving the current Haunted Bedroom gameplay exactly as the reference slice.
+**IMPLEMENTED — repository validation required on the final documentation commit.**
 
-W0 is infrastructure-first. It does **not** implement the real Hallway art/content, Living Room, new enemies, or story scenes.
+W0 prepares Pyjamada for connected-room progression while preserving the Haunted Bedroom as the reference gameplay slice. It intentionally does not implement the real Hallway content, the false-escape event, Living Room, new enemies, or story scenes.
 
-## Success gate
+## Gate
 
-A deterministic test must prove:
+The implemented deterministic contract is:
 
 ```text
 Bedroom
-  -> transition to placeholder Hallway
-  -> mutate/persist adventure + room state
-  -> return to Bedroom
-  -> Bedroom/game session state remains valid
+  -> placeholder Hallway
+  -> mutate/persist story + room-local state
+  -> Bedroom
+  -> Hallway
+  -> state is still present
 ```
 
-The existing Haunted Bedroom/Ghost tests must remain green.
+The application also contains a test-hook-only room toggle so the room-aware presentation seam can be exercised without changing normal Bedroom gameplay.
 
 ---
 
-## W0-T1 — Define adventure domain model
+## W0-T1 — Adventure domain model ✅
 
-**Priority:** P0
+Implemented in `src/game/adventure/AdventureState.ts`.
 
-Create the minimum domain types for connected-room progression.
+Final state shape:
 
-Expected concepts:
-- `RoomId`
-- `AdventureState`
-- `StoryFlag`
-- `RoomState`
-- visited-room tracking
-- current-room tracking
+```text
+AdventureState
+├── schemaVersion: 1
+├── currentRoom
+├── currentEntry
+├── visitedRooms[]
+├── storyFlags
+└── rooms
+    └── RoomPersistentState
+        ├── inspected[]
+        ├── interactions[]
+        └── switches{}
+```
 
-Initial room ids may include the complete roadmap for type stability, but only `bedroom` and a placeholder `hallway` are active in W0.
+`RoomId` reserves the roadmap rooms (`bedroom`, `hallway`, `living-room`, `kitchen`, `bathroom`, `attic`, `basement`, `laboratory`) for type stability, while W0 activates only Bedroom and Hallway.
 
-**Constraints**
-- No React/Skia dependencies in the domain model.
-- No enemy state embedded into story flags.
-- Do not duplicate Haunted combat/physics state.
-
-**DoD**
-- Type-safe initial state factory.
-- Pure tests for initial/current/visited room semantics.
-
----
-
-## W0-T2 — Add room registry and transition contracts
-
-**Priority:** P0
-
-Create a small declarative room registry.
-
-Minimum contract:
-- room id
-- supported exits
-- deterministic entry/spawn points
-- presentation id/type
-
-Create a pure transition function/service that validates target room + entry point and returns the next adventure state.
-
-**Constraints**
-- No generic graph engine.
-- No dynamic scripting language.
-- No room-specific `if` chain in `GameCanvas`.
-
-**DoD**
-- Bedroom -> Hallway and Hallway -> Bedroom valid.
-- Invalid room/entry combinations fail deterministically.
-- Transition preserves unrelated adventure state.
+No React, Skia, combat, physics, or enemy state is embedded in this model.
 
 ---
 
-## W0-T3 — Introduce explicit story flags
+## W0-T2 — Room registry + transition contract ✅
 
-**Priority:** P0
+Implemented in `src/game/adventure/RoomRegistry.ts`.
 
-Create explicit narrative flags instead of inferring story progression from unrelated gameplay state.
+The registry owns:
+- room id;
+- presentation id;
+- deterministic entry/spawn points;
+- legal exits.
 
-Seed the contract with flags needed by the roadmap, while only activating those required for W0/W1.
+Active W0 transitions:
 
-Candidate early flags:
+```text
+bedroom:bedroom-default
+    -> hallway:hallway-from-bedroom
+
+hallway:hallway-from-bedroom
+    -> bedroom:bedroom-from-hallway
+```
+
+`transitionAdventure()` rejects unregistered target/entry combinations and preserves unrelated adventure state.
+
+No generic graph engine or scripting layer was introduced.
+
+---
+
+## W0-T3 — Explicit story flags ✅
+
+Implemented in `AdventureState.ts`.
+
+Active flags:
 - `bedroomEscapeAttempted`
 - `hallwayUnlocked`
 
-Future/reserved flags can remain documented rather than implemented if they add no current value.
-
-**DoD**
-- Pure helpers to read/set flags without mutation.
-- Tests prove idempotent flag setting and persistence across room changes.
+Helpers are immutable and idempotent. Later-story flags remain in the master roadmap rather than being prematurely added to runtime state.
 
 ---
 
-## W0-T4 — Per-room persistent state seam
+## W0-T4 — Per-room persistence seam ✅
 
-**Priority:** P0
+Implemented through `RoomPersistentState` plus immutable helpers in `AdventureState.ts`.
 
-Define how room-specific state survives leaving and re-entering a room.
+W0 proves persistence for:
+- inspected anomalies;
+- interaction ids;
+- boolean local switches.
 
-W0 should support small serializable room state, for example:
-- inspected anomaly ids
-- used room interactions
-- local switches/doors
-
-Do not migrate existing Bedroom systems wholesale into this structure unless required. The goal is a seam for future rooms, not a rewrite of `SystemicRuntime`.
-
-**DoD**
-- Hallway placeholder can store one deterministic local value.
-- Value survives Hallway -> Bedroom -> Hallway.
-- Bedroom Haunted session behavior remains unchanged.
+The existing Bedroom `SystemicRuntime` was **not** migrated into this structure. That is deliberate: room persistence is a seam for future rooms, not a rewrite of the validated Bedroom systems.
 
 ---
 
-## W0-T5 — Adventure session coordinator
+## W0-T5 — Adventure coordinator ✅
 
-**Priority:** P0
+Implemented in `src/game/adventure/AdventureSessionCoordinator.ts`.
 
-Introduce the orchestration layer that owns adventure progression without absorbing low-level Haunted responsibilities.
-
-Expected responsibility split:
+Responsibility boundary:
 
 ```text
-Adventure coordinator
-  -> current room / story / room persistence
+AdventureSessionCoordinator
+  -> room / story / local-room persistence
 
 HauntedSessionRuntime
-  -> physics / combat / threats / current gameplay state
+  -> physics / combat / threats / Bedroom objective
 
 SystemicRuntime
-  -> domestic interaction rules
+  -> domestic interactions
 ```
 
-The coordinator should expose the minimum operations needed by W1, such as:
-- enter/transition room
-- set story flag
-- update room-local state
-
-**DoD**
-- No cyclic dependencies between adventure and Haunted runtime.
-- Deterministic round-trip test works through the coordinator.
+The coordinator supports transition, restore, story flags, inspected state, interactions and local switches without importing Haunted runtime internals.
 
 ---
 
-## W0-T6 — Save schema evolution
+## W0-T6 — Save schema evolution ✅
 
-**Priority:** P0
+The new top-level save envelope is `AdventureGameSessionState` in `src/game/adventure/AdventureGameSession.ts`:
 
-Extend persistence to include AdventureState.
+```text
+AdventureGameSessionState (schemaVersion 3)
+├── haunted: HauntedSessionState (schemaVersion 2)
+└── adventure: AdventureState (schemaVersion 1)
+```
 
-Requirements:
-- explicit schema version bump if needed;
-- encode/decode current room;
-- visited rooms;
-- story flags;
-- room-local state;
-- deterministic handling of malformed/unknown room ids.
+Implementation:
+- `src/game/adventure/AdventureSessionCodec.ts`
+- `src/game/adventure/AdventureSaveCoordinator.ts`
+- `src/game/ports/AdventureGameSavePort.ts`
+- `src/platform/storage/AsyncStorageAdventureGameSaveRepository.ts`
 
-Preserve the existing policy that old incompatible POC saves may be rejected rather than supported indefinitely, but failure must be explicit and tested.
+Storage key: `pyjamada:game:v3:haunted-house-adventure`.
 
-**DoD**
-- Adventure round-trip codec test.
-- Save/load after a room transition restores the same room/progression.
-- Existing relevant save tests remain green or are deliberately migrated.
+The v2 Haunted POC save remains intentionally incompatible. Malformed/unknown rooms, invalid entries, duplicated visited rooms, invalid story flags and malformed room-local state are rejected deterministically.
+
+The original Haunted codec remains intact as the validated sub-codec for the Haunted portion of the v3 envelope.
 
 ---
 
-## W0-T7 — Room-aware presentation seam
+## W0-T7 — Room-aware presentation seam ✅
 
-**Priority:** P1
+Implemented in `src/game/render/RoomPresentation.tsx`.
 
-Refactor only enough presentation code to allow the current room to select a room renderer/presentation without turning `GameCanvas` into a multi-room switchboard.
-
-Target direction:
+Current boundary:
 
 ```text
 GameCanvas
-  -> RoomPresentation
-       -> Bedroom presentation
-       -> Placeholder Hallway presentation
+   ↓
+RoomPresentation
+   ├── BedroomPresentation
+   └── PlaceholderHallwayPresentation
 ```
 
-W0 Hallway may be visually minimal/debug-grade. It exists to validate the seam, not to establish final art.
+`GameCanvas` keeps shared layers above room presentation:
+- enemies;
+- Wally;
+- projectiles;
+- FX;
+- combat feedback;
+- camera.
 
-Shared layers should stay shared where possible:
-- player
-- enemy layer
-- projectiles
-- FX
-- camera/HUD responsibilities
-
-**DoD**
-- Existing Bedroom presentation is visually/structurally preserved.
-- Placeholder Hallway can render through the same top-level gameplay screen.
-- No broad duplicate canvas implementation.
+Bedroom rendering retains the existing object animator and Haunted treatment. The Hallway is intentionally debug-grade and is not W1 art.
 
 ---
 
-## W0-T8 — Application integration / transition state
+## W0-T8 — Application integration ✅
 
-**Priority:** P1
+`App.tsx` now owns the paired Haunted + Adventure session through the v3 save envelope and supplies `AdventureState` to `HauntedGameScreen`.
 
-Connect the adventure coordinator to `HauntedGameScreen` (or a narrow parent controller) so room changes are representable at application level.
+Behavior:
+- normal production flow still starts and plays in Bedroom;
+- the placeholder Hallway does not run Bedroom domestic simulation;
+- room transitions reposition Wally using the registry spawn point;
+- transition persistence is immediate (`room-transition` save reason);
+- a transparent test-hook-only `AdventureDebugController` can toggle Bedroom ↔ Hallway;
+- normal exit-completion semantics are unchanged in W0.
 
-W0 may use an internal/test-only trigger for the placeholder transition; the real exit interaction belongs to W1.
-
-Introduce a reusable transition state contract suitable for later fade/door transitions, but do not spend time polishing animation yet.
-
-**DoD**
-- UI/runtime can move Bedroom -> placeholder Hallway -> Bedroom.
-- No terminal success semantics are changed yet in normal gameplay.
-
----
-
-## W0-T9 — Deterministic scenario + regression tests
-
-**Priority:** P0/P1
-
-Add tests covering the new architecture and protect the existing slice.
-
-Required coverage:
-1. initial adventure state starts in Bedroom;
-2. Bedroom -> Hallway transition;
-3. Hallway -> Bedroom transition;
-4. visited rooms update correctly;
-5. story flags survive transitions;
-6. room-local state survives transitions;
-7. save/load preserves adventure progression;
-8. invalid transition is rejected;
-9. existing Haunted combat/playthrough/presentation tests remain green.
-
-Add at most one or two placeholder deterministic screenshot/test scenarios if useful for the presentation seam. Do not expand the screenshot suite unnecessarily in W0.
+The real false-escape trigger belongs to W1.
 
 ---
 
-## W0-T10 — Architecture/docs checkpoint
+## W0-T9 — Deterministic + regression gate ✅
 
-**Priority:** P1
+`tests/adventure-runtime.test.ts` covers:
+1. initial Bedroom/current-entry state;
+2. Bedroom -> Hallway;
+3. Hallway -> Bedroom;
+4. visited rooms;
+5. idempotent story flags;
+6. persistent inspected/interactions/switches;
+7. invalid transition rejection;
+8. v3 save/load round trip;
+9. malformed/legacy save rejection;
+10. save throttling vs room-transition persistence.
 
-At W0 completion, update this document with actual implementation paths and decisions.
+`package.json` includes the adventure test in `test:all`, so the existing Haunted/game/presentation suite remains part of the same validation gate.
 
-Document:
-- final AdventureState shape;
-- final room registry seam;
-- save version decision;
-- presentation boundary;
-- known debt intentionally deferred to W1.
-
-**DoD**
-- Repository documentation matches implementation.
-- No speculative abstraction remains documented as if implemented.
+No Android/device validation is claimed by W0; device visual review remains user-run when a visual wave requires it.
 
 ---
 
-## Execution order
+## W0-T10 — Architecture checkpoint ✅
 
-```text
-T1 Domain model
-   |
-   +--> T2 Room registry/transitions
-   |      |
-   |      +--> T5 Adventure coordinator
-   |
-   +--> T3 Story flags
-   |
-   +--> T4 Room persistence
-             |
-             +--> T5
+### Decisions frozen for W1
 
-T1-T5
-   |
-   +--> T6 Save schema
-   +--> T7 Presentation seam
-            |
-            +--> T8 App integration
+- Adventure progression remains separate from Haunted simulation.
+- Save composition happens at the top-level v3 session envelope rather than embedding adventure fields inside `HauntedSessionState`.
+- Room topology is explicit and small; no general graph engine.
+- Room-specific visuals are selected below `GameCanvas` through `RoomPresentation`.
+- Bedroom remains the regression baseline.
+- Hallway gameplay remains intentionally paused/debug-grade until W1.
 
-T2-T8
-   |
-   +--> T9 Full deterministic/regression gate
-             |
-             +--> T10 Documentation checkpoint
-```
+### Deliberately deferred debt
 
-## Scope guardrails
+W1 owns:
+- false escape;
+- actual transition/fade treatment;
+- altered Bedroom after the loop;
+- production navigation trigger;
+- real Hallway art/layout;
+- Hallway anomaly interactions;
+- production Hallway gameplay rules;
+- Living Room door setup.
 
-Explicitly out of W0:
-- final Hallway art;
-- false-escape story event;
-- changing current success/exit gameplay;
-- Living Room;
-- TV transmission;
-- Kitchen/Bathroom/Attic/Basement/Lab;
-- Goblin, Skull or any new enemy;
-- boss systems;
-- dialogue system;
-- generic quest engine;
-- generic scripting engine;
-- full cinematic framework.
+Unused legacy v2 Haunted storage classes remain in the repository for now. They are isolated and no longer used by `App.tsx`; removal can be done separately if it provides value, rather than mixing cleanup with W0 architecture.
+
+---
 
 ## W0 Definition of Done
 
-W0 is complete only when:
+- [x] adventure state exists independently from combat/physics;
+- [x] room registry exists;
+- [x] Bedroom <-> placeholder Hallway transition works deterministically;
+- [x] visited rooms, story flags and local room state persist;
+- [x] adventure state survives save/load;
+- [x] room-aware presentation seam is operational;
+- [x] normal Bedroom gameplay semantics are intentionally unchanged;
+- [x] adventure tests are included in the repository validation gate;
+- [x] architecture documentation reflects the implementation;
+- [x] W1 can implement false escape + real Hallway without another foundational rewrite.
 
-- [ ] adventure state exists independently from combat/physics;
-- [ ] room registry exists;
-- [ ] Bedroom <-> placeholder Hallway transition works;
-- [ ] visited rooms, story flags and local room state persist;
-- [ ] adventure state survives save/load;
-- [ ] room-aware presentation seam is operational;
-- [ ] no current Bedroom gameplay behavior is intentionally changed;
-- [ ] automated validation is green;
-- [ ] architecture documentation reflects the implementation;
-- [ ] W1 can implement the false escape + real Hallway without another foundational rewrite.
+## Next wave
+
+Once final repository validation is green, W0 is closed and the next allowed scope is **W1 — The House Opens**. No Living Room, Kitchen, new enemy, or boss work should bypass W1.
