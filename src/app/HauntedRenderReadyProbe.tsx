@@ -1,52 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useImage } from '@shopify/react-native-skia';
-import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
+import { StyleSheet, Text, View } from 'react-native';
 
-const SETTLE_MS = 260;
+const SETTLE_MS = 500;
 
 type Props = {
   scenarioKey: string;
+  assetsReady: boolean;
 };
 
-// Screenshot-build-only probe. It preloads the two actor atlases and exposes a
-// small on-screen native node only after both images are decoded and the new
-// scenario has had enough time to commit at least a couple of Skia frames.
-// Production builds never mount this component.
-export function HauntedRenderReadyProbe({ scenarioKey }: Props) {
-  const wally = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
-  const ghost = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
+// Screenshot-build-only probe. `assetsReady` is supplied by the same Skia
+// images that GameCanvas renders, so this marker cannot race a second set of
+// useImage hooks. Once both actor atlases are decoded we wait a few frames and
+// expose a non-collapsible native node that Maestro can reliably observe.
+export function HauntedRenderReadyProbe({ scenarioKey, assetsReady }: Props) {
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     setSettled(false);
-    if (!wally || !ghost) return undefined;
+    if (!assetsReady) return undefined;
     const timer = setTimeout(() => setSettled(true), SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [ghost, scenarioKey, wally]);
+  }, [assetsReady, scenarioKey]);
 
-  if (!wally || !ghost || !settled) return null;
+  if (!assetsReady || !settled) return null;
 
   return (
     <View
       testID="haunted-render-ready"
       accessibilityLabel="haunted render ready"
+      accessible
+      collapsable={false}
+      importantForAccessibility="yes"
       pointerEvents="none"
       style={styles.probe}
-    />
+    >
+      <Text style={styles.probeText}>R</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Opaque and on-screen so Maestro's visibility heuristic can see it. The
-  // 2x2 patch sits in the app's dark corner and is visually negligible.
+  // Keep a real native/accessibility node in-bounds. Foreground and background
+  // intentionally match the screen chrome so the marker is visually inert.
   probe: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 2,
-    height: 2,
+    top: 1,
+    right: 1,
+    width: 8,
+    height: 8,
     zIndex: 2000,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#171526',
+  },
+  probeText: {
+    color: '#171526',
+    fontSize: 1,
+    lineHeight: 1,
   },
 });
