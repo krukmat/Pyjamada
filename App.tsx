@@ -4,13 +4,20 @@ import { AdventureDebugController } from './src/app/AdventureDebugController';
 import { HauntedGameScreen } from './src/app/HauntedGameScreen';
 import { createHauntedScreenshotScenario, type HauntedScreenshotScenario } from './src/app/HauntedScreenshotScenarios';
 import { MainMenu } from './src/app/MainMenu';
+import type { RoomTransitionPhase } from './src/app/RoomTransitionOverlay';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
 import { isTestHooksEnabled } from './src/app/testHooks';
+import {
+  applyFalseEscape,
+  isAdventureExplorationActive,
+  stepAdventureExploration,
+  type AdventureExplorationEvent,
+} from './src/game/adventure/AdventureExplorationRuntime';
 import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/adventure/AdventureSaveCoordinator';
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
-import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
+import { createAdventureState, setStoryFlag, type AdventureState } from './src/game/adventure/AdventureState';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
 import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
@@ -26,10 +33,13 @@ import { UpdateGameSettingsUseCase } from './src/settings/usecases/UpdateGameSet
 type AppView = 'menu' | 'settings' | 'game';
 type SettingsPatchFactory = (current: GameSettings) => GameSettingsPatch;
 
+type TransitionRequest = Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }>;
+
 export default function App() {
   const [view, setView] = useState<AppView>('menu');
   const [session, setSession] = useState<HauntedSessionState | null>(null);
   const [adventure, setAdventure] = useState<AdventureState>(() => createAdventureState());
+  const [transitionPhase, setTransitionPhase] = useState<RoomTransitionPhase>('idle');
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [busy, setBusy] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
@@ -43,6 +53,8 @@ export default function App() {
   const accumulatorMsRef = useRef(0);
   const lastFrameMsRef = useRef<number | null>(null);
   const screenshotScenarioRef = useRef<HauntedScreenshotScenario | null>(null);
+  const transitionLockRef = useRef(false);
+  const transitionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const testHooksEnabled = isTestHooksEnabled();
 
   const saves = useMemo(() => new AsyncStorageAdventureGameSaveRepository(), []);
@@ -69,6 +81,8 @@ export default function App() {
     return () => { active = false; };
   }, [loadSettings, saves]);
 
+  useEffect(() => () => clearTransitionTimers(), []);
+
   useEffect(() => {
     if (view !== 'game') {
       accumulatorMsRef.current = 0;
@@ -77,7 +91,7 @@ export default function App() {
     }
 
     const timer = setInterval(() => {
-      if (screenshotScenarioRef.current !== null) {
+      if (screenshotScenarioRef.current !== null || transitionLockRef.current) {
         accumulatorMsRef.current = 0;
         lastFrameMsRef.current = null;
         return;
@@ -86,16 +100,6 @@ export default function App() {
       const current = sessionRef.current;
       if (!current) return;
       const now = Date.now();
-
-      // W0 Hallway is presentation/navigation infrastructure only. Its real
-      // gameplay loop arrives in W1, so the Bedroom simulation is paused while
-      // the placeholder room is active rather than leaking domestic rules into it.
-      if (adventureRef.current.currentRoom !== 'bedroom') {
-        accumulatorMsRef.current = 0;
-        lastFrameMsRef.current = now;
-        return;
-      }
-
       if (lastFrameMsRef.current === null) {
         lastFrameMsRef.current = now;
         return;
@@ -107,18 +111,54 @@ export default function App() {
       accumulatorMsRef.current = fixed.accumulatorMs;
       if (fixed.steps === 0) return;
 
+      const currentAdventure = adventureRef.current;
+      if (isAdventureExplorationActive(currentAdventure)) {
+        let nextSession = current;
+        let nextAdventure = currentAdventure;
+        const events: AdventureExplorationEvent[] = [];
+        for (let index = 0; index < fixed.steps; index += 1) {
+          const stepped = stepAdventureExploration(nextSession, nextAdventure, HAUNTED_STEP_MS);
+          nextSession = stepped.session;
+          nextAdventure = stepped.adventure;
+          events.push(...stepped.events);
+        }
+
+        activateSession(nextSession);
+        if (nextAdventure !== currentAdventure) activateAdventure(nextAdventure);
+
+        const transition = events.find((event): event is TransitionRequest => event.type === 'ROOM_TRANSITION_REQUESTED');
+        if (transition) {
+          beginRoomTransition(nextSession, nextAdventure, transition);
+          return;
+        }
+
+        if (events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED' || event.type === 'LIVING_ROOM_DOOR_REACHED')) {
+          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
+        }
+        return;
+      }
+
+      // Before the false escape, only the original Bedroom Haunted slice runs.
+      if (currentAdventure.currentRoom !== 'bedroom') return;
+
       let next = current;
       let saveReason: AdventureSaveReason = 'periodic';
+      let falseEscape = false;
       for (let index = 0; index < fixed.steps; index += 1) {
         const stepped = stepHauntedSession(next, HAUNTED_STEP_MS);
         next = stepped.state;
         if (stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION')) saveReason = 'interaction';
         if (stepped.events.some((event) => event.type === 'ESCAPE_READY')) saveReason = 'milestone';
-        if (stepped.events.some((event) => event.type === 'SESSION_FAILED' || event.type === 'SESSION_COMPLETED')) saveReason = 'terminal';
+        if (stepped.events.some((event) => event.type === 'SESSION_FAILED')) saveReason = 'terminal';
+        if (stepped.events.some((event) => event.type === 'SESSION_COMPLETED')) falseEscape = true;
       }
 
       activateSession(next);
-      void saveCoordinator.persist(gameState(next, adventureRef.current), saveReason).catch(() => undefined);
+      if (falseEscape) {
+        beginFalseEscape(next, currentAdventure);
+        return;
+      }
+      void saveCoordinator.persist(gameState(next, currentAdventure), saveReason).catch(() => undefined);
     }, 16);
 
     return () => clearInterval(timer);
@@ -146,12 +186,59 @@ export default function App() {
     presentationRef.current.reset();
   }
 
+  function clearTransitionTimers() {
+    for (const timer of transitionTimersRef.current) clearTimeout(timer);
+    transitionTimersRef.current = [];
+    transitionLockRef.current = false;
+    setTransitionPhase('idle');
+  }
+
+  function runRoomFade(midpoint: () => void) {
+    if (transitionLockRef.current) return;
+    transitionLockRef.current = true;
+    setTransitionPhase('fade-out');
+    const outTimer = setTimeout(() => {
+      midpoint();
+      setTransitionPhase('fade-in');
+      const inTimer = setTimeout(() => {
+        setTransitionPhase('idle');
+        transitionLockRef.current = false;
+      }, 200);
+      transitionTimersRef.current.push(inTimer);
+    }, 170);
+    transitionTimersRef.current.push(outTimer);
+  }
+
+  function beginFalseEscape(completedSession: HauntedSessionState, currentAdventure: AdventureState) {
+    runRoomFade(() => {
+      const transformed = applyFalseEscape(completedSession, currentAdventure);
+      resetRuntimeClocks();
+      activateAdventure(transformed.adventure);
+      activateSession(transformed.session);
+      void saveCoordinator.persist(gameState(transformed.session, transformed.adventure), 'milestone').catch(() => undefined);
+    });
+  }
+
+  function beginRoomTransition(currentSession: HauntedSessionState, currentAdventure: AdventureState, request: TransitionRequest) {
+    runRoomFade(() => {
+      adventureCoordinatorRef.current.restore(currentAdventure);
+      const result = adventureCoordinatorRef.current.transition(request.targetRoom, request.targetEntry);
+      if (result.status !== 'ok') return;
+      const spawned = applyRoomSpawn(currentSession, result.spawn);
+      resetRuntimeClocks();
+      activateAdventure(result.state);
+      activateSession(spawned);
+      void saveCoordinator.persist(gameState(spawned, result.state), 'room-transition').catch(() => undefined);
+    });
+  }
+
   function leaveScreenshotMode() {
     screenshotScenarioRef.current = null;
   }
 
   function handleScreenshotScenario(scenario: HauntedScreenshotScenario) {
     if (!testHooksEnabled) return;
+    clearTransitionTimers();
     screenshotScenarioRef.current = scenario;
     resetRuntimeClocks();
     activateAdventure(createAdventureState());
@@ -171,6 +258,7 @@ export default function App() {
 
     setBusy(true);
     try {
+      clearTransitionTimers();
       const next = createAdventureGameSession(`run-${Date.now()}`);
       await saves.save(next);
       saveCoordinator.markRestored(next);
@@ -189,6 +277,7 @@ export default function App() {
     leaveScreenshotMode();
     setBusy(true);
     try {
+      clearTransitionTimers();
       const result = await saves.read();
       if (result.status === 'none') {
         setCanContinue(false);
@@ -212,21 +301,24 @@ export default function App() {
   }
 
   function handleHeldControl(control: HauntedHeldControl, pressed: boolean) {
-    if (screenshotScenarioRef.current !== null || adventureRef.current.currentRoom !== 'bedroom') return;
+    if (screenshotScenarioRef.current !== null || transitionLockRef.current) return;
     const current = sessionRef.current;
-    if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
+    if (!current || current.objective.phase === 'failed') return;
+    if (!isAdventureExplorationActive(adventureRef.current) && current.objective.phase === 'completed') return;
     activateSession({ ...current, input: setHeldControl(current.input, control, pressed) });
   }
 
   function handleAction(control: HauntedActionControl) {
-    if (screenshotScenarioRef.current !== null || adventureRef.current.currentRoom !== 'bedroom') return;
+    if (screenshotScenarioRef.current !== null || transitionLockRef.current) return;
     const current = sessionRef.current;
-    if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
+    if (!current || current.objective.phase === 'failed') return;
+    if (!isAdventureExplorationActive(adventureRef.current) && current.objective.phase === 'completed') return;
     activateSession({ ...current, input: pressAction(current.input, control) });
   }
 
   async function handleRestart() {
     leaveScreenshotMode();
+    clearTransitionTimers();
     const current = sessionRef.current;
     if (!current) return;
     const next = createAdventureGameSession(current.runId);
@@ -242,6 +334,7 @@ export default function App() {
   async function handleExit() {
     const screenshotMode = screenshotScenarioRef.current !== null;
     leaveScreenshotMode();
+    clearTransitionTimers();
     const current = sessionRef.current;
     if (current && !screenshotMode) {
       await saveCoordinator.persist(gameState(current, adventureRef.current), 'exit-menu').catch(() => undefined);
@@ -251,20 +344,24 @@ export default function App() {
   }
 
   async function handleDebugRoomToggle() {
-    if (!testHooksEnabled || screenshotScenarioRef.current !== null) return;
-    const current = adventureCoordinatorRef.current.snapshot();
-    const result = current.currentRoom === 'bedroom'
-      ? adventureCoordinatorRef.current.transition('hallway', 'hallway-from-bedroom')
-      : adventureCoordinatorRef.current.transition('bedroom', 'bedroom-from-hallway');
-    if (result.status !== 'ok') return;
-
-    const haunted = sessionRef.current;
-    if (!haunted) return;
-    const spawned = applyRoomSpawn(haunted, result.spawn);
-    activateAdventure(result.state);
-    activateSession(spawned);
-    resetRuntimeClocks();
-    await saveCoordinator.persist(gameState(spawned, result.state), 'room-transition').catch(() => undefined);
+    if (!testHooksEnabled || screenshotScenarioRef.current !== null || transitionLockRef.current) return;
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
+    let currentAdventure = adventureCoordinatorRef.current.snapshot();
+    if (!currentAdventure.storyFlags.hallwayUnlocked) {
+      currentAdventure = setStoryFlag(setStoryFlag(currentAdventure, 'bedroomEscapeAttempted', true), 'hallwayUnlocked', true);
+      activateAdventure(currentAdventure);
+      if (currentSession.objective.phase !== 'exploration') {
+        const prepared = applyFalseEscape({ ...currentSession, objective: { phase: 'completed' } }, currentAdventure);
+        activateAdventure(prepared.adventure);
+        activateSession(prepared.session);
+        currentAdventure = prepared.adventure;
+      }
+    }
+    const request: TransitionRequest = currentAdventure.currentRoom === 'bedroom'
+      ? { type: 'ROOM_TRANSITION_REQUESTED', targetRoom: 'hallway', targetEntry: 'hallway-from-bedroom' }
+      : { type: 'ROOM_TRANSITION_REQUESTED', targetRoom: 'bedroom', targetEntry: 'bedroom-from-hallway' };
+    beginRoomTransition(sessionRef.current ?? currentSession, currentAdventure, request);
   }
 
   function queueSettingsChange(makePatch: SettingsPatchFactory) {
@@ -305,6 +402,7 @@ export default function App() {
         <HauntedGameScreen
           session={session}
           adventure={adventure}
+          transitionPhase={transitionPhase}
           presentationRuntime={presentationRef.current}
           touchControlLayout={gameSettings.touchControlLayout}
           onHeldControl={handleHeldControl}
