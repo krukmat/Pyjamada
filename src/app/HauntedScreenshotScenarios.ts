@@ -32,6 +32,7 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'living-room-arrival',
   'living-room-static',
   'living-room-transmission',
+  'living-room-source-cue',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -47,6 +48,7 @@ type AdventureScreenshotScenario = Extract<
   | 'living-room-arrival'
   | 'living-room-static'
   | 'living-room-transmission'
+  | 'living-room-source-cue'
 >;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -203,14 +205,24 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     if (livingRoom.status !== 'ok') throw new Error(livingRoom.reason);
     adventure = livingRoom.state;
   }
-  if (scenario === 'living-room-static' || scenario === 'living-room-transmission') {
+  if (scenario === 'living-room-static' || scenario === 'living-room-transmission' || scenario === 'living-room-source-cue') {
     adventure = setRoomSwitch(adventure, 'living-room', 'tv-on', true);
     adventure = markRoomInteraction(adventure, 'living-room', 'tv-activated');
   }
-  if (scenario === 'living-room-transmission') {
+  if (scenario === 'living-room-transmission' || scenario === 'living-room-source-cue') {
     adventure = markRoomInspected(adventure, 'living-room', 'television');
     adventure = markRoomInteraction(adventure, 'living-room', 'tv-transmission');
     adventure = setStoryFlag(adventure, 'labTransmissionSeen', true);
+  }
+  if (scenario === 'living-room-source-cue') {
+    adventure = markRoomInspected(adventure, 'living-room', 'photo-reflection');
+    adventure = markRoomInteraction(adventure, 'living-room', 'photo-inspected');
+    adventure = markRoomInspected(adventure, 'living-room', 'radio-static');
+    adventure = markRoomInteraction(adventure, 'living-room', 'radio-inspected');
+    adventure = markRoomInteraction(adventure, 'living-room', 'source-hum-traced');
+    adventure = setRoomSwitch(adventure, 'living-room', 'photo-focused', false);
+    adventure = setRoomSwitch(adventure, 'living-room', 'radio-focused', true);
+    adventure = setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true);
   }
   return adventure;
 }
@@ -227,7 +239,9 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
           ? 110
           : scenario === 'living-room-arrival'
             ? 20
-            : 99;
+            : scenario === 'living-room-source-cue'
+              ? 84
+              : 99;
   return withPlayer(falseEscape.session, x);
 }
 
@@ -244,7 +258,8 @@ function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionSta
 function isLivingRoomScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'living-room-arrival'
     || scenario === 'living-room-static'
-    || scenario === 'living-room-transmission';
+    || scenario === 'living-room-transmission'
+    || scenario === 'living-room-source-cue';
 }
 
 function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
@@ -254,7 +269,8 @@ function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is A
     || scenario === 'living-door'
     || scenario === 'living-room-arrival'
     || scenario === 'living-room-static'
-    || scenario === 'living-room-transmission';
+    || scenario === 'living-room-transmission'
+    || scenario === 'living-room-source-cue';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
