@@ -101,6 +101,18 @@ export function hasLabTransmissionBeenSeen(adventure: AdventureState): boolean {
   return adventure.storyFlags.labTransmissionSeen;
 }
 
+export function isLivingRoomPhotoInspected(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').inspected.includes('photo-reflection');
+}
+
+export function isLivingRoomRadioInspected(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').inspected.includes('radio-static');
+}
+
+export function isLivingRoomSourceCueRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').switches['source-hum-traced'] === true;
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
