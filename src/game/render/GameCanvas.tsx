@@ -111,7 +111,12 @@ export function GameCanvas({
         <IllustratedBedroomLightOverlay state={state} size={height} />
         <IllustratedBedroomForeground state={state} size={height} />
 
-        {hauntedSession && <HauntedStageTreatment px={px} pressure={hauntedSession.threats.ghosts.length} />}
+        {hauntedSession && (
+          <>
+            <HauntedStageTreatment px={px} pressure={hauntedSession.threats.ghosts.length} />
+            <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />
+          </>
+        )}
 
         {hauntedSession?.threats.ghosts.map((ghost) => (
           <HauntedGhostSprite
@@ -174,13 +179,28 @@ export function GameCanvas({
 }
 
 function HauntedStageTreatment({ px, pressure }: { px: (value: number) => number; pressure: number }) {
-  const alpha = pressure > 0 ? 0.13 : 0.095;
+  const washAlpha = pressure > 0 ? 0.19 : 0.135;
+  const edgeAlpha = pressure > 0 ? 0.13 : 0.09;
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={`rgba(17,31,72,${alpha})`} />
-      <Rect x={px(-20)} y={px(92)} width={px(168)} height={px(36)} color="rgba(12,18,45,0.10)" />
-      <Circle cx={px(110)} cy={px(57)} r={px(29)} color="rgba(91,238,255,0.045)" />
-      <RoundedRect x={px(88)} y={px(101)} width={px(38)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.055)" />
+      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={`rgba(15,27,69,${washAlpha})`} />
+      <Rect x={px(-20)} y={0} width={px(34)} height={px(128)} color={`rgba(12,18,45,${edgeAlpha})`} />
+      <Rect x={px(116)} y={0} width={px(32)} height={px(128)} color={`rgba(18,18,50,${edgeAlpha})`} />
+      <Rect x={px(-20)} y={px(91)} width={px(168)} height={px(37)} color="rgba(9,15,39,0.14)" />
+      <Circle cx={px(108)} cy={px(55)} r={px(33)} color="rgba(91,238,255,0.075)" />
+      <Circle cx={px(108)} cy={px(55)} r={px(20)} color="rgba(155,222,255,0.040)" />
+      <RoundedRect x={px(87)} y={px(101)} width={px(40)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.075)" />
+    </>
+  );
+}
+
+function HauntedPlayerReadability({ x, y, px }: { x: number; y: number; px: (value: number) => number }) {
+  return (
+    <>
+      <Circle cx={x} cy={y - px(23)} r={px(16)} color="rgba(7,16,38,0.18)" />
+      <Circle cx={x} cy={y - px(23)} r={px(13)} color="rgba(255,228,92,0.035)" />
+      <RoundedRect x={x - px(9)} y={y - px(2)} width={px(18)} height={px(4)} r={px(2)} color="rgba(5,12,29,0.42)" />
+      <RoundedRect x={x - px(6)} y={y - px(1)} width={px(12)} height={px(2)} r={px(1)} color="rgba(91,238,255,0.10)" />
     </>
   );
 }
