@@ -12,6 +12,12 @@ import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicSta
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
 import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
+import {
+  HauntedExitDoor,
+  HauntedHitFeedback,
+  HauntedPlayerReadability,
+  HauntedStageTreatment,
+} from './HauntedStagePresentation';
 import { HauntedWallySprite } from './HauntedWallySprite';
 import {
   IllustratedBedroomBackdrop,
@@ -164,7 +170,7 @@ export function GameCanvas({
         ))}
 
         {playerInvulnerable && (
-          <HauntedHitBurst
+          <HauntedHitFeedback
             x={px(playerX)}
             y={px(playerY - 23)}
             px={px}
@@ -173,61 +179,6 @@ export function GameCanvas({
         )}
       </Group>
     </Canvas>
-  );
-}
-
-function HauntedStageTreatment({ px, pressure }: { px: (value: number) => number; pressure: number }) {
-  const washAlpha = pressure > 0 ? 0.19 : 0.135;
-  const edgeAlpha = pressure > 0 ? 0.13 : 0.09;
-  return (
-    <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={`rgba(15,27,69,${washAlpha})`} />
-      <Rect x={px(-20)} y={0} width={px(34)} height={px(128)} color={`rgba(12,18,45,${edgeAlpha})`} />
-      <Rect x={px(116)} y={0} width={px(32)} height={px(128)} color={`rgba(18,18,50,${edgeAlpha})`} />
-      <Rect x={px(-20)} y={px(91)} width={px(168)} height={px(37)} color="rgba(9,15,39,0.14)" />
-      <Circle cx={px(108)} cy={px(55)} r={px(33)} color="rgba(91,238,255,0.075)" />
-      <Circle cx={px(108)} cy={px(55)} r={px(20)} color="rgba(155,222,255,0.040)" />
-      <RoundedRect x={px(87)} y={px(101)} width={px(40)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.075)" />
-    </>
-  );
-}
-
-function HauntedPlayerReadability({ x, y, px }: { x: number; y: number; px: (value: number) => number }) {
-  return (
-    <>
-      <Circle cx={x} cy={y - px(23)} r={px(16)} color="rgba(7,16,38,0.18)" />
-      <Circle cx={x} cy={y - px(23)} r={px(13)} color="rgba(255,228,92,0.035)" />
-      <RoundedRect x={x - px(9)} y={y - px(2)} width={px(18)} height={px(4)} r={px(2)} color="rgba(5,12,29,0.42)" />
-      <RoundedRect x={x - px(6)} y={y - px(1)} width={px(12)} height={px(2)} r={px(1)} color="rgba(91,238,255,0.10)" />
-    </>
-  );
-}
-
-function HauntedHitBurst({ x, y, px, pulse }: { x: number; y: number; px: (value: number) => number; pulse: number }) {
-  const reach = pulse === 0 ? 8 : 10;
-  return (
-    <>
-      <Circle cx={x} cy={y} r={px(pulse === 0 ? 7 : 9)} color="rgba(255,228,92,0.10)" />
-      <Rect x={x - px(reach)} y={y - px(1)} width={px(4)} height={px(2)} color="#ffe45c" />
-      <Rect x={x + px(reach - 4)} y={y - px(1)} width={px(4)} height={px(2)} color="#5beeff" />
-      <Rect x={x - px(1)} y={y - px(reach)} width={px(2)} height={px(4)} color="#ff7b82" />
-      <Rect x={x - px(1)} y={y + px(reach - 4)} width={px(2)} height={px(4)} color="#fff4b0" />
-      <Rect x={x - px(6)} y={y - px(7)} width={px(2)} height={px(2)} color="#fff4b0" />
-      <Rect x={x + px(5)} y={y + px(5)} width={px(2)} height={px(2)} color="#5beeff" />
-    </>
-  );
-}
-
-function HauntedExitDoor({ px, ready, pulse }: { px: (value: number) => number; ready: boolean; pulse: number }) {
-  const glowAlpha = ready ? (pulse === 0 ? 0.18 : 0.32) : 0.06;
-  return (
-    <>
-      <RoundedRect x={px(111)} y={px(68)} width={px(15)} height={px(37)} r={px(1.5)} color={ready ? '#15365f' : '#25203d'} />
-      <Rect x={px(114)} y={px(72)} width={px(9)} height={px(31)} color={ready ? '#1f6e8d' : '#352c4c'} />
-      <Rect x={px(116)} y={px(75)} width={px(5)} height={px(25)} color={ready ? '#5beeff' : '#493b5c'} opacity={ready ? 0.35 : 0.18} />
-      <Circle cx={px(121)} cy={px(88)} r={px(1)} color={ready ? '#ffe45c' : '#776d7c'} />
-      <RoundedRect x={px(109)} y={px(102)} width={px(19)} height={px(4)} r={px(2)} color={`rgba(91,238,255,${glowAlpha})`} />
-    </>
   );
 }
 
