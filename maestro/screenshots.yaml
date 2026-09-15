@@ -222,7 +222,7 @@ tags:
     visible:
       text: "The clock runs backward. A door at the far end just clicked."
     timeout: 5000
-- assertVisible: "LIVING ROOM UNLOCKED · REACH THE DOOR"
+- assertVisible: "ENTER THE LIVING ROOM"
 - takeScreenshot:
     path: 17_hallway_clock
 
@@ -232,8 +232,22 @@ tags:
     id: screenshot-scenario-living-door
 - extendedWaitUntil:
     visible:
-      text: "Something electrical is humming behind this door."
+      text: "The clock runs backward. A door at the far end just clicked."
     timeout: 5000
-- assertVisible: "THE SIGNAL CONTINUES BEYOND THIS DOOR"
+- assertVisible: "ENTER THE LIVING ROOM"
+- assertVisible: "INTERACT · LIVING ROOM"
 - takeScreenshot:
     path: 18_living_room_door
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The television is dark. The room is listening."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LIVING ROOM"
+- assertVisible: "CHECK THE LIVING ROOM"
+- takeScreenshot:
+    path: 19_living_room_arrival
