@@ -1,8 +1,8 @@
 import { deepEqual, equal, test } from './assert';
 import {
   applyFalseEscape,
+  findAdventureInteractionTarget,
   isHallwayClockInspected,
-  isLivingRoomDoorReached,
   isLivingRoomPathRevealed,
   stepAdventureExploration,
   type AdventureExplorationEvent,
@@ -47,7 +47,7 @@ function transitionRequest(events: readonly AdventureExplorationEvent[]) {
   return events.find((event): event is Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }> => event.type === 'ROOM_TRANSITION_REQUESTED');
 }
 
-void test('W1 end-to-end opens the house and stops at the Living Room boundary', () => {
+void test('W1 end-to-end opens the house and exposes the Living Room boundary', () => {
   const runId = 'w1-house-opens';
   const initialAdventure = createAdventureState();
 
@@ -97,15 +97,15 @@ void test('W1 end-to-end opens the house and stops at the Living Room boundary',
   equal(clock.events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED'), true, 'clock inspection emits narrative event');
   equal(clock.events.some(event => event.type === 'LIVING_ROOM_PATH_REVEALED'), true, 'Living Room reveal emits narrative event');
 
-  const livingDoor = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
-  equal(isLivingRoomDoorReached(livingDoor.adventure), true, 'Living Room threshold is reached');
-  equal(livingDoor.adventure.currentRoom, 'hallway', 'W1 does not enter Living Room');
-  equal(livingDoor.events.some(event => event.type === 'LIVING_ROOM_DOOR_REACHED'), true, 'W1 end-gate event emitted');
+  const livingDoor = findAdventureInteractionTarget(clock.adventure, 114);
+  equal(livingDoor?.id, 'living-room-door', 'Living Room boundary is discoverable');
+  equal(livingDoor?.available, true, 'Living Room boundary is unlocked by W1');
+  equal(livingDoor?.displayLabel, 'LIVING ROOM', 'W1 ends with a clear Living Room hook');
 
   const encoded = encodeAdventureGameSession({
     schemaVersion: 3,
-    haunted: livingDoor.session,
-    adventure: livingDoor.adventure,
+    haunted: clock.session,
+    adventure: clock.adventure,
   });
   const restored = decodeAdventureGameSession(encoded);
   equal(restored.status, 'ok', 'W1 state round-trips through save codec');
@@ -116,7 +116,6 @@ void test('W1 end-to-end opens the house and stops at the Living Room boundary',
   equal(restored.state.adventure.storyFlags.hallwayUnlocked, true, 'Hallway unlock restored');
   equal(getRoomState(restored.state.adventure, 'hallway').inspected.includes('backward-clock'), true, 'clock discovery restored');
   equal(getRoomState(restored.state.adventure, 'hallway').switches['living-room-unlocked'], true, 'Living Room reveal restored');
-  equal(getRoomState(restored.state.adventure, 'hallway').interactions.includes('living-room-door'), true, 'W1 end gate restored');
 });
 
 console.log('W1 house-opens playthrough passed');
