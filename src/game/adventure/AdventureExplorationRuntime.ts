@@ -10,25 +10,16 @@ import {
   type AdventureState,
   type RoomId,
 } from './AdventureState';
+import {
+  getRoomExit,
+  resolveRoomInteractionTarget,
+  type ResolvedRoomInteractionTarget,
+} from './RoomRegistry';
 
-export const W1_INTERACTIONS = {
-  bedroomHallwayDoor: { id: 'bedroom-hallway-door', roomId: 'bedroom', x: 112, radius: 8, label: 'HALLWAY' },
-  hallwayBedroomDoor: { id: 'hallway-bedroom-door', roomId: 'hallway', x: 10, radius: 8, label: 'BEDROOM' },
-  hallwayClock: { id: 'backward-clock', roomId: 'hallway', x: 64, radius: 9, label: 'STRANGE CLOCK' },
-  hallwayLivingDoor: { id: 'living-room-door', roomId: 'hallway', x: 114, radius: 8, label: 'LIVING ROOM' },
-} as const;
-
-export type AdventureInteractionTarget = {
-  id: string;
-  label: string;
-  x: number;
-  radius: number;
-  roomId: RoomId;
-  available: boolean;
-};
+export type AdventureInteractionTarget = ResolvedRoomInteractionTarget;
 
 export type AdventureExplorationEvent =
-  | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: 'bedroom' | 'hallway'; targetEntry: string }
+  | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: RoomId; targetEntry: string }
   | { type: 'HALLWAY_CLOCK_INSPECTED' }
   | { type: 'LIVING_ROOM_PATH_REVEALED' }
   | { type: 'LIVING_ROOM_DOOR_REACHED' };
@@ -81,7 +72,6 @@ export function applyFalseEscape(
         ...session.threats,
         ghosts: [],
       },
-      objective: { phase: 'exploration' },
     },
   };
 }
@@ -91,22 +81,7 @@ export function findAdventureInteractionTarget(
   playerX: number,
 ): AdventureInteractionTarget | undefined {
   if (!isAdventureExplorationActive(adventure)) return undefined;
-
-  const candidates = adventure.currentRoom === 'bedroom'
-    ? [W1_INTERACTIONS.bedroomHallwayDoor]
-    : adventure.currentRoom === 'hallway'
-      ? [W1_INTERACTIONS.hallwayBedroomDoor, W1_INTERACTIONS.hallwayClock, W1_INTERACTIONS.hallwayLivingDoor]
-      : [];
-
-  return candidates
-    .map(target => ({
-      ...target,
-      available: target.id !== 'living-room-door' || isLivingRoomPathRevealed(adventure),
-      distance: Math.abs(playerX - target.x),
-    }))
-    .filter(target => target.distance <= target.radius)
-    .sort((a, b) => a.distance - b.distance || a.x - b.x)
-    .map(({ distance: _distance, ...target }) => target)[0];
+  return resolveRoomInteractionTarget(adventure, playerX);
 }
 
 export function isHallwayClockInspected(adventure: AdventureState): boolean {
@@ -134,22 +109,29 @@ export function stepAdventureExploration(
 
   if (session.input.interactPressed) {
     const target = findAdventureInteractionTarget(adventure, player.x);
-    if (target?.id === 'bedroom-hallway-door' && adventure.storyFlags.hallwayUnlocked) {
-      events.push({ type: 'ROOM_TRANSITION_REQUESTED', targetRoom: 'hallway', targetEntry: 'hallway-from-bedroom' });
-    } else if (target?.id === 'hallway-bedroom-door') {
-      events.push({ type: 'ROOM_TRANSITION_REQUESTED', targetRoom: 'bedroom', targetEntry: 'bedroom-from-hallway' });
-    } else if (target?.id === 'backward-clock') {
-      const wasInspected = isHallwayClockInspected(nextAdventure);
-      nextAdventure = markRoomInspected(nextAdventure, 'hallway', 'backward-clock');
-      nextAdventure = setRoomSwitch(nextAdventure, 'hallway', 'living-room-unlocked', true);
-      if (!wasInspected) {
-        events.push({ type: 'HALLWAY_CLOCK_INSPECTED' });
-        events.push({ type: 'LIVING_ROOM_PATH_REVEALED' });
+    if (target?.available && target.behavior.type === 'exit') {
+      const exit = getRoomExit(adventure.currentRoom, target.behavior.exitId);
+      if (exit) {
+        events.push({
+          type: 'ROOM_TRANSITION_REQUESTED',
+          targetRoom: exit.targetRoom,
+          targetEntry: exit.targetEntry,
+        });
       }
-    } else if (target?.id === 'living-room-door' && target.available) {
-      const wasReached = isLivingRoomDoorReached(nextAdventure);
-      nextAdventure = markRoomInteraction(nextAdventure, 'hallway', 'living-room-door');
-      if (!wasReached) events.push({ type: 'LIVING_ROOM_DOOR_REACHED' });
+    } else if (target?.available && target.behavior.type === 'effect') {
+      if (target.behavior.effect === 'inspect-backward-clock') {
+        const wasInspected = isHallwayClockInspected(nextAdventure);
+        nextAdventure = markRoomInspected(nextAdventure, 'hallway', 'backward-clock');
+        nextAdventure = setRoomSwitch(nextAdventure, 'hallway', 'living-room-unlocked', true);
+        if (!wasInspected) {
+          events.push({ type: 'HALLWAY_CLOCK_INSPECTED' });
+          events.push({ type: 'LIVING_ROOM_PATH_REVEALED' });
+        }
+      } else if (target.behavior.effect === 'reach-living-room-door') {
+        const wasReached = isLivingRoomDoorReached(nextAdventure);
+        nextAdventure = markRoomInteraction(nextAdventure, 'hallway', 'living-room-door');
+        if (!wasReached) events.push({ type: 'LIVING_ROOM_DOOR_REACHED' });
+      }
     }
   }
 
