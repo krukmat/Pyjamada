@@ -9,6 +9,7 @@ import { findSystemicObject, type SystemicObjectDefinition } from '../systemic/S
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
 import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
+import { BathroomPresentation } from './BathroomPresentation';
 import {
   HauntedExitDoor,
   HauntedPlayerReadability,
@@ -73,6 +74,17 @@ export function RoomPresentation(props: Props) {
     case 'kitchen':
       return (
         <KitchenPresentation
+          adventure={props.adventure}
+          hauntedSession={props.hauntedSession}
+          playerX={props.playerX}
+          playerY={props.playerY}
+          nowMs={props.nowMs}
+          px={props.px}
+        />
+      );
+    case 'bathroom':
+      return (
+        <BathroomPresentation
           adventure={props.adventure}
           hauntedSession={props.hauntedSession}
           playerX={props.playerX}
