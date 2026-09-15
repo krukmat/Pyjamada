@@ -1,4 +1,5 @@
 import type { AnimationLoopMode } from '../AnimationTypes';
+import { HAUNTED_GHOST_ATLAS } from './HauntedGhostAtlas';
 import { HAUNTED_WALLY_ATLAS } from './HauntedWallyAtlas';
 import type { SpriteAtlasManifest } from './SpriteAtlas';
 
@@ -113,5 +114,5 @@ export const WALLY_ATLAS = buildGridAtlas('wally', 240, 168, 24, 28, 10, 12, 27,
 export const BEDROOM_OBJECTS_ATLAS = buildGridAtlas('bedroom-objects', 256, 192, 32, 32, 8, 16, 31, OBJECT_CLIPS);
 export const DOMESTIC_FX_ATLAS = buildGridAtlas('domestic-fx', 128, 64, 16, 16, 8, 8, 8, FX_CLIPS);
 
-export { HAUNTED_WALLY_ATLAS };
-export const ALL_GAME_ATLASES = [WALLY_ATLAS, HAUNTED_WALLY_ATLAS, BEDROOM_OBJECTS_ATLAS, DOMESTIC_FX_ATLAS] as const;
+export { HAUNTED_GHOST_ATLAS, HAUNTED_WALLY_ATLAS };
+export const ALL_GAME_ATLASES = [WALLY_ATLAS, HAUNTED_WALLY_ATLAS, HAUNTED_GHOST_ATLAS, BEDROOM_OBJECTS_ATLAS, DOMESTIC_FX_ATLAS] as const;
