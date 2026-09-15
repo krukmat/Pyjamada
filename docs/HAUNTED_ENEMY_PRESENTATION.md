@@ -15,7 +15,7 @@ The room-level hierarchy is governed separately by `docs/HAUNTED_STAGE_LANGUAGE.
 Every enemy must provide readable states for:
 
 1. **Telegraph** — communicates where/what is about to appear before it can hurt Wally.
-2. **Active** — silhouette remains distinguishishable from Wally and the room at gameplay scale.
+2. **Active** — silhouette remains distinguishable from Wally and the room at gameplay scale.
 3. **Attack/contact** — threat direction is readable without relying on HUD text.
 4. **Hit** — successful player action produces immediate feedback.
 5. **Dying** — removal is visually distinct from teleport/despawn.
