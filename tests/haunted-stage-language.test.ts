@@ -19,6 +19,10 @@ assert.equal(hauntedWashAlpha(0), HAUNTED_STAGE_TOKENS.atmosphere.washAlphaCalm,
 assert.equal(hauntedWashAlpha(2), HAUNTED_STAGE_TOKENS.atmosphere.washAlphaPressure, 'enemy pressure uses the declared wash token');
 assert.equal(hauntedEdgeAlpha(2), HAUNTED_STAGE_TOKENS.atmosphere.edgeAlphaPressure, 'enemy pressure uses the declared edge token');
 assert.ok(hauntedWashAlpha(2) <= HAUNTED_STAGE_RULES.maxAtmosphereAlpha, 'pressure wash cannot overpower actors');
+assert.ok(
+  HAUNTED_STAGE_TOKENS.atmosphere.pixelTextureAlpha <= HAUNTED_STAGE_RULES.maxPixelTextureAlpha,
+  'pixel texture remains subordinate to actors and props',
+);
 
 const layerIndex = (name: (typeof HAUNTED_LAYER_ORDER)[number]) => HAUNTED_LAYER_ORDER.indexOf(name);
 assert.ok(layerIndex('enemies') < layerIndex('player'), 'Wally keeps hero priority over enemies');
@@ -32,6 +36,9 @@ assert.ok(HAUNTED_VISUAL_PRIORITY.player < HAUNTED_VISUAL_PRIORITY.projectile, '
 assert.ok(HAUNTED_VISUAL_PRIORITY.projectile < HAUNTED_VISUAL_PRIORITY.combatFeedback, 'damage feedback receives the highest transient priority');
 
 assert.notEqual(HAUNTED_STAGE_TOKENS.projectile.core, HAUNTED_STAGE_TOKENS.projectile.edge, 'Dream Spark core and edge stay visually separable');
+assert.notEqual(HAUNTED_STAGE_TOKENS.projectile.outerGlow, HAUNTED_STAGE_TOKENS.projectile.glow, 'Dream Spark keeps a two-stage glow for gameplay presence');
+assert.ok(HAUNTED_STAGE_RULES.projectileOuterGlowRadius > HAUNTED_STAGE_RULES.projectileInnerGlowRadius, 'Dream Spark outer glow encloses its bright core');
 assert.notEqual(HAUNTED_STAGE_TOKENS.player.groundShadow, HAUNTED_STAGE_TOKENS.player.groundAccent, 'player grounding keeps a dark base plus cold accent');
+assert.notEqual(HAUNTED_STAGE_TOKENS.hit.backing, HAUNTED_STAGE_TOKENS.hit.core, 'hit feedback preserves dark separation plus bright impact core');
 
 console.log('haunted stage language tests passed');
