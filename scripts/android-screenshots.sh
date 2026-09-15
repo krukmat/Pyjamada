@@ -39,6 +39,9 @@ EXPECTED_SCREENSHOTS=(
   "20_living_room_static.png"
   "21_lab_transmission.png"
   "22_living_room_source_cue.png"
+  "23_kitchen_arrival.png"
+  "24_kitchen_overload.png"
+  "25_kitchen_power_rerouted.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published
