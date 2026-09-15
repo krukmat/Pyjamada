@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 17, 'visual tour has seventeen deterministic gameplay/adventure presets through W2 Gate A');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 19, 'visual tour has nineteen deterministic gameplay/adventure presets through W2 Gate B');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -86,5 +86,16 @@ equal(livingRoomArrival.currentRoom, 'living-room', 'W2 Gate A screenshot enters
 equal(livingRoomArrival.currentEntry, 'living-room-from-hallway', 'Living Room screenshot uses production Hallway entry');
 ok(livingRoomArrival.visitedRooms.includes('living-room'), 'Living Room becomes visited in the screenshot state');
 equal(getRoomState(livingRoomArrival, 'hallway').switches['living-room-unlocked'], true, 'Living Room arrival preserves Hallway unlock state');
+
+const livingRoomStatic = createScreenshotAdventureState('living-room-static');
+equal(livingRoomStatic.currentRoom, 'living-room', 'TV static screenshot remains in Living Room');
+equal(getRoomState(livingRoomStatic, 'living-room').switches['tv-on'], true, 'TV static screenshot powers on the television');
+equal(livingRoomStatic.storyFlags.labTransmissionSeen, false, 'static screenshot precedes lab transmission');
+
+const livingRoomTransmission = createScreenshotAdventureState('living-room-transmission');
+equal(livingRoomTransmission.currentRoom, 'living-room', 'transmission screenshot remains in Living Room');
+equal(livingRoomTransmission.storyFlags.labTransmissionSeen, true, 'transmission screenshot records the global mystery hook');
+equal(getRoomState(livingRoomTransmission, 'living-room').inspected.includes('television'), true, 'transmission screenshot records TV discovery');
+equal(getRoomState(livingRoomTransmission, 'living-room').interactions.includes('tv-transmission'), true, 'transmission screenshot records TV interaction history');
 
 console.log('haunted screenshot scenario tests passed');
