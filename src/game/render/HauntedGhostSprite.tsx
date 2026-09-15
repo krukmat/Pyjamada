@@ -1,7 +1,6 @@
 import React from 'react';
-import { Circle, Group, useImage } from '@shopify/react-native-skia';
+import { Circle, Group, type SkImage } from '@shopify/react-native-skia';
 import type { HauntedGhostState } from '../haunted/HauntedThreats';
-import { HAUNTED_GHOST_ATLAS_SOURCE } from '../presentation/AssetSources';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_GHOST_ATLAS } from '../presentation/atlas/HauntedGhostAtlas';
@@ -9,6 +8,7 @@ import { HAUNTED_GHOST_ATLAS } from '../presentation/atlas/HauntedGhostAtlas';
 const INDEX = createSpriteAtlasIndex(HAUNTED_GHOST_ATLAS);
 
 type Props = {
+  image: SkImage | null;
   ghost: HauntedGhostState;
   x: number;
   y: number;
@@ -17,8 +17,7 @@ type Props = {
   playerX: number;
 };
 
-export function HauntedGhostSprite({ ghost, x, y, scale, nowMs, playerX }: Props) {
-  const image = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
+export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }: Props) {
   const facing = ghost.x <= playerX ? 'right' : 'left';
   const frame = requireAtlasFrame(INDEX, selectFrameId(ghost, nowMs, playerX));
   const telegraph = ghost.phase === 'telegraph';
