@@ -21,6 +21,11 @@ export class AdventureSessionCoordinator {
     return this.state;
   }
 
+  restore(state: AdventureState): AdventureState {
+    this.state = state;
+    return this.state;
+  }
+
   transition(targetRoom: RoomId, targetEntry: string): AdventureTransitionResult {
     const result = transitionAdventure(this.state, targetRoom, targetEntry);
     if (result.status === 'ok') this.state = result.state;
