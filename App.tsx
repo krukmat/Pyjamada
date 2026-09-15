@@ -142,7 +142,10 @@ export default function App() {
           || event.type === 'LAB_TRANSMISSION_SEEN'
           || event.type === 'LIVING_ROOM_PHOTO_INSPECTED'
           || event.type === 'LIVING_ROOM_RADIO_INSPECTED'
-          || event.type === 'LIVING_ROOM_SOURCE_CUE_REVEALED')) {
+          || event.type === 'LIVING_ROOM_SOURCE_CUE_REVEALED'
+          || event.type === 'KITCHEN_CIRCUIT_OVERLOADED'
+          || event.type === 'KITCHEN_BREAKER_INSPECTED'
+          || event.type === 'KITCHEN_POWER_REROUTED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
