@@ -16,15 +16,32 @@ type Props = {
   y: number;
   scale: number;
   nowMs: number;
+  honorTerminalObjective?: boolean;
 };
 
-export function HauntedWallySprite({ image, session, x, y, scale, nowMs }: Props) {
+export function HauntedWallySprite({
+  image,
+  session,
+  x,
+  y,
+  scale,
+  nowMs,
+  honorTerminalObjective = true,
+}: Props) {
   if (!image) {
-    return <HauntedWallyFallback session={session} x={x} y={y} scale={scale} />;
+    return (
+      <HauntedWallyFallback
+        session={session}
+        x={x}
+        y={y}
+        scale={scale}
+        honorTerminalObjective={honorTerminalObjective}
+      />
+    );
   }
 
   const palette = session.domestic.flags.dressed ? 'dressed' : 'pajamas';
-  const pose = selectHauntedWallyPose(session);
+  const pose = selectHauntedWallyPose(session, { honorTerminalObjective });
   const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
   const frame = requireAtlasFrame(INDEX, `${palette}_${String(frameIndex).padStart(2, '0')}`);
   const invulnerable = session.combat.invulnerableUntilMs > session.elapsedMs;
