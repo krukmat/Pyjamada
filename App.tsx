@@ -1,19 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StatusBar, View } from 'react-native';
+import { AdventureDebugController } from './src/app/AdventureDebugController';
 import { HauntedGameScreen } from './src/app/HauntedGameScreen';
 import { createHauntedScreenshotScenario, type HauntedScreenshotScenario } from './src/app/HauntedScreenshotScenarios';
 import { MainMenu } from './src/app/MainMenu';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
 import { isTestHooksEnabled } from './src/app/testHooks';
+import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/adventure/AdventureSaveCoordinator';
+import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
+import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
+import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
+import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
-import { pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
-import { HauntedSaveCoordinator, type HauntedSaveReason } from './src/game/haunted/HauntedSaveCoordinator';
-import { createHauntedSession, stepHauntedSession, type HauntedSessionState } from './src/game/haunted/HauntedSessionRuntime';
+import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
+import { stepHauntedSession, type HauntedSessionState } from './src/game/haunted/HauntedSessionRuntime';
 import { systemAnimationClock } from './src/game/presentation/AnimationClock';
 import { PresentationRuntime } from './src/game/presentation/PresentationRuntime';
 import { AsyncStorageGameSettingsRepository } from './src/platform/settings/AsyncStorageGameSettingsRepository';
-import { AsyncStorageHauntedGameSaveRepository } from './src/platform/storage/AsyncStorageHauntedGameSaveRepository';
+import { AsyncStorageAdventureGameSaveRepository } from './src/platform/storage/AsyncStorageAdventureGameSaveRepository';
 import { DEFAULT_GAME_SETTINGS, type GameSettings, type GameSettingsPatch } from './src/settings/core/GameSettings';
 import { LoadGameSettingsUseCase } from './src/settings/usecases/LoadGameSettingsUseCase';
 import { UpdateGameSettingsUseCase } from './src/settings/usecases/UpdateGameSettingsUseCase';
@@ -24,11 +29,14 @@ type SettingsPatchFactory = (current: GameSettings) => GameSettingsPatch;
 export default function App() {
   const [view, setView] = useState<AppView>('menu');
   const [session, setSession] = useState<HauntedSessionState | null>(null);
+  const [adventure, setAdventure] = useState<AdventureState>(() => createAdventureState());
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [busy, setBusy] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
 
   const sessionRef = useRef<HauntedSessionState | null>(null);
+  const adventureRef = useRef<AdventureState>(createAdventureState());
+  const adventureCoordinatorRef = useRef(new AdventureSessionCoordinator(adventureRef.current));
   const presentationRef = useRef(new PresentationRuntime(systemAnimationClock));
   const settingsRef = useRef<GameSettings>(DEFAULT_GAME_SETTINGS);
   const settingsQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -37,8 +45,8 @@ export default function App() {
   const screenshotScenarioRef = useRef<HauntedScreenshotScenario | null>(null);
   const testHooksEnabled = isTestHooksEnabled();
 
-  const saves = useMemo(() => new AsyncStorageHauntedGameSaveRepository(), []);
-  const saveCoordinator = useMemo(() => new HauntedSaveCoordinator(saves), [saves]);
+  const saves = useMemo(() => new AsyncStorageAdventureGameSaveRepository(), []);
+  const saveCoordinator = useMemo(() => new AdventureSaveCoordinator(saves), [saves]);
   const settingsRepository = useMemo(() => new AsyncStorageGameSettingsRepository(), []);
   const loadSettings = useMemo(() => new LoadGameSettingsUseCase(settingsRepository), [settingsRepository]);
   const updateSettings = useMemo(() => new UpdateGameSettingsUseCase(settingsRepository), [settingsRepository]);
@@ -78,6 +86,16 @@ export default function App() {
       const current = sessionRef.current;
       if (!current) return;
       const now = Date.now();
+
+      // W0 Hallway is presentation/navigation infrastructure only. Its real
+      // gameplay loop arrives in W1, so the Bedroom simulation is paused while
+      // the placeholder room is active rather than leaking domestic rules into it.
+      if (adventureRef.current.currentRoom !== 'bedroom') {
+        accumulatorMsRef.current = 0;
+        lastFrameMsRef.current = now;
+        return;
+      }
+
       if (lastFrameMsRef.current === null) {
         lastFrameMsRef.current = now;
         return;
@@ -90,7 +108,7 @@ export default function App() {
       if (fixed.steps === 0) return;
 
       let next = current;
-      let saveReason: HauntedSaveReason = 'periodic';
+      let saveReason: AdventureSaveReason = 'periodic';
       for (let index = 0; index < fixed.steps; index += 1) {
         const stepped = stepHauntedSession(next, HAUNTED_STEP_MS);
         next = stepped.state;
@@ -100,7 +118,7 @@ export default function App() {
       }
 
       activateSession(next);
-      void saveCoordinator.persist(next, saveReason).catch(() => undefined);
+      void saveCoordinator.persist(gameState(next, adventureRef.current), saveReason).catch(() => undefined);
     }, 16);
 
     return () => clearInterval(timer);
@@ -109,6 +127,17 @@ export default function App() {
   function activateSession(next: HauntedSessionState) {
     sessionRef.current = next;
     setSession(next);
+  }
+
+  function activateAdventure(next: AdventureState) {
+    adventureCoordinatorRef.current.restore(next);
+    adventureRef.current = next;
+    setAdventure(next);
+  }
+
+  function activateGameSession(next: AdventureGameSessionState) {
+    activateAdventure(next.adventure);
+    activateSession(next.haunted);
   }
 
   function resetRuntimeClocks() {
@@ -125,6 +154,7 @@ export default function App() {
     if (!testHooksEnabled) return;
     screenshotScenarioRef.current = scenario;
     resetRuntimeClocks();
+    activateAdventure(createAdventureState());
     activateSession(createHauntedScreenshotScenario(scenario));
     setView('game');
   }
@@ -141,11 +171,11 @@ export default function App() {
 
     setBusy(true);
     try {
-      const next = createHauntedSession(`run-${Date.now()}`);
+      const next = createAdventureGameSession(`run-${Date.now()}`);
       await saves.save(next);
       saveCoordinator.markRestored(next);
       resetRuntimeClocks();
-      activateSession(next);
+      activateGameSession(next);
       setCanContinue(true);
       setView('game');
     } catch {
@@ -172,7 +202,7 @@ export default function App() {
       }
       saveCoordinator.markRestored(result.state);
       resetRuntimeClocks();
-      activateSession(result.state);
+      activateGameSession(result.state);
       setView('game');
     } catch {
       Alert.alert('Continue unavailable', 'The saved haunted run could not be read from device storage.');
@@ -182,14 +212,14 @@ export default function App() {
   }
 
   function handleHeldControl(control: HauntedHeldControl, pressed: boolean) {
-    if (screenshotScenarioRef.current !== null) return;
+    if (screenshotScenarioRef.current !== null || adventureRef.current.currentRoom !== 'bedroom') return;
     const current = sessionRef.current;
     if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
     activateSession({ ...current, input: setHeldControl(current.input, control, pressed) });
   }
 
   function handleAction(control: HauntedActionControl) {
-    if (screenshotScenarioRef.current !== null) return;
+    if (screenshotScenarioRef.current !== null || adventureRef.current.currentRoom !== 'bedroom') return;
     const current = sessionRef.current;
     if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
     activateSession({ ...current, input: pressAction(current.input, control) });
@@ -199,9 +229,9 @@ export default function App() {
     leaveScreenshotMode();
     const current = sessionRef.current;
     if (!current) return;
-    const next = createHauntedSession(current.runId);
+    const next = createAdventureGameSession(current.runId);
     resetRuntimeClocks();
-    activateSession(next);
+    activateGameSession(next);
     try {
       await saveCoordinator.persist(next, 'milestone');
     } catch {
@@ -213,9 +243,28 @@ export default function App() {
     const screenshotMode = screenshotScenarioRef.current !== null;
     leaveScreenshotMode();
     const current = sessionRef.current;
-    if (current && !screenshotMode) await saveCoordinator.persist(current, 'exit-menu').catch(() => undefined);
+    if (current && !screenshotMode) {
+      await saveCoordinator.persist(gameState(current, adventureRef.current), 'exit-menu').catch(() => undefined);
+    }
     resetRuntimeClocks();
     setView('menu');
+  }
+
+  async function handleDebugRoomToggle() {
+    if (!testHooksEnabled || screenshotScenarioRef.current !== null) return;
+    const current = adventureCoordinatorRef.current.snapshot();
+    const result = current.currentRoom === 'bedroom'
+      ? adventureCoordinatorRef.current.transition('hallway', 'hallway-from-bedroom')
+      : adventureCoordinatorRef.current.transition('bedroom', 'bedroom-from-hallway');
+    if (result.status !== 'ok') return;
+
+    const haunted = sessionRef.current;
+    if (!haunted) return;
+    const spawned = applyRoomSpawn(haunted, result.spawn);
+    activateAdventure(result.state);
+    activateSession(spawned);
+    resetRuntimeClocks();
+    await saveCoordinator.persist(gameState(spawned, result.state), 'room-transition').catch(() => undefined);
   }
 
   function queueSettingsChange(makePatch: SettingsPatchFactory) {
@@ -255,6 +304,7 @@ export default function App() {
       {view === 'game' && session !== null && (
         <HauntedGameScreen
           session={session}
+          adventure={adventure}
           presentationRuntime={presentationRef.current}
           touchControlLayout={gameSettings.touchControlLayout}
           onHeldControl={handleHeldControl}
@@ -264,6 +314,35 @@ export default function App() {
         />
       )}
       <ScreenshotScenarioController enabled={testHooksEnabled} onSelect={handleScreenshotScenario} />
+      <AdventureDebugController
+        enabled={testHooksEnabled && view === 'game' && screenshotScenarioRef.current === null}
+        currentRoom={adventure.currentRoom}
+        onToggleRoom={() => void handleDebugRoomToggle()}
+      />
     </View>
   );
+}
+
+function gameState(haunted: HauntedSessionState, adventure: AdventureState): AdventureGameSessionState {
+  return { schemaVersion: 3, haunted, adventure };
+}
+
+function applyRoomSpawn(state: HauntedSessionState, spawn: RoomEntryPoint): HauntedSessionState {
+  return {
+    ...state,
+    player: {
+      ...state.player,
+      x: spawn.x,
+      y: spawn.y,
+      vx: 0,
+      vy: 0,
+      grounded: true,
+      facing: spawn.facing,
+    },
+    domestic: {
+      ...state.domestic,
+      player: { x: Math.round(spawn.x), facing: spawn.facing },
+    },
+    input: createHauntedInputState(),
+  };
 }
