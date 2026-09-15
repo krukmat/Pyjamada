@@ -1,6 +1,6 @@
 import React from 'react';
 import { Canvas, Group, Rect, type SkImage } from '@shopify/react-native-skia';
-import type { RoomId } from '../adventure/AdventureState';
+import type { AdventureState, RoomId } from '../adventure/AdventureState';
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { DreamSparkProjectile } from '../haunted/HauntedCombat';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
@@ -25,6 +25,7 @@ type Props = {
   activeVisualEvents: readonly ActiveVisualEvent[];
   nowMs: number;
   roomId?: RoomId;
+  adventure?: AdventureState;
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
   dreamSparks?: readonly DreamSparkProjectile[];
   hauntedSession?: HauntedSessionState;
@@ -39,6 +40,7 @@ export function GameCanvas({
   activeVisualEvents,
   nowMs,
   roomId = 'bedroom',
+  adventure,
   playerRenderPosition,
   dreamSparks = [],
   hauntedSession,
@@ -53,9 +55,10 @@ export function GameCanvas({
   const playerFacing = playerRenderPosition?.facing ?? state.player.facing;
   const cameraX = stageCameraOffsetPx(height, playerX, playerFacing);
   const legacyWally = hauntedSession ? null : resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
-  const fx = resolveFxFrames(activeVisualEvents, nowMs);
-  const shake = resolveScreenShake(activeVisualEvents, nowMs);
-  const playerInvulnerable = Boolean(hauntedSession && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs);
+  const exploration = adventure?.storyFlags.bedroomEscapeAttempted === true;
+  const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
+  const shake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
+  const playerInvulnerable = Boolean(!exploration && hauntedSession && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs);
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
 
   return (
@@ -64,6 +67,7 @@ export function GameCanvas({
       <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
         <RoomPresentation
           roomId={roomId}
+          adventure={adventure}
           state={state}
           hauntedSession={hauntedSession}
           activeVisualEvents={activeVisualEvents}
@@ -75,7 +79,7 @@ export function GameCanvas({
           px={px}
         />
 
-        {hauntedSession && (
+        {!exploration && hauntedSession && (
           <HauntedEnemyLayer
             session={hauntedSession}
             ghostImage={hauntedGhostImage}
@@ -106,7 +110,7 @@ export function GameCanvas({
           />
         ) : null}
 
-        {dreamSparks.map((projectile) => (
+        {!exploration && dreamSparks.map((projectile) => (
           <PixelDreamSpark
             key={projectile.id}
             projectile={projectile}
