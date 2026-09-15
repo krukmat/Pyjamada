@@ -145,7 +145,10 @@ export default function App() {
           || event.type === 'LIVING_ROOM_SOURCE_CUE_REVEALED'
           || event.type === 'KITCHEN_CIRCUIT_OVERLOADED'
           || event.type === 'KITCHEN_BREAKER_INSPECTED'
-          || event.type === 'KITCHEN_POWER_REROUTED')) {
+          || event.type === 'KITCHEN_POWER_REROUTED'
+          || event.type === 'BATHROOM_MIRROR_ANOMALY_SEEN'
+          || event.type === 'BATHROOM_LIGHT_TESTED'
+          || event.type === 'BATHROOM_ROUTE_REVEALED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
