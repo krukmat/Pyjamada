@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useImage } from '@shopify/react-native-skia';
+import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
+import { roomInteractionTarget } from '../game/render/RoomPresentation';
 import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
-import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { PixelMeter } from './RetroUiKit';
@@ -16,6 +17,7 @@ import { isTestHooksEnabled } from './testHooks';
 
 type Props = {
   session: HauntedSessionState;
+  adventure?: AdventureState;
   presentationRuntime: PresentationRuntime;
   touchControlLayout: TouchControlLayout;
   onHeldControl: (control: HauntedHeldControl, pressed: boolean) => void;
@@ -24,7 +26,7 @@ type Props = {
   onExit: () => void;
 };
 
-export function HauntedGameScreen({ session, presentationRuntime, touchControlLayout, onHeldControl, onAction, onRestart, onExit }: Props) {
+export function HauntedGameScreen({ session, adventure, presentationRuntime, touchControlLayout, onHeldControl, onAction, onRestart, onExit }: Props) {
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -32,8 +34,9 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
   const hauntedAssetsReady = Boolean(hauntedWallyImage && hauntedGhostImage);
   const state = session.domestic;
-  const target = findSystemicObject(state.player.x);
-  const exitTarget = session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
+  const roomId = adventure?.currentRoom ?? 'bedroom';
+  const target = roomInteractionTarget(roomId, state);
+  const exitTarget = roomId === 'bedroom' && session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
   const done = session.objective.phase === 'completed' || session.objective.phase === 'failed';
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
@@ -56,6 +59,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
           height={viewport.height}
           activeVisualEvents={activeVisualEvents}
           nowMs={nowMs}
+          roomId={roomId}
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
           dreamSparks={session.combat.projectiles}
           hauntedSession={session}
@@ -65,8 +69,8 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
 
         <View pointerEvents="none" style={styles.hud}>
           <View>
-            <Text style={styles.kicker}>HAUNTED MORNING</Text>
-            <Text style={styles.objective}>{session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS'}</Text>
+            <Text style={styles.kicker}>{roomId === 'bedroom' ? 'HAUNTED MORNING' : 'HAUNTED HOUSE · W0'}</Text>
+            <Text style={styles.objective}>{objectiveFor(session, roomId)}</Text>
           </View>
           <View style={styles.stats}>
             <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
@@ -84,7 +88,7 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
         {done && <Outcome session={session} />}
       </View>
 
-      <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session)}</Text>
+      <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session, roomId)}</Text>
 
       {!done ? (
         <>
@@ -113,6 +117,11 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   );
 }
 
+function objectiveFor(session: HauntedSessionState, roomId: RoomId): string {
+  if (roomId === 'hallway') return 'PLACEHOLDER HALLWAY · FOUNDATION';
+  return session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS';
+}
+
 function Outcome({ session }: { session: HauntedSessionState }) {
   const success = session.objective.phase === 'completed';
   const title = success ? 'ESCAPED!' : session.objective.reason === 'house-awake' ? 'HOUSE AWAKE!' : session.objective.reason === 'too-late' ? 'TOO LATE!' : session.objective.reason === 'haunted' ? 'HAUNTED!' : 'OUT OF ENERGY!';
@@ -135,7 +144,8 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
   );
 }
 
-function reactionFor(session: HauntedSessionState): string {
+function reactionFor(session: HauntedSessionState, roomId: RoomId): string {
+  if (roomId === 'hallway') return 'The hallway exists. Its real story arrives in W1.';
   if (session.objective.phase === 'completed') return 'Out. Barely.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
