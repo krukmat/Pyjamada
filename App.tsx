@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StatusBar, View } from 'react-native';
 import { AdventureDebugController } from './src/app/AdventureDebugController';
 import { HauntedGameScreen } from './src/app/HauntedGameScreen';
-import { createHauntedScreenshotScenario, type HauntedScreenshotScenario } from './src/app/HauntedScreenshotScenarios';
+import {
+  createHauntedScreenshotScenario,
+  createScreenshotAdventureState,
+  type HauntedScreenshotScenario,
+} from './src/app/HauntedScreenshotScenarios';
 import { MainMenu } from './src/app/MainMenu';
 import type { RoomTransitionPhase } from './src/app/RoomTransitionOverlay';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
@@ -32,7 +36,6 @@ import { UpdateGameSettingsUseCase } from './src/settings/usecases/UpdateGameSet
 
 type AppView = 'menu' | 'settings' | 'game';
 type SettingsPatchFactory = (current: GameSettings) => GameSettingsPatch;
-
 type TransitionRequest = Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }>;
 
 export default function App() {
@@ -138,7 +141,6 @@ export default function App() {
         return;
       }
 
-      // Before the false escape, only the original Bedroom Haunted slice runs.
       if (currentAdventure.currentRoom !== 'bedroom') return;
 
       let next = current;
@@ -241,7 +243,7 @@ export default function App() {
     clearTransitionTimers();
     screenshotScenarioRef.current = scenario;
     resetRuntimeClocks();
-    activateAdventure(createAdventureState());
+    activateAdventure(createScreenshotAdventureState(scenario));
     activateSession(createHauntedScreenshotScenario(scenario));
     setView('game');
   }
