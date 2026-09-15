@@ -31,7 +31,7 @@ import {
   type HauntedThreatState,
 } from './HauntedThreats';
 
-export type HauntedObjectivePhase = 'prepare' | 'escape-ready' | 'exploration' | 'completed' | 'failed';
+export type HauntedObjectivePhase = 'prepare' | 'escape-ready' | 'completed' | 'failed';
 export type HauntedFailureReason = 'house-awake' | 'exhausted' | 'too-late' | 'haunted';
 
 export type HauntedSessionState = {
@@ -99,7 +99,7 @@ export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState
 }
 
 export function stepHauntedSession(state: HauntedSessionState, deltaMs: number): HauntedSessionStep {
-  if (state.objective.phase === 'completed' || state.objective.phase === 'failed' || state.objective.phase === 'exploration') {
+  if (state.objective.phase === 'completed' || state.objective.phase === 'failed') {
     return { state, events: [] };
   }
 
