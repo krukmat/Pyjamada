@@ -14,6 +14,7 @@ export type RoomId = (typeof ROOM_IDS)[number];
 export const STORY_FLAGS = [
   'bedroomEscapeAttempted',
   'hallwayUnlocked',
+  'labTransmissionSeen',
 ] as const;
 
 export type StoryFlag = (typeof STORY_FLAGS)[number];
@@ -46,6 +47,7 @@ export function createAdventureState(): AdventureState {
     storyFlags: {
       bedroomEscapeAttempted: false,
       hallwayUnlocked: false,
+      labTransmissionSeen: false,
     },
     rooms: { bedroom: createRoomPersistentState() },
   };
