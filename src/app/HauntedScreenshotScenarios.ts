@@ -85,18 +85,21 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
       return {
         ...withPlayer(base, 58),
         elapsedMs: 14_000,
-        threats: withGhost(base, ghost(1, 78, 80, 'dying', 14_200)),
+        // Freeze halfway through the 220 ms defeat window so the screenshot
+        // captures fragmentation rather than a transient first/last atlas frame.
+        threats: withGhost(base, ghost(1, 78, 80, 'dying', 14_110)),
       };
 
     case 'hit': {
-      const next = withPlayer(base, 66);
+      const next = withPlayer(base, 62);
       return {
         ...next,
         elapsedMs: 15_000,
-        player: { ...next.player, y: 94, vy: -20, grounded: false },
+        // Capture a true post-contact frame: Wally has separated from the
+        // Ghost and is still travelling through knockback/invulnerability.
+        player: { ...next.player, x: 62, y: 92, vx: -24, vy: -18, grounded: false },
+        domestic: { ...next.domestic, player: { ...next.domestic.player, x: 62, facing: 'right' } },
         combat: { ...next.combat, hp: 2, invulnerableUntilMs: 15_700 },
-        // Capture the immediate post-contact readability: Wally has already
-        // been knocked left while the Ghost remains on the attack line.
         threats: withGhost(base, ghost(1, 82, 82, 'active')),
       };
     }
