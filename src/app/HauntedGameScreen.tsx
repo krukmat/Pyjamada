@@ -95,12 +95,14 @@ export function HauntedGameScreen({
             <Text style={styles.kicker}>{kickerFor(roomId, exploration)}</Text>
             <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           </View>
-          <View style={styles.stats}>
-            <Text style={styles.time}>{exploration ? 'HOUSE ??' : `TIME ${String(remainingSeconds).padStart(2, '0')}`}</Text>
-            <Text style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
-            <View style={styles.meter}><Text style={styles.label}>ENERGY</Text><PixelMeter value={state.energy / 100} segments={5} accent={VISUAL_TOKENS.feedback.energy} /></View>
-            <View style={styles.meter}><Text style={styles.label}>NOISE</Text><PixelMeter value={state.noise / 100} segments={5} accent={VISUAL_TOKENS.feedback.noise} /></View>
-          </View>
+          {!exploration && (
+            <View style={styles.stats}>
+              <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
+              <Text style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
+              <View style={styles.meter}><Text style={styles.label}>ENERGY</Text><PixelMeter value={state.energy / 100} segments={5} accent={VISUAL_TOKENS.feedback.energy} /></View>
+              <View style={styles.meter}><Text style={styles.label}>NOISE</Text><PixelMeter value={state.noise / 100} segments={5} accent={VISUAL_TOKENS.feedback.noise} /></View>
+            </View>
+          )}
         </View>
 
         {!done && prompt && (
@@ -122,7 +124,7 @@ export function HauntedGameScreen({
             <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
           </View>
           <View style={styles.controls}>
-            <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />
+            {!exploration && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
             <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
           </View>
         </>
@@ -162,10 +164,7 @@ function promptFor(
   adventureTarget: ReturnType<typeof findAdventureInteractionTarget>,
 ): string | undefined {
   if (exitTarget) return 'INTERACT · EXIT';
-  if (adventureTarget) {
-    if (adventureTarget.id === 'living-room-door' && !adventureTarget.available) return 'INTERACT · SEALED DOOR';
-    return `INTERACT · ${adventureTarget.label}`;
-  }
+  if (adventureTarget) return `INTERACT · ${adventureTarget.displayLabel}`;
   return domesticLabel ? `INTERACT · ${domesticLabel}` : undefined;
 }
 
