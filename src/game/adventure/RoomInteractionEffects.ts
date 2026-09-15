@@ -16,7 +16,10 @@ export type RoomInteractionEffectEvent =
   | { type: 'LAB_TRANSMISSION_SEEN' }
   | { type: 'LIVING_ROOM_PHOTO_INSPECTED' }
   | { type: 'LIVING_ROOM_RADIO_INSPECTED' }
-  | { type: 'LIVING_ROOM_SOURCE_CUE_REVEALED' };
+  | { type: 'LIVING_ROOM_SOURCE_CUE_REVEALED' }
+  | { type: 'KITCHEN_CIRCUIT_OVERLOADED' }
+  | { type: 'KITCHEN_BREAKER_INSPECTED' }
+  | { type: 'KITCHEN_POWER_REROUTED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -37,6 +40,10 @@ export function applyRoomInteractionEffect(
       return inspectLivingRoomPhoto(adventure, roomId);
     case 'inspect-living-room-radio':
       return inspectLivingRoomRadio(adventure, roomId);
+    case 'use-kitchen-microwave':
+      return useKitchenMicrowave(adventure, roomId);
+    case 'use-kitchen-breaker':
+      return useKitchenBreaker(adventure, roomId);
   }
 }
 
@@ -118,4 +125,49 @@ function inspectLivingRoomRadio(adventure: AdventureState, roomId: RoomId): Room
   }
 
   return { adventure: next, events };
+}
+
+function useKitchenMicrowave(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'kitchen') return { adventure, events: [] };
+
+  const kitchen = getRoomState(adventure, 'kitchen');
+  if (kitchen.switches['power-rerouted'] === true || kitchen.switches['circuit-overloaded'] === true) {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'kitchen', 'microwave');
+  next = markRoomInteraction(next, 'kitchen', 'microwave-overload');
+  next = setRoomSwitch(next, 'kitchen', 'microwave-on', true);
+  next = setRoomSwitch(next, 'kitchen', 'circuit-overloaded', true);
+  next = setRoomSwitch(next, 'kitchen', 'breaker-focused', false);
+
+  return { adventure: next, events: [{ type: 'KITCHEN_CIRCUIT_OVERLOADED' }] };
+}
+
+function useKitchenBreaker(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'kitchen') return { adventure, events: [] };
+
+  const kitchen = getRoomState(adventure, 'kitchen');
+  if (kitchen.switches['power-rerouted'] === true) return { adventure, events: [] };
+
+  const wasInspected = kitchen.inspected.includes('breaker-panel');
+  const overloaded = kitchen.switches['circuit-overloaded'] === true;
+  let next = markRoomInspected(adventure, 'kitchen', 'breaker-panel');
+  next = markRoomInteraction(next, 'kitchen', 'breaker-inspected');
+
+  if (!overloaded) {
+    next = setRoomSwitch(next, 'kitchen', 'breaker-focused', true);
+    return {
+      adventure: next,
+      events: wasInspected ? [] : [{ type: 'KITCHEN_BREAKER_INSPECTED' }],
+    };
+  }
+
+  next = setRoomSwitch(next, 'kitchen', 'breaker-focused', false);
+  next = setRoomSwitch(next, 'kitchen', 'circuit-overloaded', false);
+  next = setRoomSwitch(next, 'kitchen', 'microwave-on', false);
+  next = setRoomSwitch(next, 'kitchen', 'power-rerouted', true);
+  next = markRoomInteraction(next, 'kitchen', 'power-rerouted');
+
+  return { adventure: next, events: [{ type: 'KITCHEN_POWER_REROUTED' }] };
 }
