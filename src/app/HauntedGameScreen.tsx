@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useImage } from '@shopify/react-native-skia';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
+import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
@@ -26,6 +28,9 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
+  const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
+  const hauntedAssetsReady = Boolean(hauntedWallyImage && hauntedGhostImage);
   const state = session.domestic;
   const target = findSystemicObject(state.player.x);
   const exitTarget = session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
@@ -54,6 +59,8 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
           dreamSparks={session.combat.projectiles}
           hauntedSession={session}
+          hauntedWallyImage={hauntedWallyImage}
+          hauntedGhostImage={hauntedGhostImage}
         />
 
         <View pointerEvents="none" style={styles.hud}>
@@ -99,7 +106,9 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
         <Text style={styles.exitText}>BACK TO MENU</Text>
       </Pressable>
 
-      {testHooksEnabled && <HauntedRenderReadyProbe scenarioKey={session.runId} />}
+      {testHooksEnabled && (
+        <HauntedRenderReadyProbe scenarioKey={session.runId} assetsReady={hauntedAssetsReady} />
+      )}
     </View>
   );
 }
