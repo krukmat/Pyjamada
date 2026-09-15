@@ -11,6 +11,8 @@ export const HAUNTED_STAGE_TOKENS = {
     coldWindowGlow: 'rgba(91,238,255,0.075)',
     coldWindowInnerGlow: 'rgba(155,222,255,0.040)',
     exitLaneGlow: 'rgba(91,238,255,0.075)',
+    pixelTextureRgb: '173,220,238',
+    pixelTextureAlpha: 0.032,
   },
   player: {
     backing: 'rgba(7,16,38,0.18)',
@@ -29,7 +31,8 @@ export const HAUNTED_STAGE_TOKENS = {
     knobIdle: '#776d7c',
   },
   projectile: {
-    glow: 'rgba(255,228,92,0.12)',
+    outerGlow: 'rgba(91,238,255,0.08)',
+    glow: 'rgba(255,228,92,0.18)',
     trail: '#84ece3',
     trailAccent: '#f1d75c',
     core: '#fffdf0',
@@ -37,11 +40,15 @@ export const HAUNTED_STAGE_TOKENS = {
     spark: '#fff4a8',
   },
   hit: {
-    glow: 'rgba(255,228,92,0.10)',
+    backing: 'rgba(5,12,29,0.24)',
+    outerGlow: 'rgba(255,123,130,0.10)',
+    glow: 'rgba(255,228,92,0.16)',
+    core: '#fffdf0',
     horizontalWarm: '#ffe45c',
     horizontalCold: '#5beeff',
     verticalDanger: '#ff7b82',
     verticalWarm: '#fff4b0',
+    pushTrail: 'rgba(132,236,227,0.72)',
   },
 } as const;
 
@@ -76,6 +83,7 @@ export const HAUNTED_STAGE_RULES = {
   // Environment treatment stays intentionally restrained so actor palettes
   // remain the dominant saturated elements.
   maxAtmosphereAlpha: 0.20,
+  maxPixelTextureAlpha: 0.05,
   playerBackingRadius: 16,
   playerBackingYOffset: 23,
   playerShadowWidth: 18,
@@ -84,6 +92,8 @@ export const HAUNTED_STAGE_RULES = {
   coldWindowX: 108,
   coldWindowY: 55,
   coldWindowRadius: 33,
+  projectileOuterGlowRadius: 6,
+  projectileInnerGlowRadius: 4.5,
 } as const;
 
 export function hauntedPressureLevel(enemyCount: number): 'calm' | 'pressure' {
@@ -128,6 +138,12 @@ export function validateHauntedStageLanguage(): string[] {
   ];
   if (atmosphereAlphas.some((alpha) => alpha < 0 || alpha > HAUNTED_STAGE_RULES.maxAtmosphereAlpha)) {
     problems.push('atmosphere alpha exceeds the actor-readability budget');
+  }
+  if (
+    HAUNTED_STAGE_TOKENS.atmosphere.pixelTextureAlpha < 0 ||
+    HAUNTED_STAGE_TOKENS.atmosphere.pixelTextureAlpha > HAUNTED_STAGE_RULES.maxPixelTextureAlpha
+  ) {
+    problems.push('pixel texture exceeds the background-integration budget');
   }
 
   const priorities = Object.values(HAUNTED_VISUAL_PRIORITY);
