@@ -4,6 +4,7 @@ import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_WALLY_ATLAS } from '../presentation/atlas/HauntedWallyAtlas';
+import { HauntedWallyFallback } from './HauntedActorFallbacks';
 import { hauntedWallyFrameIndex, selectHauntedWallyPose } from './HauntedWallyVisual';
 
 const INDEX = createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS);
@@ -18,6 +19,10 @@ type Props = {
 };
 
 export function HauntedWallySprite({ image, session, x, y, scale, nowMs }: Props) {
+  if (!image) {
+    return <HauntedWallyFallback session={session} x={x} y={y} scale={scale} />;
+  }
+
   const palette = session.domestic.flags.dressed ? 'dressed' : 'pajamas';
   const pose = selectHauntedWallyPose(session);
   const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
