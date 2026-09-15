@@ -251,3 +251,29 @@ tags:
 - assertVisible: "CHECK THE LIVING ROOM"
 - takeScreenshot:
     path: 19_living_room_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-static
+- extendedWaitUntil:
+    visible:
+      text: "Static. Not a channel. Something is underneath it."
+    timeout: 5000
+- assertVisible: "CHECK THE SIGNAL"
+- assertVisible: "INTERACT · TELEVISION"
+- takeScreenshot:
+    path: 20_living_room_static
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-transmission
+- extendedWaitUntil:
+    visible:
+      text: "A voice cuts through: RESONANCE STABLE... SUBJECT... Then static."
+    timeout: 5000
+- assertVisible: "FIND THE SOURCE"
+- assertVisible: "INTERACT · TELEVISION"
+- takeScreenshot:
+    path: 21_lab_transmission
