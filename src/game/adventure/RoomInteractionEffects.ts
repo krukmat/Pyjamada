@@ -19,7 +19,10 @@ export type RoomInteractionEffectEvent =
   | { type: 'LIVING_ROOM_SOURCE_CUE_REVEALED' }
   | { type: 'KITCHEN_CIRCUIT_OVERLOADED' }
   | { type: 'KITCHEN_BREAKER_INSPECTED' }
-  | { type: 'KITCHEN_POWER_REROUTED' };
+  | { type: 'KITCHEN_POWER_REROUTED' }
+  | { type: 'BATHROOM_MIRROR_ANOMALY_SEEN' }
+  | { type: 'BATHROOM_LIGHT_TESTED' }
+  | { type: 'BATHROOM_ROUTE_REVEALED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -44,6 +47,10 @@ export function applyRoomInteractionEffect(
       return useKitchenMicrowave(adventure, roomId);
     case 'use-kitchen-breaker':
       return useKitchenBreaker(adventure, roomId);
+    case 'inspect-bathroom-mirror':
+      return inspectBathroomMirror(adventure, roomId);
+    case 'use-bathroom-light':
+      return useBathroomLight(adventure, roomId);
   }
 }
 
@@ -170,4 +177,40 @@ function useKitchenBreaker(adventure: AdventureState, roomId: RoomId): RoomInter
   next = markRoomInteraction(next, 'kitchen', 'power-rerouted');
 
   return { adventure: next, events: [{ type: 'KITCHEN_POWER_REROUTED' }] };
+}
+
+function inspectBathroomMirror(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'bathroom') return { adventure, events: [] };
+
+  const bathroom = getRoomState(adventure, 'bathroom');
+  const anomalySeen = bathroom.switches['mirror-anomaly-seen'] === true;
+  const lightOff = bathroom.switches['bathroom-light-off'] === true;
+  const routeRevealed = bathroom.switches['mirror-route-revealed'] === true;
+
+  let next = markRoomInspected(adventure, 'bathroom', 'mirror-mismatch');
+  next = markRoomInteraction(next, 'bathroom', 'mirror-inspected');
+
+  if (!anomalySeen) {
+    next = setRoomSwitch(next, 'bathroom', 'mirror-anomaly-seen', true);
+    return { adventure: next, events: [{ type: 'BATHROOM_MIRROR_ANOMALY_SEEN' }] };
+  }
+
+  if (lightOff && !routeRevealed) {
+    next = setRoomSwitch(next, 'bathroom', 'mirror-route-revealed', true);
+    next = markRoomInteraction(next, 'bathroom', 'mirror-route-confirmed');
+    return { adventure: next, events: [{ type: 'BATHROOM_ROUTE_REVEALED' }] };
+  }
+
+  return { adventure: next, events: [] };
+}
+
+function useBathroomLight(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'bathroom') return { adventure, events: [] };
+
+  const bathroom = getRoomState(adventure, 'bathroom');
+  if (bathroom.switches['bathroom-light-off'] === true) return { adventure, events: [] };
+
+  let next = markRoomInteraction(adventure, 'bathroom', 'light-switch-tested');
+  next = setRoomSwitch(next, 'bathroom', 'bathroom-light-off', true);
+  return { adventure: next, events: [{ type: 'BATHROOM_LIGHT_TESTED' }] };
 }
