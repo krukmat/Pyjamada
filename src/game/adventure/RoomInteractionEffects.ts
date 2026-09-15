@@ -13,7 +13,10 @@ export type RoomInteractionEffectEvent =
   | { type: 'HALLWAY_CLOCK_INSPECTED' }
   | { type: 'LIVING_ROOM_PATH_REVEALED' }
   | { type: 'LIVING_ROOM_TV_ACTIVATED' }
-  | { type: 'LAB_TRANSMISSION_SEEN' };
+  | { type: 'LAB_TRANSMISSION_SEEN' }
+  | { type: 'LIVING_ROOM_PHOTO_INSPECTED' }
+  | { type: 'LIVING_ROOM_RADIO_INSPECTED' }
+  | { type: 'LIVING_ROOM_SOURCE_CUE_REVEALED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -30,6 +33,10 @@ export function applyRoomInteractionEffect(
       return inspectBackwardClock(adventure, roomId);
     case 'use-living-room-tv':
       return useLivingRoomTv(adventure, roomId);
+    case 'inspect-living-room-photo':
+      return inspectLivingRoomPhoto(adventure, roomId);
+    case 'inspect-living-room-radio':
+      return inspectLivingRoomRadio(adventure, roomId);
   }
 }
 
@@ -67,4 +74,40 @@ function useLivingRoomTv(adventure: AdventureState, roomId: RoomId): RoomInterac
   }
 
   return { adventure, events: [] };
+}
+
+function inspectLivingRoomPhoto(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'living-room') return { adventure, events: [] };
+
+  const livingRoom = getRoomState(adventure, 'living-room');
+  const wasInspected = livingRoom.inspected.includes('photo-reflection');
+  let next = markRoomInspected(adventure, 'living-room', 'photo-reflection');
+  next = markRoomInteraction(next, 'living-room', 'photo-inspected');
+
+  return {
+    adventure: next,
+    events: wasInspected ? [] : [{ type: 'LIVING_ROOM_PHOTO_INSPECTED' }],
+  };
+}
+
+function inspectLivingRoomRadio(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'living-room') return { adventure, events: [] };
+
+  const livingRoom = getRoomState(adventure, 'living-room');
+  const wasInspected = livingRoom.inspected.includes('radio-static');
+  const sourceAlreadyRevealed = livingRoom.switches['source-hum-traced'] === true;
+  let next = markRoomInspected(adventure, 'living-room', 'radio-static');
+  next = markRoomInteraction(next, 'living-room', 'radio-inspected');
+
+  const events: RoomInteractionEffectEvent[] = wasInspected
+    ? []
+    : [{ type: 'LIVING_ROOM_RADIO_INSPECTED' }];
+
+  if (adventure.storyFlags.labTransmissionSeen && !sourceAlreadyRevealed) {
+    next = setRoomSwitch(next, 'living-room', 'source-hum-traced', true);
+    next = markRoomInteraction(next, 'living-room', 'source-hum-traced');
+    events.push({ type: 'LIVING_ROOM_SOURCE_CUE_REVEALED' });
+  }
+
+  return { adventure: next, events };
 }
