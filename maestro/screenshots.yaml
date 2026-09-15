@@ -1,9 +1,9 @@
 appId: com.krukmat.pyjamada
-name: Expressive Arcade Android Screenshot Tour
+name: Haunted Arcade Android Screenshot Tour
 tags:
   - android
   - screenshots
-  - expressive-arcade
+  - haunted-arcade
 ---
 - launchApp:
     clearState: true
@@ -43,260 +43,150 @@ tags:
       id: main-menu-screen
     timeout: 10000
 
+# Screenshot builds expose a test-only scenario picker. Haunted actor rendering
+# now has synchronous Skia fallbacks, so the tour waits on the actual scenario
+# UI state instead of a synthetic renderer-ready probe. This guarantees that a
+# renderer problem produces screenshot evidence rather than blocking the tour.
+
 - tapOn:
-    id: new-game-button
+    id: screenshot-scenario-menu
+- extendedWaitUntil:
+    visible:
+      id: screenshot-scenario-picker
+    timeout: 5000
+- tapOn:
+    id: screenshot-scenario-sleepy
+- extendedWaitUntil:
+    visible:
+      text: "Wake up first. Bed or alarm."
+    timeout: 5000
+- takeScreenshot:
+    path: 03_haunted_sleepy
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-wake
+- extendedWaitUntil:
+    visible:
+      text: "Awake. The room is waking up too."
+    timeout: 5000
+- takeScreenshot:
+    path: 04_haunted_wake
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ghost-telegraph
+- extendedWaitUntil:
+    visible:
+      text: "Something is phasing into the room..."
+    timeout: 5000
+- takeScreenshot:
+    path: 05_ghost_telegraph
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ghost-active
+- extendedWaitUntil:
+    visible:
+      text: "Ghost active. Shoot or keep moving."
+    timeout: 5000
+- takeScreenshot:
+    path: 06_ghost_active
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-jump
 - extendedWaitUntil:
     visible:
       id: game-screen
-    timeout: 20000
-- assertVisible: GET DRESSED + FIND KEYS
-- assertVisible: "Wally is barely functional.*"
+    timeout: 5000
+- assertVisible: HAUNTED MORNING
 - takeScreenshot:
-    path: 03_run_start_sleepy
-
-- repeat:
-    times: 2
-    commands:
-      - tapOn:
-          id: move-left-button
-- tapOn:
-    id: action-button
-- assertVisible: "Five more minutes.*"
-# T-05: debug-wally-clip is confirmed present with the correct latched value
-# via direct uiautomator inspection, but Maestro's own visible-element check
-# does not detect this specific node (likely its own size/opacity visibility
-# heuristic, not a rendering bug) — tracked separately. Use a short fixed
-# pause instead of gating the screenshot on that assertion.
-- waitForAnimationToEnd:
-    timeout: 500
-- takeScreenshot:
-    path: 04_bed_wake
-
-- repeat:
-    times: 4
-    commands:
-      - tapOn:
-          id: move-right-button
-- tapOn:
-    id: action-button
-- assertVisible: "Soft steps unlocked.*"
-- waitForAnimationToEnd:
-    timeout: 500
-- takeScreenshot:
-    path: 05_slippers
-
-- repeat:
-    times: 4
-    commands:
-      - tapOn:
-          id: move-right-button
-- tapOn:
-    id: action-button
-- assertVisible: "Awake. Quiet.*"
-- waitForAnimationToEnd:
-    timeout: 500
-- takeScreenshot:
-    path: 06_alarm
+    path: 07_wally_jump
 
 - tapOn:
-    id: action-button
-- assertVisible: "Again.*Panic mode engaged.*"
-- waitForAnimationToEnd:
-    timeout: 500
-- takeScreenshot:
-    path: 07_startled
-
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: move-right-button
+    id: screenshot-scenario-menu
 - tapOn:
-    id: action-button
-- assertVisible: "Dressed. Coordination optional.*"
-- waitForAnimationToEnd:
-    timeout: 500
+    id: screenshot-scenario-attack
+- extendedWaitUntil:
+    visible:
+      text: "Ghost active. Shoot or keep moving."
+    timeout: 5000
 - takeScreenshot:
-    path: 08_wardrobe_fumble
+    path: 08_dream_spark_attack
 
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: move-right-button
 - tapOn:
-    id: action-button
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ghost-defeated
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: HAUNTED MORNING
+- takeScreenshot:
+    path: 09_ghost_defeated
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-hit
+- extendedWaitUntil:
+    visible:
+      text: "HP ♥♥·"
+    timeout: 5000
+- takeScreenshot:
+    path: 10_player_hit
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-dressed
+- extendedWaitUntil:
+    visible:
+      text: "Ghost active. Shoot or keep moving."
+    timeout: 5000
+- takeScreenshot:
+    path: 11_dressed_under_pressure
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-escape-ready
+- extendedWaitUntil:
+    visible:
+      text: "ESCAPE READY · CLEAR THE DOOR"
+    timeout: 5000
+- assertVisible: "Exit lane haunted. Fire, dodge, get out."
+- takeScreenshot:
+    path: 12_escape_ready
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-success
 - extendedWaitUntil:
     visible:
       id: restart-button
-    timeout: 10000
-- assertVisible: "READY!.*"
+    timeout: 5000
+- assertVisible: "ESCAPED!"
+- assertVisible: "Out. Barely."
 - takeScreenshot:
-    path: 09_success
+    path: 13_escaped
 
 - tapOn:
-    id: restart-button
-- assertVisible: GET DRESSED + FIND KEYS
-- assertVisible: "Wally is barely functional.*"
-- takeScreenshot:
-    path: 10_restart
-
-# Restore contract: persist a stable post-bed state, leave the game, then reconstruct
-# presentation from gameplay state without persisting transient animation frames.
-- repeat:
-    times: 2
-    commands:
-      - tapOn:
-          id: move-left-button
+    id: screenshot-scenario-menu
 - tapOn:
-    id: action-button
-- assertVisible: "Five more minutes.*"
-- tapOn:
-    id: exit-button
-- extendedWaitUntil:
-    visible:
-      id: main-menu-screen
-    timeout: 10000
-- tapOn:
-    id: continue-button
-- extendedWaitUntil:
-    visible:
-      id: game-screen
-    timeout: 10000
-- assertVisible: "Five more minutes.*"
-- takeScreenshot:
-    path: 11_continue_restore
-
-# Failure outcomes: each of the three failure conditions is deterministic from
-# a fresh run (see src/game/systemic/SystemicRuleEngine.ts and SYSTEMIC_LIMITS
-# in SystemicState.ts) and terminal, so each needs its own fresh run reached
-# via exit + new game rather than the mid-run restart-button.
-
-# house-awake: three alarm-clock presses from a fresh run push noise to 92,
-# past the noiseFailure threshold of 85.
-- tapOn:
-    id: exit-button
-- extendedWaitUntil:
-    visible:
-      id: main-menu-screen
-    timeout: 10000
-- tapOn:
-    id: new-game-button
-# App.tsx's handleNewGame shows a native "Replace saved game?" confirmation
-# whenever a save already exists (true for every new-game-button tap past the
-# very first one in this flow) and otherwise never reaches game-screen —
-# see FINDING-006 in docs/AUDIT_REPORT.md. Dismiss it here so the tour can
-# proceed; the underlying player-facing UX gap is tracked separately, not
-# fixed by this flow.
-- runFlow:
-    when:
-      visible:
-        text: "Replace saved game?"
-    commands:
-      - tapOn: "Replace"
-- extendedWaitUntil:
-    visible:
-      id: game-screen
-    timeout: 20000
-- repeat:
-    times: 6
-    commands:
-      - tapOn:
-          id: move-right-button
-- repeat:
-    times: 3
-    commands:
-      - tapOn:
-          id: action-button
+    id: screenshot-scenario-haunted-fail
 - extendedWaitUntil:
     visible:
       id: restart-button
-    timeout: 10000
-- assertVisible: "HOUSE AWAKE!"
-- assertVisible: "Too loud. The whole house knows.*"
+    timeout: 5000
+- assertVisible: "HAUNTED!"
+- assertVisible: "The haunting got Wally."
 - takeScreenshot:
-    path: 12_fail_house_awake
-
-# exhausted: five wardrobe interactions from a fresh run drain energy from 35
-# to 0, the minEnergy floor.
-- tapOn:
-    id: exit-button
-- extendedWaitUntil:
-    visible:
-      id: main-menu-screen
-    timeout: 10000
-- tapOn:
-    id: new-game-button
-# See FINDING-006 note above: dismiss the native replace-save confirmation.
-- runFlow:
-    when:
-      visible:
-        text: "Replace saved game?"
-    commands:
-      - tapOn: "Replace"
-- extendedWaitUntil:
-    visible:
-      id: game-screen
-    timeout: 20000
-- repeat:
-    times: 11
-    commands:
-      - tapOn:
-          id: move-right-button
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: action-button
-- extendedWaitUntil:
-    visible:
-      id: restart-button
-    timeout: 10000
-- assertVisible: "OUT OF ENERGY!"
-- assertVisible: "No energy left. Heroics were a mistake.*"
-- takeScreenshot:
-    path: 13_fail_exhausted
-
-# too-late: equip slippers first so every subsequent move is quiet (noise +2
-# base, -2 from the slippers-quiet-step rule nets to zero), then move well
-# past the deadline of 50 without ever risking the noise or energy floors.
-- tapOn:
-    id: exit-button
-- extendedWaitUntil:
-    visible:
-      id: main-menu-screen
-    timeout: 10000
-- tapOn:
-    id: new-game-button
-# See FINDING-006 note above: dismiss the native replace-save confirmation.
-- runFlow:
-    when:
-      visible:
-        text: "Replace saved game?"
-    commands:
-      - tapOn: "Replace"
-- extendedWaitUntil:
-    visible:
-      id: game-screen
-    timeout: 20000
-- repeat:
-    times: 2
-    commands:
-      - tapOn:
-          id: move-right-button
-- tapOn:
-    id: action-button
-- assertVisible: "Soft steps unlocked.*"
-- repeat:
-    times: 46
-    commands:
-      - tapOn:
-          id: move-right-button
-- extendedWaitUntil:
-    visible:
-      id: restart-button
-    timeout: 10000
-- assertVisible: "TOO LATE!"
-- assertVisible: "Morning won. Try a sharper route.*"
-- takeScreenshot:
-    path: 14_fail_too_late
+    path: 14_haunted_failure

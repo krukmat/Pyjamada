@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StatusBar } from 'react-native';
-import { GameScreen } from './src/app/GameScreen';
+import { Alert, StatusBar, View } from 'react-native';
+import { HauntedGameScreen } from './src/app/HauntedGameScreen';
+import { createHauntedScreenshotScenario, type HauntedScreenshotScenario } from './src/app/HauntedScreenshotScenarios';
 import { MainMenu } from './src/app/MainMenu';
+import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
+import { isTestHooksEnabled } from './src/app/testHooks';
+import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
+import { pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
+import { HauntedSaveCoordinator, type HauntedSaveReason } from './src/game/haunted/HauntedSaveCoordinator';
+import { createHauntedSession, stepHauntedSession, type HauntedSessionState } from './src/game/haunted/HauntedSessionRuntime';
 import { systemAnimationClock } from './src/game/presentation/AnimationClock';
 import { PresentationRuntime } from './src/game/presentation/PresentationRuntime';
-import { mapSystemicUpdateToVisualEvents } from './src/game/presentation/VisualEventMapper';
-import { restartSystemicRun, updateSystemicRun } from './src/game/systemic/SystemicRuntime';
-import { createSystemicRun, type SystemicInput, type SystemicRunState } from './src/game/systemic/SystemicState';
-import { InMemorySystemicTelemetry, recordSystemicUpdate } from './src/game/systemic/SystemicTelemetry';
 import { AsyncStorageGameSettingsRepository } from './src/platform/settings/AsyncStorageGameSettingsRepository';
-import { AsyncStorageGameSaveRepository } from './src/platform/storage/AsyncStorageGameSaveRepository';
+import { AsyncStorageHauntedGameSaveRepository } from './src/platform/storage/AsyncStorageHauntedGameSaveRepository';
 import { DEFAULT_GAME_SETTINGS, type GameSettings, type GameSettingsPatch } from './src/settings/core/GameSettings';
 import { LoadGameSettingsUseCase } from './src/settings/usecases/LoadGameSettingsUseCase';
 import { UpdateGameSettingsUseCase } from './src/settings/usecases/UpdateGameSettingsUseCase';
@@ -20,19 +23,22 @@ type SettingsPatchFactory = (current: GameSettings) => GameSettingsPatch;
 
 export default function App() {
   const [view, setView] = useState<AppView>('menu');
-  const [gameState, setGameState] = useState<SystemicRunState | null>(null);
+  const [session, setSession] = useState<HauntedSessionState | null>(null);
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [busy, setBusy] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
 
-  const gameStateRef = useRef<SystemicRunState | null>(null);
-  const retriesRef = useRef(0);
-  const telemetryRef = useRef(new InMemorySystemicTelemetry());
+  const sessionRef = useRef<HauntedSessionState | null>(null);
   const presentationRef = useRef(new PresentationRuntime(systemAnimationClock));
   const settingsRef = useRef<GameSettings>(DEFAULT_GAME_SETTINGS);
   const settingsQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const accumulatorMsRef = useRef(0);
+  const lastFrameMsRef = useRef<number | null>(null);
+  const screenshotScenarioRef = useRef<HauntedScreenshotScenario | null>(null);
+  const testHooksEnabled = isTestHooksEnabled();
 
-  const saves = useMemo(() => new AsyncStorageGameSaveRepository(), []);
+  const saves = useMemo(() => new AsyncStorageHauntedGameSaveRepository(), []);
+  const saveCoordinator = useMemo(() => new HauntedSaveCoordinator(saves), [saves]);
   const settingsRepository = useMemo(() => new AsyncStorageGameSettingsRepository(), []);
   const loadSettings = useMemo(() => new LoadGameSettingsUseCase(settingsRepository), [settingsRepository]);
   const updateSettings = useMemo(() => new UpdateGameSettingsUseCase(settingsRepository), [settingsRepository]);
@@ -55,21 +61,78 @@ export default function App() {
     return () => { active = false; };
   }, [loadSettings, saves]);
 
-  function activateGame(next: SystemicRunState) {
-    gameStateRef.current = next;
-    setGameState(next);
+  useEffect(() => {
+    if (view !== 'game') {
+      accumulatorMsRef.current = 0;
+      lastFrameMsRef.current = null;
+      return;
+    }
+
+    const timer = setInterval(() => {
+      if (screenshotScenarioRef.current !== null) {
+        accumulatorMsRef.current = 0;
+        lastFrameMsRef.current = null;
+        return;
+      }
+
+      const current = sessionRef.current;
+      if (!current) return;
+      const now = Date.now();
+      if (lastFrameMsRef.current === null) {
+        lastFrameMsRef.current = now;
+        return;
+      }
+
+      const elapsedMs = now - lastFrameMsRef.current;
+      lastFrameMsRef.current = now;
+      const fixed = advanceFixedStep(accumulatorMsRef.current, elapsedMs);
+      accumulatorMsRef.current = fixed.accumulatorMs;
+      if (fixed.steps === 0) return;
+
+      let next = current;
+      let saveReason: HauntedSaveReason = 'periodic';
+      for (let index = 0; index < fixed.steps; index += 1) {
+        const stepped = stepHauntedSession(next, HAUNTED_STEP_MS);
+        next = stepped.state;
+        if (stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION')) saveReason = 'interaction';
+        if (stepped.events.some((event) => event.type === 'ESCAPE_READY')) saveReason = 'milestone';
+        if (stepped.events.some((event) => event.type === 'SESSION_FAILED' || event.type === 'SESSION_COMPLETED')) saveReason = 'terminal';
+      }
+
+      activateSession(next);
+      void saveCoordinator.persist(next, saveReason).catch(() => undefined);
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [view, saveCoordinator]);
+
+  function activateSession(next: HauntedSessionState) {
+    sessionRef.current = next;
+    setSession(next);
   }
 
-  function resetRunDiagnostics(next: SystemicRunState) {
-    retriesRef.current = 0;
-    telemetryRef.current = new InMemorySystemicTelemetry();
-    telemetryRef.current.record({ type: 'run_started', runId: next.runId });
+  function resetRuntimeClocks() {
+    accumulatorMsRef.current = 0;
+    lastFrameMsRef.current = null;
     presentationRef.current.reset();
   }
 
+  function leaveScreenshotMode() {
+    screenshotScenarioRef.current = null;
+  }
+
+  function handleScreenshotScenario(scenario: HauntedScreenshotScenario) {
+    if (!testHooksEnabled) return;
+    screenshotScenarioRef.current = scenario;
+    resetRuntimeClocks();
+    activateSession(createHauntedScreenshotScenario(scenario));
+    setView('game');
+  }
+
   async function handleNewGame(overwrite = false) {
+    leaveScreenshotMode();
     if (canContinue && !overwrite) {
-      Alert.alert('Replace saved game?', 'Starting a new game will replace the current run.', [
+      Alert.alert('Replace saved game?', 'Starting a new game will replace the current haunted run.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Replace', style: 'destructive', onPress: () => void handleNewGame(true) },
       ]);
@@ -78,70 +141,81 @@ export default function App() {
 
     setBusy(true);
     try {
-      const next = createSystemicRun(`run-${Date.now()}`);
+      const next = createHauntedSession(`run-${Date.now()}`);
       await saves.save(next);
-      resetRunDiagnostics(next);
-      activateGame(next);
+      saveCoordinator.markRestored(next);
+      resetRuntimeClocks();
+      activateSession(next);
       setCanContinue(true);
       setView('game');
     } catch {
-      Alert.alert('New game unavailable', 'The initial game state could not be saved.');
+      Alert.alert('New game unavailable', 'The haunted run could not be initialized.');
     } finally {
       setBusy(false);
     }
   }
 
   async function handleContinue() {
+    leaveScreenshotMode();
     setBusy(true);
     try {
       const result = await saves.read();
       if (result.status === 'none') {
         setCanContinue(false);
-        Alert.alert('No saved game', 'Start a new game first.');
+        Alert.alert('No saved game', 'Start a new haunted run first.');
         return;
       }
       if (result.status === 'invalid') {
         setCanContinue(false);
-        Alert.alert('Saved game unavailable', 'The saved run is incompatible or corrupted. Start a new game to replace it.');
+        Alert.alert('Saved game unavailable', 'The save is incompatible or corrupted. Start a new run to replace it.');
         return;
       }
-      resetRunDiagnostics(result.state);
-      activateGame(result.state);
+      saveCoordinator.markRestored(result.state);
+      resetRuntimeClocks();
+      activateSession(result.state);
       setView('game');
     } catch {
-      Alert.alert('Continue unavailable', 'The saved game could not be read from device storage.');
+      Alert.alert('Continue unavailable', 'The saved haunted run could not be read from device storage.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleInput(input: SystemicInput) {
-    const current = gameStateRef.current;
-    if (current === null) return;
-    const result = updateSystemicRun(current, input);
-    recordSystemicUpdate(telemetryRef.current, current, input, result, retriesRef.current);
-    presentationRef.current.push(mapSystemicUpdateToVisualEvents(current, result));
-    activateGame(result.state);
-    try {
-      await saves.save(result.state);
-    } catch {
-      Alert.alert('Progress not saved', 'Gameplay can continue, but the latest state was not persisted.');
-    }
+  function handleHeldControl(control: HauntedHeldControl, pressed: boolean) {
+    if (screenshotScenarioRef.current !== null) return;
+    const current = sessionRef.current;
+    if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
+    activateSession({ ...current, input: setHeldControl(current.input, control, pressed) });
+  }
+
+  function handleAction(control: HauntedActionControl) {
+    if (screenshotScenarioRef.current !== null) return;
+    const current = sessionRef.current;
+    if (!current || current.objective.phase === 'failed' || current.objective.phase === 'completed') return;
+    activateSession({ ...current, input: pressAction(current.input, control) });
   }
 
   async function handleRestart() {
-    const current = gameStateRef.current;
-    if (current === null) return;
-    retriesRef.current += 1;
-    const result = restartSystemicRun(current);
-    telemetryRef.current.record({ type: 'run_restarted', runId: current.runId, retries: retriesRef.current });
-    presentationRef.current.push(mapSystemicUpdateToVisualEvents(current, result));
-    activateGame(result.state);
+    leaveScreenshotMode();
+    const current = sessionRef.current;
+    if (!current) return;
+    const next = createHauntedSession(current.runId);
+    resetRuntimeClocks();
+    activateSession(next);
     try {
-      await saves.save(result.state);
+      await saveCoordinator.persist(next, 'milestone');
     } catch {
       Alert.alert('Restart not saved', 'The run restarted, but the reset state was not persisted.');
     }
+  }
+
+  async function handleExit() {
+    const screenshotMode = screenshotScenarioRef.current !== null;
+    leaveScreenshotMode();
+    const current = sessionRef.current;
+    if (current && !screenshotMode) await saveCoordinator.persist(current, 'exit-menu').catch(() => undefined);
+    resetRuntimeClocks();
+    setView('menu');
   }
 
   function queueSettingsChange(makePatch: SettingsPatchFactory) {
@@ -153,13 +227,11 @@ export default function App() {
         settingsRef.current = next;
         setGameSettings(next);
       })
-      .catch(() => {
-        Alert.alert('Settings not saved', 'The requested setting could not be persisted.');
-      });
+      .catch(() => Alert.alert('Settings not saved', 'The requested setting could not be persisted.'));
   }
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
       {view === 'menu' && (
         <MainMenu
@@ -180,19 +252,18 @@ export default function App() {
           onToggleControlLayout={() => queueSettingsChange((current) => ({ touchControlLayout: current.touchControlLayout === 'standard' ? 'mirrored' : 'standard' }))}
         />
       )}
-      {view === 'game' && gameState !== null && (
-        <GameScreen
-          state={gameState}
+      {view === 'game' && session !== null && (
+        <HauntedGameScreen
+          session={session}
           presentationRuntime={presentationRef.current}
           touchControlLayout={gameSettings.touchControlLayout}
-          onInput={(input) => void handleInput(input)}
+          onHeldControl={handleHeldControl}
+          onAction={handleAction}
           onRestart={() => void handleRestart()}
-          onExit={() => {
-            presentationRef.current.reset();
-            setView('menu');
-          }}
+          onExit={() => void handleExit()}
         />
       )}
-    </>
+      <ScreenshotScenarioController enabled={testHooksEnabled} onSelect={handleScreenshotScenario} />
+    </View>
   );
 }

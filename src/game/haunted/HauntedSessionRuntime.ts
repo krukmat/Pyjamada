@@ -1,0 +1,209 @@
+import { createSystemicRun, type SystemicRunState } from '../systemic/SystemicState';
+import {
+  applyHauntedPlayerHit,
+  createHauntedCombatState,
+  DREAM_SPARK,
+  stepDreamSparks,
+  tryFireDreamSpark,
+  type HauntedCombatState,
+} from './HauntedCombat';
+import {
+  applyHauntedClockState,
+  applyHauntedMovementNoise,
+  applyHauntedNoise,
+  hauntedDomesticFailureReason,
+  interactHauntedDomestic,
+  syncDomesticPlayer,
+} from './HauntedDomesticAdapter';
+import { consumeTransientActions, createHauntedInputState, type HauntedInputState } from './HauntedInput';
+import {
+  applyHauntedKnockback,
+  createHauntedPlayerPhysics,
+  stepHauntedPlayerPhysics,
+  type HauntedPlayerPhysicsState,
+} from './PlayerPhysics';
+import { seedFromString } from './SeededRng';
+import {
+  createHauntedThreatState,
+  queueGhostTelegraphAt,
+  stepHauntedThreats,
+  type HauntedThreatEvent,
+  type HauntedThreatState,
+} from './HauntedThreats';
+
+export type HauntedObjectivePhase = 'prepare' | 'escape-ready' | 'completed' | 'failed';
+export type HauntedFailureReason = 'house-awake' | 'exhausted' | 'too-late' | 'haunted';
+
+export type HauntedSessionState = {
+  schemaVersion: 2;
+  runId: string;
+  rngState: number;
+  domestic: SystemicRunState;
+  player: HauntedPlayerPhysicsState;
+  input: HauntedInputState;
+  elapsedMs: number;
+  penaltyMs: number;
+  deadlineMs: number;
+  movementNoiseCarry: number;
+  combat: HauntedCombatState;
+  threats: HauntedThreatState;
+  objective: {
+    phase: HauntedObjectivePhase;
+    reason?: HauntedFailureReason;
+  };
+};
+
+export type HauntedSessionEvent =
+  | { type: 'PLAYER_JUMPED' }
+  | { type: 'DREAM_SPARK_FIRED'; projectileId: number }
+  | { type: 'DOMESTIC_INTERACTION'; objectId?: string; ruleTrace: string[] }
+  | { type: 'ESCAPE_READY' }
+  | { type: 'SESSION_COMPLETED' }
+  | { type: 'SESSION_FAILED'; reason: HauntedFailureReason }
+  | HauntedThreatEvent;
+
+export type HauntedSessionStep = {
+  state: HauntedSessionState;
+  events: HauntedSessionEvent[];
+};
+
+export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
+export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
+export const HAUNTED_ESCAPE_GHOST_X = 108;
+export const HAUNTED_PRESSURE = {
+  wakeSpawnDelayMs: 1_800,
+  alarmSpawnDelayMs: 800,
+} as const;
+
+export function isAtHauntedExit(playerX: number): boolean {
+  return Math.abs(playerX - HAUNTED_EXIT.x) <= HAUNTED_EXIT.radius;
+}
+
+export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState {
+  const domestic = createSystemicRun(runId);
+  return {
+    schemaVersion: 2,
+    runId,
+    rngState: seedFromString(runId),
+    domestic,
+    player: createHauntedPlayerPhysics(domestic.player.x),
+    input: createHauntedInputState(),
+    elapsedMs: 0,
+    penaltyMs: 0,
+    deadlineMs: HAUNTED_DEFAULT_DEADLINE_MS,
+    movementNoiseCarry: 0,
+    combat: createHauntedCombatState(),
+    threats: createHauntedThreatState(),
+    objective: { phase: 'prepare' },
+  };
+}
+
+export function stepHauntedSession(state: HauntedSessionState, deltaMs: number): HauntedSessionStep {
+  if (state.objective.phase === 'completed' || state.objective.phase === 'failed') return { state, events: [] };
+
+  const dtMs = Math.max(0, deltaMs);
+  const dtSeconds = dtMs / 1000;
+  const elapsedMs = state.elapsedMs + dtMs;
+  const events: HauntedSessionEvent[] = [];
+  const wasGrounded = state.player.grounded;
+  const previousX = state.player.x;
+  let player = stepHauntedPlayerPhysics(state.player, state.input, dtSeconds);
+  if (state.input.jumpPressed && wasGrounded && !player.grounded) events.push({ type: 'PLAYER_JUMPED' });
+
+  let domestic = syncDomesticPlayer(state.domestic, player.x, player.facing);
+  const movementNoise = applyHauntedMovementNoise(domestic, Math.abs(player.x - previousX), state.movementNoiseCarry);
+  domestic = movementNoise.state;
+
+  let combat = stepDreamSparks(state.combat, dtSeconds);
+  if (state.input.attackPressed) {
+    const fired = tryFireDreamSpark(combat, player, state.elapsedMs);
+    combat = fired.combat;
+    if (fired.projectile) {
+      domestic = applyHauntedNoise(domestic, DREAM_SPARK.noisePerShot);
+      events.push({ type: 'DREAM_SPARK_FIRED', projectileId: fired.projectile.id });
+    }
+  }
+
+  const threatStep = stepHauntedThreats(
+    state.threats,
+    combat,
+    player,
+    elapsedMs,
+    dtSeconds,
+    domestic.noise,
+    state.rngState,
+  );
+  combat = threatStep.combat;
+  let threats = threatStep.threats;
+  events.push(...threatStep.events);
+
+  if (threatStep.playerHitDirection !== 0) {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, threatStep.playerHitDirection);
+      domestic = syncDomesticPlayer(domestic, player.x, player.facing);
+    }
+  }
+
+  const escapeRequested = state.objective.phase === 'escape-ready' && state.input.interactPressed && isAtHauntedExit(player.x);
+
+  let penaltyMs = state.penaltyMs;
+  if (state.input.interactPressed && !escapeRequested) {
+    const wasSleepy = domestic.wallyState === 'sleepy';
+    const interaction = interactHauntedDomestic(domestic);
+    domestic = interaction.state;
+    penaltyMs += interaction.clockPenaltyMs;
+    events.push({ type: 'DOMESTIC_INTERACTION', objectId: interaction.objectId, ruleTrace: interaction.ruleTrace });
+
+    if (wasSleepy && domestic.wallyState !== 'sleepy') {
+      threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.wakeSpawnDelayMs);
+    }
+    if (interaction.objectId === 'alarm-clock') {
+      threats = bringSpawnForward(threats, elapsedMs + HAUNTED_PRESSURE.alarmSpawnDelayMs);
+    }
+  }
+
+  const logicalElapsedMs = elapsedMs + penaltyMs;
+  domestic = applyHauntedClockState(domestic, logicalElapsedMs, state.deadlineMs);
+
+  let objective = state.objective;
+  const failure = combat.hp <= 0
+    ? 'haunted' as const
+    : hauntedDomesticFailureReason(domestic, logicalElapsedMs, state.deadlineMs);
+
+  if (failure) {
+    objective = { phase: 'failed', reason: failure };
+    events.push({ type: 'SESSION_FAILED', reason: failure });
+  } else if (escapeRequested) {
+    objective = { phase: 'completed' };
+    events.push({ type: 'SESSION_COMPLETED' });
+  } else if (objective.phase === 'prepare' && domestic.flags.dressed && domestic.collected.includes('keys')) {
+    objective = { phase: 'escape-ready' };
+    const finalThreat = queueGhostTelegraphAt(threats, elapsedMs, HAUNTED_ESCAPE_GHOST_X);
+    threats = finalThreat.threats;
+    if (finalThreat.event) events.push(finalThreat.event);
+    events.push({ type: 'ESCAPE_READY' });
+  }
+
+  return {
+    state: {
+      ...state,
+      rngState: threatStep.rngState,
+      domestic,
+      player,
+      input: consumeTransientActions(state.input),
+      elapsedMs,
+      penaltyMs,
+      movementNoiseCarry: movementNoise.carry,
+      combat,
+      threats,
+      objective,
+    },
+    events,
+  };
+}
+
+function bringSpawnForward(threats: HauntedThreatState, targetMs: number): HauntedThreatState {
+  return targetMs < threats.nextSpawnAtMs ? { ...threats, nextSpawnAtMs: targetMs } : threats;
+}

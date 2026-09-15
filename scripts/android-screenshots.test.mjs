@@ -1,8 +1,7 @@
-// T-02: forced-failure preservation tests for scripts/android-screenshots.sh.
+// Forced-failure preservation tests for scripts/android-screenshots.sh.
 // The real script needs a device, Maestro and a native Android build, so this
 // drives the actual script end-to-end inside a throwaway sandbox with stub
 // adb/maestro/java binaries on PATH — proving the staging/publish contract
-// (last successful evidence untouched, failed attempt archived separately)
 // without any device or native toolchain.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,10 +14,10 @@ const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const SCRIPT_PATH = path.join(REPO_ROOT, 'scripts', 'android-screenshots.sh');
 
 const EXPECTED = [
-  '01_main_menu.png', '02_settings.png', '03_run_start_sleepy.png', '04_bed_wake.png',
-  '05_slippers.png', '06_alarm.png', '07_startled.png', '08_wardrobe_fumble.png',
-  '09_success.png', '10_restart.png', '11_continue_restore.png',
-  '12_fail_house_awake.png', '13_fail_exhausted.png', '14_fail_too_late.png',
+  '01_main_menu.png', '02_settings.png', '03_haunted_sleepy.png', '04_haunted_wake.png',
+  '05_ghost_telegraph.png', '06_ghost_active.png', '07_wally_jump.png', '08_dream_spark_attack.png',
+  '09_ghost_defeated.png', '10_player_hit.png', '11_dressed_under_pressure.png',
+  '12_escape_ready.png', '13_escaped.png', '14_haunted_failure.png',
 ];
 
 function writeExecutable(filePath, script) {
@@ -75,7 +74,7 @@ case "\${FAKE_MAESTRO_MODE:-success}" in
   silent-partial)
     printf 'x' > "$out_dir/01_main_menu.png"
     printf 'x' > "$out_dir/02_settings.png"
-    printf 'x' > "$out_dir/03_run_start_sleepy.png"
+    printf 'x' > "$out_dir/03_haunted_sleepy.png"
     exit 0
     ;;
 esac
@@ -160,7 +159,7 @@ test('a build failure preserves the last published evidence and records the fail
   assert.deepEqual(failedPngs, [], 'a build failure happens before any screenshot is staged, so none should be fabricated');
 });
 
-test('an incomplete-but-exit-0 tour is rejected by the explicit completeness check and still preserves prior evidence', () => {
+test('an incomplete-but-exit-0 tour is rejected and still preserves prior evidence', () => {
   const { root, bin, javaHome } = makeSandbox();
   fs.writeFileSync(path.join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk'), 'apk');
   seedPreviousEvidence(root);
@@ -173,6 +172,6 @@ test('an incomplete-but-exit-0 tour is rejected by the explicit completeness che
   const failedDir = path.join(root, 'artifacts', 'android-screenshots-failed');
   const failureNote = fs.readFileSync(path.join(failedDir, 'FAILURE.txt'), 'utf8');
   assert.match(failureNote, /reason: missing screenshot/);
-  assert.ok(fs.existsSync(path.join(failedDir, '03_run_start_sleepy.png')));
-  assert.equal(fs.existsSync(path.join(failedDir, '04_bed_wake.png')), false);
+  assert.ok(fs.existsSync(path.join(failedDir, '03_haunted_sleepy.png')));
+  assert.equal(fs.existsSync(path.join(failedDir, '04_haunted_wake.png')), false);
 });
