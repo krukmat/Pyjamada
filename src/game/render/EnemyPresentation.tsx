@@ -50,34 +50,53 @@ export function EnemyDeathCue({ profile, x, y, scale, pulse, progress }: DeathPr
   const p = (value: number) => px(scale, value);
   const t = Math.max(0, Math.min(1, progress));
   const centerY = y - p(profile.centerYOffset);
-  const reach = profile.telegraphRadius * (0.72 + t * 0.65);
-  const glowAlpha = Math.max(0.07, 0.19 * (1 - t));
-  const shardAlpha = Math.max(0.38, 0.92 * (1 - t * 0.45));
+  const reach = profile.telegraphRadius * (0.62 + t * 0.92);
+  const shardAlpha = Math.max(0.22, 0.96 * (1 - t * 0.58));
+  const coreAlpha = Math.max(0.03, 0.30 * (1 - t));
   const flicker = pulse === 0 ? 0 : 2;
+  const collapse = Math.max(2, 8 - t * 5);
 
   return (
     <>
-      <Circle cx={x} cy={centerY} r={p(reach + 3)} color={rgba(profile.outlineRgb, 0.20)} />
-      <Circle cx={x} cy={centerY} r={p(reach)} color={rgba(profile.primaryRgb, glowAlpha)} />
-      <Circle cx={x} cy={centerY} r={p(Math.max(3, 6 - t * 3))} color={rgba(profile.accentRgb, 0.16)} />
+      {/* Death deliberately avoids the circular portal language used by spawn.
+          The readable motion is outward, asymmetric fragmentation plus collapse. */}
+      <RoundedRect
+        x={x - p(collapse / 2)}
+        y={centerY - p(collapse / 2)}
+        width={p(collapse)}
+        height={p(collapse)}
+        r={p(1)}
+        color={rgba(profile.outlineRgb, 0.28)}
+      />
+      <Rect
+        x={x - p(Math.max(1, collapse / 4))}
+        y={centerY - p(Math.max(1, collapse / 4))}
+        width={p(Math.max(2, collapse / 2))}
+        height={p(Math.max(2, collapse / 2))}
+        color={rgba(profile.accentRgb, coreAlpha)}
+      />
 
-      <Rect x={x - p(reach + flicker)} y={centerY - p(1)} width={p(6)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
-      <Rect x={x + p(reach - 6 + flicker)} y={centerY - p(1)} width={p(6)} height={p(2)} color={rgba(profile.accentRgb, shardAlpha)} />
-      <Rect x={x - p(1)} y={centerY - p(reach)} width={p(2)} height={p(6)} color={rgba(profile.primaryRgb, shardAlpha)} />
-      <Rect x={x - p(1)} y={centerY + p(reach - 6)} width={p(2)} height={p(6)} color={rgba(profile.secondaryRgb, shardAlpha)} />
+      <Rect x={x - p(reach + flicker)} y={centerY - p(1)} width={p(7)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+      <Rect x={x + p(reach - 5 + flicker)} y={centerY + p(2)} width={p(5)} height={p(2)} color={rgba(profile.accentRgb, shardAlpha)} />
+      <Rect x={x - p(2)} y={centerY - p(reach * 0.82)} width={p(2)} height={p(6)} color={rgba(profile.secondaryRgb, shardAlpha * 0.92)} />
+      <Rect x={x + p(3)} y={centerY + p(reach * 0.72)} width={p(2)} height={p(5)} color={rgba(profile.primaryRgb, shardAlpha * 0.82)} />
 
-      <Rect x={x - p(reach * 0.72)} y={centerY - p(reach * 0.72)} width={p(4)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
-      <Rect x={x + p(reach * 0.55)} y={centerY - p(reach * 0.62)} width={p(3)} height={p(3)} color={rgba(profile.accentRgb, shardAlpha)} />
-      <Rect x={x - p(reach * 0.58)} y={centerY + p(reach * 0.50)} width={p(3)} height={p(3)} color={rgba(profile.secondaryRgb, shardAlpha)} />
-      <Rect x={x + p(reach * 0.62)} y={centerY + p(reach * 0.55)} width={p(4)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+      <Rect x={x - p(reach * 0.78)} y={centerY - p(reach * 0.62)} width={p(5)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha * 0.92)} />
+      <Rect x={x + p(reach * 0.54)} y={centerY - p(reach * 0.74)} width={p(3)} height={p(4)} color={rgba(profile.accentRgb, shardAlpha)} />
+      <Rect x={x - p(reach * 0.58)} y={centerY + p(reach * 0.50)} width={p(3)} height={p(3)} color={rgba(profile.secondaryRgb, shardAlpha * 0.82)} />
+      <Rect x={x + p(reach * 0.70)} y={centerY + p(reach * 0.42)} width={p(5)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+
+      <Rect x={x - p(6)} y={centerY + p(7 + t * 5)} width={p(3)} height={p(5)} color={rgba(profile.primaryRgb, shardAlpha * 0.56)} />
+      <Rect x={x + p(4)} y={centerY + p(10 + t * 7)} width={p(2)} height={p(6)} color={rgba(profile.secondaryRgb, shardAlpha * 0.48)} />
+      <Rect x={x + p(10)} y={centerY + p(5 + t * 4)} width={p(2)} height={p(4)} color={rgba(profile.accentRgb, shardAlpha * 0.50)} />
 
       <RoundedRect
-        x={x - p(profile.shadowWidth * (0.42 - t * 0.12))}
+        x={x - p(profile.shadowWidth * (0.36 - t * 0.16))}
         y={y - p(2)}
-        width={p(profile.shadowWidth * (0.84 - t * 0.24))}
-        height={p(3)}
-        r={p(1.5)}
-        color={rgba(profile.outlineRgb, Math.max(0.08, 0.26 * (1 - t)))}
+        width={p(profile.shadowWidth * (0.72 - t * 0.32))}
+        height={p(2)}
+        r={p(1)}
+        color={rgba(profile.outlineRgb, Math.max(0.035, 0.20 * (1 - t)))}
       />
     </>
   );
