@@ -23,7 +23,7 @@ export type RoomExit = {
   requiresRoomSwitch?: string;
 };
 
-export type RoomInteractionEffect = 'inspect-backward-clock';
+export type RoomInteractionEffect = 'inspect-backward-clock' | 'use-living-room-tv';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -136,6 +136,13 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 10,
         radius: 8,
         behavior: { type: 'exit', exitId: 'living-room-to-hallway' },
+      },
+      {
+        id: 'living-room-tv',
+        label: 'TELEVISION',
+        x: 109,
+        radius: 12,
+        behavior: { type: 'effect', effect: 'use-living-room-tv' },
       },
     ],
   },
