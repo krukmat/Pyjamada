@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 23, 'visual tour has twenty-three deterministic gameplay/adventure presets through W3 Kitchen Gate A');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 27, 'visual tour has twenty-seven deterministic gameplay/adventure presets through W3B Bathroom Gate A');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -123,6 +123,29 @@ equal(kitchenRerouted.currentRoom, 'kitchen', 'rerouted screenshot remains in Ki
 equal(getRoomState(kitchenRerouted, 'kitchen').inspected.includes('breaker-panel'), true, 'rerouted screenshot records breaker discovery');
 equal(getRoomState(kitchenRerouted, 'kitchen').switches['circuit-overloaded'], false, 'rerouted screenshot clears the overload');
 equal(getRoomState(kitchenRerouted, 'kitchen').switches['microwave-on'], false, 'rerouted screenshot shuts down the microwave');
-equal(getRoomState(kitchenRerouted, 'kitchen').switches['power-rerouted'], true, 'rerouted screenshot captures the W3 Gate A solution');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['power-rerouted'], true, 'rerouted screenshot captures the W3A solution');
+
+const bathroomArrival = createScreenshotAdventureState('bathroom-arrival');
+equal(bathroomArrival.currentRoom, 'bathroom', 'Bathroom arrival screenshot enters the W3B room');
+equal(bathroomArrival.currentEntry, 'bathroom-from-kitchen', 'Bathroom screenshot uses the production Kitchen entry');
+ok(bathroomArrival.visitedRooms.includes('bathroom'), 'Bathroom becomes visited in deterministic evidence');
+equal(getRoomState(bathroomArrival, 'bathroom').switches['mirror-anomaly-seen'], undefined, 'Bathroom arrival precedes explicit mirror inspection');
+
+const mirrorMismatch = createScreenshotAdventureState('bathroom-mirror-mismatch');
+equal(mirrorMismatch.currentRoom, 'bathroom', 'mirror mismatch screenshot stays in Bathroom');
+equal(getRoomState(mirrorMismatch, 'bathroom').inspected.includes('mirror-mismatch'), true, 'mirror screenshot records anomaly inspection');
+equal(getRoomState(mirrorMismatch, 'bathroom').switches['mirror-anomaly-seen'], true, 'mirror mismatch becomes explicit state');
+equal(getRoomState(mirrorMismatch, 'bathroom').switches['bathroom-light-off'], undefined, 'mirror mismatch precedes light experiment');
+
+const reflectedRoute = createScreenshotAdventureState('bathroom-reflected-route');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['mirror-anomaly-seen'], true, 'reflected route follows mirror discovery');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['bathroom-light-off'], true, 'reflected route screenshot darkens the real room');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['mirror-route-revealed'], undefined, 'reflected route screenshot precedes real-wall reveal');
+
+const bathroomRevealed = createScreenshotAdventureState('bathroom-route-revealed');
+equal(bathroomRevealed.currentRoom, 'bathroom', 'route reveal stays at the W3B boundary');
+equal(getRoomState(bathroomRevealed, 'bathroom').switches['bathroom-light-off'], true, 'route reveal keeps the real room dark');
+equal(getRoomState(bathroomRevealed, 'bathroom').switches['mirror-route-revealed'], true, 'route reveal materializes the matching real-wall seam');
+equal(getRoomState(bathroomRevealed, 'bathroom').interactions.includes('mirror-route-confirmed'), true, 'route confirmation is persisted in deterministic evidence');
 
 console.log('haunted screenshot scenario tests passed');
