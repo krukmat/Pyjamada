@@ -11,7 +11,7 @@ import { findSystemicObject } from '../systemic/SystemicContent';
 import type { SystemicObjectId, SystemicRunState } from '../systemic/SystemicState';
 import { SYSTEMIC_OBJECT_IDS } from '../systemic/SystemicState';
 import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
-import { HauntedGhostSprite } from './HauntedGhostSprite';
+import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedWallySprite } from './HauntedWallySprite';
 import {
   IllustratedBedroomBackdrop,
@@ -118,18 +118,16 @@ export function GameCanvas({
           </>
         )}
 
-        {hauntedSession?.threats.ghosts.map((ghost) => (
-          <HauntedGhostSprite
-            key={ghost.id}
-            image={hauntedGhostImage}
-            ghost={ghost}
-            x={px(ghost.x)}
-            y={px(ghost.y)}
+        {hauntedSession && (
+          <HauntedEnemyLayer
+            session={hauntedSession}
+            ghostImage={hauntedGhostImage}
             scale={scale}
             nowMs={hauntedSession.elapsedMs}
             playerX={playerX}
+            px={px}
           />
-        ))}
+        )}
 
         {hauntedSession ? (
           <HauntedWallySprite
