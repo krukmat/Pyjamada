@@ -109,6 +109,14 @@ export function isLivingRoomRadioInspected(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'living-room').inspected.includes('radio-static');
 }
 
+export function isLivingRoomPhotoFocused(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').switches['photo-focused'] === true;
+}
+
+export function isLivingRoomRadioFocused(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').switches['radio-focused'] === true;
+}
+
 export function isLivingRoomSourceCueRevealed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'living-room').switches['source-hum-traced'] === true;
 }
