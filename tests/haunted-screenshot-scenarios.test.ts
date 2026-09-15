@@ -1,4 +1,5 @@
 import { createHauntedScreenshotScenario, HAUNTED_SCREENSHOT_SCENARIOS } from '../src/app/HauntedScreenshotScenarios';
+import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 
 function equal(actual: unknown, expected: unknown, label: string) {
   if (actual !== expected) throw new Error(`${label}: ${String(actual)} !== ${String(expected)}`);
@@ -27,10 +28,18 @@ ok(Math.abs((attack.combat.projectiles[0]?.x ?? 999) - attack.player.x) <= 22, '
 
 const defeated = createHauntedScreenshotScenario('ghost-defeated');
 equal(defeated.threats.ghosts[0]?.phase, 'dying', 'defeated preset shows the Ghost death pose');
+const defeatedGhost = defeated.threats.ghosts[0];
+const defeatedRemaining = (defeatedGhost?.phaseUntilMs ?? defeated.elapsedMs) - defeated.elapsedMs;
+ok(defeatedRemaining > 0 && defeatedRemaining < GHOST_RULES.dyingMs, 'defeated preset freezes inside the death transition rather than at an edge frame');
+ok(Math.abs(defeatedRemaining - GHOST_RULES.dyingMs / 2) <= 5, 'defeated preset captures the fragmentation midpoint');
 
 const hit = createHauntedScreenshotScenario('hit');
 equal(hit.combat.hp, 2, 'hit preset removes one heart');
 ok(hit.combat.invulnerableUntilMs > hit.elapsedMs, 'hit preset freezes Wally inside invulnerability feedback');
+ok(hit.player.vx < 0, 'hit preset preserves visible knockback direction');
+ok(hit.player.grounded === false, 'hit preset captures Wally airborne after contact');
+const hitGhost = hit.threats.ghosts[0];
+ok(Boolean(hitGhost) && Math.abs((hitGhost?.x ?? hit.player.x) - hit.player.x) >= 20, 'hit preset keeps actors separated after contact');
 
 const dressed = createHauntedScreenshotScenario('dressed');
 equal(dressed.domestic.flags.dressed, true, 'dressed preset uses the alternate Wally palette');
