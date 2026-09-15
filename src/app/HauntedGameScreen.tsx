@@ -5,6 +5,9 @@ import {
   findAdventureInteractionTarget,
   hasLabTransmissionBeenSeen,
   isAdventureExplorationActive,
+  isBathroomLightOff,
+  isBathroomMirrorAnomalySeen,
+  isBathroomRouteRevealed,
   isHallwayClockInspected,
   isKitchenBreakerInspected,
   isKitchenCircuitOverloaded,
@@ -155,6 +158,7 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (roomId === 'hallway') return 'HAUNTED HOUSE · HALLWAY';
   if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
   if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
+  if (roomId === 'bathroom') return 'HAUNTED HOUSE · BATHROOM';
   return 'HAUNTED HOUSE · BEDROOM';
 }
 
@@ -170,6 +174,12 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (isKitchenPowerRerouted(adventure)) return 'FOLLOW THE PULSE';
       if (isKitchenCircuitOverloaded(adventure)) return 'CHECK THE BREAKER';
       return 'TRACE THE POWER';
+    }
+    if (adventure.currentRoom === 'bathroom') {
+      if (isBathroomRouteRevealed(adventure)) return 'ATTIC ACCESS REVEALED';
+      if (isBathroomLightOff(adventure)) return 'CHECK THE MIRROR';
+      if (isBathroomMirrorAnomalySeen(adventure)) return 'TEST THE REFLECTION';
+      return 'FOLLOW THE PULSE';
     }
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
     return 'ENTER THE LIVING ROOM';
@@ -224,7 +234,13 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (isKitchenPowerRerouted(adventure)) return 'The circuit settles. The same pulse is moving deeper into the house.';
       if (isKitchenCircuitOverloaded(adventure)) return 'The microwave killed the lights. The breaker is buzzing now.';
       if (isKitchenBreakerInspected(adventure)) return 'The breaker hums, but nothing has tripped. It needs a load.';
-      return 'Everything is off. Something in the wall is still drawing power.';
+      return 'The appliances are dead. Something in the wall is still drawing power.';
+    }
+    if (adventure.currentRoom === 'bathroom') {
+      if (isBathroomRouteRevealed(adventure)) return 'The wall is copying the mirror. A hidden stair climbs behind it.';
+      if (isBathroomLightOff(adventure)) return 'The room went dark. The reflection did not.';
+      if (isBathroomMirrorAnomalySeen(adventure)) return 'The pulse stops here. In the mirror, it keeps going.';
+      return 'The pulse stops at the sink.';
     }
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
