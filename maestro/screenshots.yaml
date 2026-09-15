@@ -277,3 +277,16 @@ tags:
 - assertVisible: "INTERACT · TELEVISION"
 - takeScreenshot:
     path: 21_lab_transmission
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-source-cue
+- extendedWaitUntil:
+    visible:
+      text: "The radio catches the same pulse. Stronger through the wall."
+    timeout: 5000
+- assertVisible: "FIND THE SOURCE"
+- assertVisible: "INTERACT · RADIO"
+- takeScreenshot:
+    path: 22_living_room_source_cue
