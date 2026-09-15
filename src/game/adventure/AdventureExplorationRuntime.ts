@@ -93,6 +93,14 @@ export function isLivingRoomPathRevealed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').switches['living-room-unlocked'] === true;
 }
 
+export function isLivingRoomTvActivated(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'living-room').switches['tv-on'] === true;
+}
+
+export function hasLabTransmissionBeenSeen(adventure: AdventureState): boolean {
+  return adventure.storyFlags.labTransmissionSeen;
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
