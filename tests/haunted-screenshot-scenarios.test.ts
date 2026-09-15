@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 16, 'visual tour has sixteen deterministic gameplay and W1 adventure presets');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 17, 'visual tour has seventeen deterministic gameplay/adventure presets through W2 Gate A');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -78,6 +78,13 @@ equal(getRoomState(hallwayClock, 'hallway').inspected.includes('backward-clock')
 equal(getRoomState(hallwayClock, 'hallway').switches['living-room-unlocked'], true, 'clock screenshot reveals Living Room path');
 
 const livingDoor = createScreenshotAdventureState('living-door');
-equal(getRoomState(livingDoor, 'hallway').interactions.includes('living-room-door'), true, 'Living Room screenshot captures W1 end gate');
+equal(livingDoor.currentRoom, 'hallway', 'Living Room door screenshot remains at the Hallway threshold');
+equal(getRoomState(livingDoor, 'hallway').switches['living-room-unlocked'], true, 'Living Room door is unlocked for the threshold screenshot');
+
+const livingRoomArrival = createScreenshotAdventureState('living-room-arrival');
+equal(livingRoomArrival.currentRoom, 'living-room', 'W2 Gate A screenshot enters Living Room');
+equal(livingRoomArrival.currentEntry, 'living-room-from-hallway', 'Living Room screenshot uses production Hallway entry');
+ok(livingRoomArrival.visitedRooms.includes('living-room'), 'Living Room becomes visited in the screenshot state');
+equal(getRoomState(livingRoomArrival, 'hallway').switches['living-room-unlocked'], true, 'Living Room arrival preserves Hallway unlock state');
 
 console.log('haunted screenshot scenario tests passed');
