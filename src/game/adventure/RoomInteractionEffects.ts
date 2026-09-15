@@ -62,6 +62,8 @@ function useLivingRoomTv(adventure: AdventureState, roomId: RoomId): RoomInterac
   const tvOn = livingRoom.switches['tv-on'] === true;
   if (!tvOn) {
     let next = setRoomSwitch(adventure, 'living-room', 'tv-on', true);
+    next = setRoomSwitch(next, 'living-room', 'photo-focused', false);
+    next = setRoomSwitch(next, 'living-room', 'radio-focused', false);
     next = markRoomInteraction(next, 'living-room', 'tv-activated');
     return { adventure: next, events: [{ type: 'LIVING_ROOM_TV_ACTIVATED' }] };
   }
@@ -69,6 +71,8 @@ function useLivingRoomTv(adventure: AdventureState, roomId: RoomId): RoomInterac
   if (!adventure.storyFlags.labTransmissionSeen) {
     let next = markRoomInspected(adventure, 'living-room', 'television');
     next = markRoomInteraction(next, 'living-room', 'tv-transmission');
+    next = setRoomSwitch(next, 'living-room', 'photo-focused', false);
+    next = setRoomSwitch(next, 'living-room', 'radio-focused', false);
     next = setStoryFlag(next, 'labTransmissionSeen', true);
     return { adventure: next, events: [{ type: 'LAB_TRANSMISSION_SEEN' }] };
   }
@@ -83,6 +87,8 @@ function inspectLivingRoomPhoto(adventure: AdventureState, roomId: RoomId): Room
   const wasInspected = livingRoom.inspected.includes('photo-reflection');
   let next = markRoomInspected(adventure, 'living-room', 'photo-reflection');
   next = markRoomInteraction(next, 'living-room', 'photo-inspected');
+  next = setRoomSwitch(next, 'living-room', 'photo-focused', true);
+  next = setRoomSwitch(next, 'living-room', 'radio-focused', false);
 
   return {
     adventure: next,
@@ -98,6 +104,8 @@ function inspectLivingRoomRadio(adventure: AdventureState, roomId: RoomId): Room
   const sourceAlreadyRevealed = livingRoom.switches['source-hum-traced'] === true;
   let next = markRoomInspected(adventure, 'living-room', 'radio-static');
   next = markRoomInteraction(next, 'living-room', 'radio-inspected');
+  next = setRoomSwitch(next, 'living-room', 'photo-focused', false);
+  next = setRoomSwitch(next, 'living-room', 'radio-focused', true);
 
   const events: RoomInteractionEffectEvent[] = wasInspected
     ? []
