@@ -15,6 +15,10 @@ type PresenceProps = Omit<CueProps, 'pulse'> & {
   dying?: boolean;
 };
 
+type DeathProps = CueProps & {
+  progress: number;
+};
+
 function px(scale: number, value: number): number {
   return Math.max(1, Math.round(value * scale));
 }
@@ -42,6 +46,43 @@ export function EnemyPresenceCue({ profile, x, y, scale, dying = false }: Presen
   );
 }
 
+export function EnemyDeathCue({ profile, x, y, scale, pulse, progress }: DeathProps) {
+  const p = (value: number) => px(scale, value);
+  const t = Math.max(0, Math.min(1, progress));
+  const centerY = y - p(profile.centerYOffset);
+  const reach = profile.telegraphRadius * (0.72 + t * 0.65);
+  const glowAlpha = Math.max(0.07, 0.19 * (1 - t));
+  const shardAlpha = Math.max(0.38, 0.92 * (1 - t * 0.45));
+  const flicker = pulse === 0 ? 0 : 2;
+
+  return (
+    <>
+      <Circle cx={x} cy={centerY} r={p(reach + 3)} color={rgba(profile.outlineRgb, 0.20)} />
+      <Circle cx={x} cy={centerY} r={p(reach)} color={rgba(profile.primaryRgb, glowAlpha)} />
+      <Circle cx={x} cy={centerY} r={p(Math.max(3, 6 - t * 3))} color={rgba(profile.accentRgb, 0.16)} />
+
+      <Rect x={x - p(reach + flicker)} y={centerY - p(1)} width={p(6)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+      <Rect x={x + p(reach - 6 + flicker)} y={centerY - p(1)} width={p(6)} height={p(2)} color={rgba(profile.accentRgb, shardAlpha)} />
+      <Rect x={x - p(1)} y={centerY - p(reach)} width={p(2)} height={p(6)} color={rgba(profile.primaryRgb, shardAlpha)} />
+      <Rect x={x - p(1)} y={centerY + p(reach - 6)} width={p(2)} height={p(6)} color={rgba(profile.secondaryRgb, shardAlpha)} />
+
+      <Rect x={x - p(reach * 0.72)} y={centerY - p(reach * 0.72)} width={p(4)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+      <Rect x={x + p(reach * 0.55)} y={centerY - p(reach * 0.62)} width={p(3)} height={p(3)} color={rgba(profile.accentRgb, shardAlpha)} />
+      <Rect x={x - p(reach * 0.58)} y={centerY + p(reach * 0.50)} width={p(3)} height={p(3)} color={rgba(profile.secondaryRgb, shardAlpha)} />
+      <Rect x={x + p(reach * 0.62)} y={centerY + p(reach * 0.55)} width={p(4)} height={p(2)} color={rgba(profile.primaryRgb, shardAlpha)} />
+
+      <RoundedRect
+        x={x - p(profile.shadowWidth * (0.42 - t * 0.12))}
+        y={y - p(2)}
+        width={p(profile.shadowWidth * (0.84 - t * 0.24))}
+        height={p(3)}
+        r={p(1.5)}
+        color={rgba(profile.outlineRgb, Math.max(0.08, 0.26 * (1 - t)))}
+      />
+    </>
+  );
+}
+
 export function EnemyTelegraphCue({ profile, x, y, scale, pulse }: CueProps) {
   switch (profile.telegraphStyle) {
     case 'ground-spawn':
@@ -61,6 +102,16 @@ function MaterializeCue({ profile, x, y, scale, pulse }: CueProps) {
   const body = pulse === 0 ? 0.22 : 0.32;
   return (
     <>
+      <Circle cx={x} cy={centerY} r={p(profile.telegraphRadius + 4)} color={rgba(profile.outlineRgb, 0.30)} />
+      <RoundedRect
+        x={x - p(profile.bodyWidth / 2 + 3)}
+        y={y - p(profile.centerYOffset + profile.bodyHeight - 1)}
+        width={p(profile.bodyWidth + 6)}
+        height={p(profile.bodyHeight + 5)}
+        r={p(7)}
+        color={rgba(profile.outlineRgb, 0.22)}
+      />
+
       <Circle cx={x} cy={centerY} r={p(pulse === 0 ? profile.telegraphRadius - 2 : profile.telegraphRadius)} color={rgba(profile.primaryRgb, halo)} />
       <Circle cx={x} cy={centerY} r={p(Math.max(5, profile.telegraphRadius - 7))} color={rgba(profile.accentRgb, 0.075)} />
 
