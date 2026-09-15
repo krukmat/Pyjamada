@@ -61,6 +61,7 @@ export function RoomPresentation(props: Props) {
     case 'living-room':
       return (
         <LivingRoomPresentation
+          adventure={props.adventure}
           hauntedSession={props.hauntedSession}
           playerX={props.playerX}
           playerY={props.playerY}
