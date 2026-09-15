@@ -7,7 +7,7 @@ import { HAUNTED_PLAYER_BOUNDS } from './PlayerPhysics';
 export type HauntedSaveState = Omit<HauntedSessionState, 'input'>;
 export type DecodeHauntedSessionResult = { status: 'ok'; state: HauntedSessionState } | { status: 'invalid'; reason: string };
 
-const PHASES: readonly HauntedObjectivePhase[] = ['prepare', 'escape-ready', 'exploration', 'completed', 'failed'];
+const PHASES: readonly HauntedObjectivePhase[] = ['prepare', 'escape-ready', 'completed', 'failed'];
 const REASONS: readonly HauntedFailureReason[] = ['house-awake', 'exhausted', 'too-late', 'haunted'];
 const GHOST_PHASES = ['telegraph', 'active', 'dying'] as const;
 
@@ -80,8 +80,8 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
   } else if (value.objective.reason !== undefined) return invalid('Only failed haunted objectives may have a reason.');
 
   const prepared = domestic.flags.dressed && domestic.collected.includes('keys');
-  if ((phase === 'escape-ready' || phase === 'completed' || phase === 'exploration') && !prepared) {
-    return invalid('Escape-ready and exploration states require clothes and keys.');
+  if ((phase === 'escape-ready' || phase === 'completed') && !prepared) {
+    return invalid('Escape-ready and completed states require clothes and keys.');
   }
   if (phase === 'prepare' && prepared) return invalid('Prepared state must advance to escape-ready.');
 
