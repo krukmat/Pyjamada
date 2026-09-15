@@ -23,7 +23,14 @@ type Props = {
 export function AtlasSprite({ image, frame, x, y, scale = 1, facing = 'right' }: Props) {
   if (!image) return null;
 
-  const placement = resolveSpritePlacement(frame, x, y, scale, facing);
+  // StageViewport uses an adaptive scale, so logical world coordinates can
+  // land on fractional rendered pixels even when gameplay positions are
+  // integral. Snap the final actor anchor here, immediately before atlas
+  // placement. This preserves the pixel-sprite contract without allowing a
+  // common Android viewport scale (for example ~2.42) to throw during render.
+  const snappedX = Math.round(x);
+  const snappedY = Math.round(y);
+  const placement = resolveSpritePlacement(frame, snappedX, snappedY, scale, facing);
   const draw = (
     <Atlas
       image={image}
