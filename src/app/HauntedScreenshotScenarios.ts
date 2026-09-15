@@ -93,9 +93,11 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
       return {
         ...next,
         elapsedMs: 15_000,
-        player: { ...next.player, y: 96, vy: -20, grounded: false },
+        player: { ...next.player, y: 94, vy: -20, grounded: false },
         combat: { ...next.combat, hp: 2, invulnerableUntilMs: 15_700 },
-        threats: withGhost(base, ghost(1, 75, 82, 'active')),
+        // Capture the immediate post-contact readability: Wally has already
+        // been knocked left while the Ghost remains on the attack line.
+        threats: withGhost(base, ghost(1, 82, 82, 'active')),
       };
     }
 
