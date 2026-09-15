@@ -98,6 +98,7 @@ export function GameCanvas({
             y={px(playerY)}
             scale={scale}
             nowMs={nowMs}
+            honorTerminalObjective={!exploration}
           />
         ) : legacyWally ? (
           <IllustratedWally
