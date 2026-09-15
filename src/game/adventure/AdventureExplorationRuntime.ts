@@ -133,6 +133,18 @@ export function isKitchenBreakerInspected(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'kitchen').inspected.includes('breaker-panel');
 }
 
+export function isBathroomMirrorAnomalySeen(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'bathroom').switches['mirror-anomaly-seen'] === true;
+}
+
+export function isBathroomLightOff(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'bathroom').switches['bathroom-light-off'] === true;
+}
+
+export function isBathroomRouteRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'bathroom').switches['mirror-route-revealed'] === true;
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
