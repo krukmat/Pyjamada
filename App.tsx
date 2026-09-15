@@ -139,7 +139,10 @@ export default function App() {
           event.type === 'HALLWAY_CLOCK_INSPECTED'
           || event.type === 'LIVING_ROOM_DOOR_REACHED'
           || event.type === 'LIVING_ROOM_TV_ACTIVATED'
-          || event.type === 'LAB_TRANSMISSION_SEEN')) {
+          || event.type === 'LAB_TRANSMISSION_SEEN'
+          || event.type === 'LIVING_ROOM_PHOTO_INSPECTED'
+          || event.type === 'LIVING_ROOM_RADIO_INSPECTED'
+          || event.type === 'LIVING_ROOM_SOURCE_CUE_REVEALED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
