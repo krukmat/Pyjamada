@@ -28,7 +28,7 @@ export function HauntedWallySprite({ image, session, x, y, scale, nowMs }: Props
   const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
   const frame = requireAtlasFrame(INDEX, `${palette}_${String(frameIndex).padStart(2, '0')}`);
   const invulnerable = session.combat.invulnerableUntilMs > session.elapsedMs;
-  const opacity = invulnerable && Math.floor(nowMs / 70) % 2 === 0 ? 0.42 : 1;
+  const opacity = invulnerable && Math.floor(nowMs / 70) % 2 === 0 ? 0.76 : 1;
 
   return (
     <Group opacity={opacity}>
