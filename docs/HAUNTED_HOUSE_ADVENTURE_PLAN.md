@@ -10,9 +10,9 @@ The current bedroom gameplay is not discarded. It becomes Act I and the mechanic
 
 | Wave | Status | Gate |
 |---|---|---|
-| W0 — Adventure Foundation | **IMPLEMENTED** | Connected-room architecture, persistence and placeholder Bedroom ↔ Hallway round trip |
-| W1 — The House Opens | **NEXT** | False escape + altered Bedroom + real Hallway |
-| W2 — Living Room | Planned | Mystery hook / lab transmission |
+| W0 — Adventure Foundation | **IMPLEMENTED** | Connected-room architecture, persistence and Bedroom ↔ Hallway foundation |
+| W1 — The House Opens | **CODE-COMPLETE / ACCEPTANCE PENDING** | False escape + altered Bedroom + Hallway + first anomaly + Living Room threshold |
+| W2 — Living Room | **BLOCKED BY W1 ACCEPTANCE** | Mystery hook / lab transmission |
 | W3A — Kitchen | Planned | Domestic mechanic expansion |
 | W3B — Bathroom | Planned | Dream geometry |
 | W4 — Attic | Planned | Vesper/W-01 revelation |
@@ -20,7 +20,9 @@ The current bedroom gameplay is not discarded. It becomes Act I and the mechanic
 | W6 — Laboratory | Planned | Final boss |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
-Implementation detail for the completed foundation lives in `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`.
+Implementation detail lives in:
+- `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`
+- `docs/W1_THE_HOUSE_OPENS_TASKS.md`
 
 ## Narrative spine
 
@@ -77,20 +79,27 @@ Delivered:
 
 **Gate:** Bedroom -> placeholder Hallway -> Bedroom works while story and room-local state survive navigation/save-load. Full implementation checkpoint: `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`.
 
-### W1 — The House Opens
+### W1 — The House Opens — CODE-COMPLETE / ACCEPTANCE PENDING
 
 **Goal:** turn the existing bedroom slice into the real Act I and introduce the first explorable room.
 
-Scope:
-- Preserve current wake -> dress -> keys -> Ghost -> escape loop.
-- Replace terminal success at the door with the false escape twist.
-- Fade/transition and return to an altered Bedroom.
-- Open the path to Hallway.
-- Replace the W0 placeholder with Hallway as the first real additional room.
-- Add the first environmental anomaly: reverse clock / altered pictures / impossible sound.
-- Prepare but do not complete Living Room access.
+Implemented:
+- The original wake -> dress -> keys -> Ghost -> escape loop remains intact until the exit seam.
+- Terminal Bedroom success is intercepted by the false-escape story event.
+- Reusable short fade transition with input lock.
+- Altered Bedroom state with `FIND ANOTHER WAY OUT` objective.
+- Production Bedroom -> Hallway interaction using the W0 room registry/coordinator.
+- W0 placeholder replaced by the real W1 Hallway presentation.
+- Backward-clock environmental anomaly with persisted inspection state.
+- Clock reveal unlocks the Living Room path.
+- W1 stops at the Living Room door and deliberately does not enter W2.
+- Exploration progression survives the v3 save/load envelope.
+- Four focused W1 deterministic review states were added: altered Bedroom, Hallway arrival, backward clock, Living Room threshold.
+- One continuous deterministic W1 playthrough test covers the full story path and save/load roundtrip.
 
-**Gate:** the player can complete the current bedroom loop, experience the false escape, enter Hallway, inspect the anomaly and reach the Living Room door.
+**Gate:** automated repository validation must be green and the local Android screenshot/playtest review must confirm the false escape, altered Bedroom, Hallway, clock anomaly and Living Room threshold are readable in the actual app. W2 remains blocked until that review passes.
+
+Full task/DAG checkpoint: `docs/W1_THE_HOUSE_OPENS_TASKS.md`.
 
 ### W2 — Living Room / Mystery Hook
 
@@ -203,6 +212,8 @@ AdventureGameSessionState (save envelope v3)
     └── room-local persistence
 ```
 
+W1 adds a narrow `AdventureExplorationRuntime` after the false escape. It reuses player movement/input but does not restart the Bedroom threat/domestic simulation.
+
 ### Room registry
 
 Room connectivity is declarative and intentionally small:
@@ -212,7 +223,7 @@ RoomDefinition
 ├── id
 ├── presentationId
 ├── entries/spawn points
-└── exits
+└── exits (+ optional story-flag gate)
 ```
 
 Do not replace this with a generic graph/scripting engine unless later gameplay demonstrates a concrete need.
@@ -225,8 +236,8 @@ Implemented direction:
 GameCanvas
    ↓
 RoomPresentation
-   ↓
-room-specific presentation
+   ├── Bedroom
+   └── Hallway
 ```
 
 Shared systems stay above room presentation:
@@ -236,19 +247,36 @@ Shared systems stay above room presentation:
 - combat FX;
 - camera.
 
+During W1 exploration, combat/enemy/projectile layers are deliberately suppressed; W1's Hallway beat is an exploration/mystery beat rather than a combat-content expansion.
+
 HUD remains application-level.
 
 ### Story state
 
-Use explicit flags/triggers, not hidden inference from arbitrary object state. W0 implements only flags required by the first transition (`bedroomEscapeAttempted`, `hallwayUnlocked`). Future flags should be introduced when their wave needs them.
+Use explicit flags/triggers, not hidden inference from arbitrary object state.
+
+Implemented W1 progression uses:
+- `bedroomEscapeAttempted`;
+- `hallwayUnlocked`;
+- Bedroom room history: `false-escape`;
+- Hallway inspection: `backward-clock`;
+- Hallway switch: `living-room-unlocked`;
+- Hallway interaction: `living-room-door`.
+
+Future flags should be introduced only when their wave needs them.
 
 ### Deterministic review
 
-Do not create 14 screenshots for every room. Add only representative deterministic states, typically 3–5 per room or wave, covering:
-- room arrival;
-- central interaction/anomaly;
-- gameplay pressure state;
-- narrative reveal when relevant.
+Do not create a full Bedroom-sized screenshot suite for every room. W1 adds only four representative states:
+
+```text
+15_altered_bedroom
+16_hallway_arrival
+17_hallway_clock
+18_living_room_door
+```
+
+The Android screenshot flow continues to validate real UI state/text rather than using a synthetic renderer-ready gate.
 
 ## Development policy
 
@@ -262,19 +290,24 @@ Do not create 14 screenshots for every room. Add only representative determinist
 
 ## Current priority
 
-**W1 — The House Opens** is the next allowed implementation scope after W0 validation is confirmed green.
-
-W1 should be developed incrementally in this order:
+**W1 acceptance gate.** The implementation is complete; W2 is intentionally blocked until two conditions are satisfied:
 
 ```text
-false escape semantics
-→ transition/fade
-→ altered Bedroom state
-→ production Bedroom → Hallway navigation
-→ real Hallway presentation
-→ first Hallway anomaly
-→ Living Room door setup
-→ W1 playtest gate
+1. repository CI green on final W1 HEAD
+2. local Android review of screenshots / playthrough
 ```
 
-No Living Room interior, Kitchen, new enemy or boss work starts before the W1 gate deliberately passes.
+The local evidence command is:
+
+```bash
+npm run screenshots:android
+```
+
+Review should focus especially on:
+- whether the false escape reads as an intentional story twist rather than a reset;
+- whether the altered Bedroom is recognizably the same room but clearly wrong;
+- whether Hallway reads as a new connected room;
+- whether the backward clock is visually discoverable;
+- whether the Living Room door reveal provides a clear W2 hook.
+
+No Living Room interior, Kitchen, new enemy or boss work starts before this W1 acceptance gate deliberately passes.
