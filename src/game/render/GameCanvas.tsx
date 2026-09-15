@@ -77,6 +77,7 @@ export function GameCanvas({
   const target = findSystemicObject(playerX);
   const fx = resolveFxFrames(activeVisualEvents, nowMs);
   const shake = resolveScreenShake(activeVisualEvents, nowMs);
+  const playerInvulnerable = Boolean(hauntedSession && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs);
 
   return (
     <Canvas style={{ width, height }}>
@@ -106,6 +107,12 @@ export function GameCanvas({
           />
         ))}
 
+        <WallyFocusLight state={state} size={height} x={playerX} groundY={playerY} />
+        <IllustratedBedroomLightOverlay state={state} size={height} />
+        <IllustratedBedroomForeground state={state} size={height} />
+
+        {hauntedSession && <HauntedStageTreatment px={px} pressure={hauntedSession.threats.ghosts.length} />}
+
         {hauntedSession?.threats.ghosts.map((ghost) => (
           <HauntedGhostSprite
             key={ghost.id}
@@ -119,7 +126,6 @@ export function GameCanvas({
           />
         ))}
 
-        <WallyFocusLight state={state} size={height} x={playerX} groundY={playerY} />
         {hauntedSession ? (
           <HauntedWallySprite
             image={hauntedWallyImage}
@@ -139,6 +145,7 @@ export function GameCanvas({
             facing={playerFacing}
           />
         ) : null}
+
         {dreamSparks.map((projectile) => (
           <PixelDreamSpark
             key={projectile.id}
@@ -148,13 +155,48 @@ export function GameCanvas({
             scale={scale}
           />
         ))}
-        <IllustratedBedroomLightOverlay state={state} size={height} />
+
         {fx.map((item) => (
           <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
         ))}
-        <IllustratedBedroomForeground state={state} size={height} />
+
+        {playerInvulnerable && (
+          <HauntedHitBurst
+            x={px(playerX)}
+            y={px(playerY - 23)}
+            px={px}
+            pulse={Math.floor(nowMs / 90) % 2}
+          />
+        )}
       </Group>
     </Canvas>
+  );
+}
+
+function HauntedStageTreatment({ px, pressure }: { px: (value: number) => number; pressure: number }) {
+  const alpha = pressure > 0 ? 0.13 : 0.095;
+  return (
+    <>
+      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={`rgba(17,31,72,${alpha})`} />
+      <Rect x={px(-20)} y={px(92)} width={px(168)} height={px(36)} color="rgba(12,18,45,0.10)" />
+      <Circle cx={px(110)} cy={px(57)} r={px(29)} color="rgba(91,238,255,0.045)" />
+      <RoundedRect x={px(88)} y={px(101)} width={px(38)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.055)" />
+    </>
+  );
+}
+
+function HauntedHitBurst({ x, y, px, pulse }: { x: number; y: number; px: (value: number) => number; pulse: number }) {
+  const reach = pulse === 0 ? 8 : 10;
+  return (
+    <>
+      <Circle cx={x} cy={y} r={px(pulse === 0 ? 7 : 9)} color="rgba(255,228,92,0.10)" />
+      <Rect x={x - px(reach)} y={y - px(1)} width={px(4)} height={px(2)} color="#ffe45c" />
+      <Rect x={x + px(reach - 4)} y={y - px(1)} width={px(4)} height={px(2)} color="#5beeff" />
+      <Rect x={x - px(1)} y={y - px(reach)} width={px(2)} height={px(4)} color="#ff7b82" />
+      <Rect x={x - px(1)} y={y + px(reach - 4)} width={px(2)} height={px(4)} color="#fff4b0" />
+      <Rect x={x - px(6)} y={y - px(7)} width={px(2)} height={px(2)} color="#fff4b0" />
+      <Rect x={x + px(5)} y={y + px(5)} width={px(2)} height={px(2)} color="#5beeff" />
+    </>
   );
 }
 
