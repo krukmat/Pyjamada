@@ -1,3 +1,12 @@
+import { applyFalseEscape } from '../game/adventure/AdventureExplorationRuntime';
+import {
+  createAdventureState,
+  markRoomInspected,
+  markRoomInteraction,
+  setRoomSwitch,
+  type AdventureState,
+} from '../game/adventure/AdventureState';
+import { transitionAdventure } from '../game/adventure/RoomRegistry';
 import { PLAYER_GROUND_Y } from '../game/core/World';
 import { createHauntedSession, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import type { HauntedGhostState } from '../game/haunted/HauntedThreats';
@@ -15,6 +24,10 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'escape-ready',
   'success',
   'haunted-fail',
+  'altered-bedroom',
+  'hallway-arrival',
+  'hallway-clock',
+  'living-door',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -22,6 +35,8 @@ export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[nu
 const FROZEN_SPAWN_MS = 999_999;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
+  if (isAdventureScenario(scenario)) return explorationScreenshotSession(scenario);
+
   const base = awakeBase(scenario);
 
   switch (scenario) {
@@ -85,8 +100,6 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
       return {
         ...withPlayer(base, 58),
         elapsedMs: 14_000,
-        // Freeze halfway through the 220 ms defeat window so the screenshot
-        // captures outward fragmentation rather than a transient edge frame.
         threats: withGhost(base, ghost(1, 78, 80, 'dying', 14_110)),
       };
 
@@ -95,8 +108,6 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
       return {
         ...next,
         elapsedMs: 15_000,
-        // Capture a true post-contact frame: Wally is visibly displaced from
-        // the Ghost while still travelling through knockback/invulnerability.
         player: { ...next.player, x: 56, y: 92, vx: -24, vy: -18, grounded: false },
         domestic: { ...next.domestic, player: { ...next.domestic.player, x: 56, facing: 'right' } },
         combat: { ...next.combat, hp: 2, invulnerableUntilMs: 15_700 },
@@ -152,6 +163,47 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
       };
     }
   }
+}
+
+export function createScreenshotAdventureState(scenario: HauntedScreenshotScenario): AdventureState {
+  if (!isAdventureScenario(scenario)) return createAdventureState();
+
+  const falseEscape = applyFalseEscape(explorationSeed(scenario), createAdventureState());
+  let adventure = falseEscape.adventure;
+  if (scenario === 'altered-bedroom') return adventure;
+
+  const hallway = transitionAdventure(adventure, 'hallway', 'hallway-from-bedroom');
+  if (hallway.status !== 'ok') throw new Error(hallway.reason);
+  adventure = hallway.state;
+
+  if (scenario === 'hallway-clock' || scenario === 'living-door') {
+    adventure = markRoomInspected(adventure, 'hallway', 'backward-clock');
+    adventure = setRoomSwitch(adventure, 'hallway', 'living-room-unlocked', true);
+  }
+  if (scenario === 'living-door') {
+    adventure = markRoomInteraction(adventure, 'hallway', 'living-room-door');
+  }
+  return adventure;
+}
+
+function explorationScreenshotSession(scenario: Extract<HauntedScreenshotScenario, 'altered-bedroom' | 'hallway-arrival' | 'hallway-clock' | 'living-door'>): HauntedSessionState {
+  const falseEscape = applyFalseEscape(explorationSeed(scenario), createAdventureState());
+  const x = scenario === 'altered-bedroom' ? 24 : scenario === 'hallway-arrival' ? 20 : scenario === 'hallway-clock' ? 64 : 110;
+  return withPlayer(falseEscape.session, x);
+}
+
+function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionState {
+  const base = awakeBase(scenario);
+  return {
+    ...base,
+    domestic: preparedDomestic(base),
+    objective: { phase: 'completed' },
+    threats: { ...base.threats, ghosts: [], nextSpawnAtMs: FROZEN_SPAWN_MS },
+  };
+}
+
+function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is Extract<HauntedScreenshotScenario, 'altered-bedroom' | 'hallway-arrival' | 'hallway-clock' | 'living-door'> {
+  return scenario === 'altered-bedroom' || scenario === 'hallway-arrival' || scenario === 'hallway-clock' || scenario === 'living-door';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
