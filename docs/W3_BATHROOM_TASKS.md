@@ -2,15 +2,13 @@
 
 ## Status
 
-**REFINED — NOT STARTED**
+**ACTIVE — GATE A CODE COMPLETE / ANDROID REVIEW PENDING**
 
-W3B follows the Kitchen electrical loop but validates a different gameplay idea: the house can expose useful information through impossible spatial relationships, not only through electrical cause/effect.
-
-No Bathroom code is implemented by this plan.
+W3A Kitchen is accepted. W3B validates a different gameplay idea: the house can expose useful information through impossible spatial relationships, not only through electrical cause/effect.
 
 ## Product goal
 
-Bathroom should move the player from:
+Bathroom moves the player from:
 
 > I can manipulate the house.
 
@@ -18,191 +16,136 @@ into:
 
 > The house is showing me space that does not exist normally.
 
-The room must communicate its anomaly visually before explanatory text does. Kitchen review showed that world-state changes are stronger when the player can infer them directly from lighting, objects and environment rather than relying on the reaction caption.
+The anomaly must read visually before reaction text explains it.
 
-## Player loop
+## Implemented player loop
 
 ```text
 Kitchen power rerouted
  -> FOLLOW THE PULSE
  -> Bathroom
- -> pulse appears to stop
- -> reflection shows the pulse continuing somewhere impossible
- -> inspect/understand the mismatch
- -> manipulate one ordinary Bathroom element
- -> real room partially adopts the reflected geometry
- -> reveal the route toward Attic progression
+ -> real pulse stops at sink
+ -> mirror shows pulse continuing through impossible geometry
+ -> inspect MIRROR
+ -> TEST THE REFLECTION
+ -> switch real LIGHT off
+ -> mirror remains unnaturally illuminated
+ -> CHECK THE MIRROR
+ -> confirm reflected route
+ -> real wall adopts matching cyan seam
+ -> ATTIC ACCESS REVEALED
 ```
 
 The intended realization is:
 
 > The mirror is not reflecting this room. It is showing another valid version of it.
 
-## Chosen core mechanic
-
-### Mirror mismatch + light-state reveal
-
-The mirror is the primary mechanic. The light switch is the only supporting interaction needed for the first implementation.
-
-Initial state:
-- Bathroom reads as a normal small domestic room;
-- the rerouted cyan pulse from Kitchen enters the room and appears to terminate;
-- the mirror reflection contains a continuation of that pulse and a faint route/door seam that is absent from the real wall;
-- the mismatch should be visible enough to notice without a caption explicitly saying what is wrong.
-
-Interaction sequence:
-
-```text
-MIRROR
- -> player notices reflected route absent in reality
- -> objective becomes TEST THE REFLECTION
-
-LIGHT SWITCH
- -> real room darkens
- -> reflected room remains unnaturally lit / cyan
- -> reflected route becomes unmistakable
-
-MIRROR / reflected route confirmation
- -> persist mirror-route-seen
- -> real wall gains a restrained distortion/seam
- -> route toward Attic progression becomes available/revealed
-```
-
-The mirror does not become a free-form portal. Wally does not walk through arbitrary reflections.
-
-## Why this mechanic
-
-It extends the progression cleanly:
-
-```text
-Living Room  -> someone is observing this
-Kitchen      -> I can manipulate the system
-Bathroom     -> reality itself has alternate geometry
-Attic        -> I learn what the experiment actually is
-```
-
-It also satisfies the project pillar:
-
-`domestic object + supernatural distortion = gameplay`
-
-without adding combat, inventory or another electrical puzzle.
-
-## Lessons carried forward from Kitchen review
-
-1. **Visual state first, caption second.**
-   - The reflected pulse/route must be visible before text explains it.
-   - Reaction text should confirm the player's inference, not carry the mechanic.
-
-2. **No contradictory lighting language.**
-   - If the room is described as dark/dead, the presentation must actually look dark/dead.
-   - The mirror remaining illuminated when the real light is off is deliberate and must be visually obvious.
-
-3. **Deterministic screenshots must demonstrate one state clearly.**
-   - Wally should be positioned near the interaction relevant to each validation state.
-   - Avoid a screenshot whose objective points to one object while the prompt highlights another unrelated one.
-
-4. **The final hook should produce actionable progression.**
-   - Unlike Kitchen Gate A's temporary `FOLLOW THE PULSE` edge, W3B should reveal a concrete route toward the Attic boundary.
-   - W4 Attic interior remains out of scope, but the player should understand exactly where progression continues.
-
 ## Scope guardrails
 
-In W3B Gate A:
-- Bathroom becomes a connected room reached from the Kitchen progression path;
-- a distinct Bathroom presentation;
-- mirror reflection differs materially from the real room;
-- one supporting light-switch interaction;
-- mirror/light relationship reveals the hidden route;
-- room-local state survives save/load;
-- deterministic visual evidence covers before/after geometry.
+Delivered in Gate A:
+- Kitchen <-> Bathroom production navigation after Kitchen `power-rerouted`;
+- distinct Bathroom presentation;
+- real pulse termination around the sink;
+- mirror with a materially different reflected pulse/route;
+- one Light Switch supporting interaction;
+- real-room darkness versus persistent mirror illumination;
+- corresponding real-wall seam after confirmation;
+- room-local persistence and deterministic tests/evidence.
 
-Out of W3B Gate A:
+Not implemented:
 - generic mirror/portal engine;
 - arbitrary teleportation;
-- ray-traced or physically accurate reflection system;
 - inventory/key-item puzzle;
 - Bathroom combat or new enemies;
-- multiple faucet/toilet/shower mechanics;
-- Attic interior/content;
-- Vesper or W-01 explicit reveal.
+- faucet/toilet/shower mechanics;
+- Attic interior;
+- Vesper/W-01 reveal.
 
-## Proposed room-local state
+## Room-local state
 
-Keep state local unless W4 proves a cross-room dependency is necessary.
-
-Candidate switches/history:
+Implemented without a new global story flag:
 - `mirror-anomaly-seen`;
 - `bathroom-light-off`;
 - `mirror-route-revealed`;
 - inspected `mirror-mismatch`;
+- interaction `mirror-inspected`;
 - interaction `light-switch-tested`;
 - interaction `mirror-route-confirmed`.
 
-Do not introduce a new global story flag merely to represent Bathroom completion.
-
 ## Tasks
 
-### W3B-T0 — Accept/close W3A
+### W3B-T0 — Accept/close W3A — COMPLETE
 
-Before Bathroom implementation:
-- resolve the Kitchen arrival lighting contradiction;
-- improve overload screenshot framing;
-- accept W3A Gate A if Android evidence remains clean.
+Kitchen review findings were resolved:
+- dead-appliance state and overhead-light presentation now agree;
+- overload deterministic framing points to the Breaker;
+- rerouted state now exposes an actionable Bathroom boundary.
 
-### W3B-T1 — Activate Bathroom route
+W3A is accepted.
 
-Define deterministic Kitchen/Bathroom connectivity after `power-rerouted`.
+### W3B-T1 — Activate Bathroom route — COMPLETE
 
-The Kitchen solved state should unlock the Bathroom interaction/route through existing room-local gating rather than a new quest system.
+Production connectivity:
 
-### W3B-T2 — Bathroom base presentation
+```text
+Kitchen <-> Bathroom
+```
 
-Required anchors:
-- entry/return door;
+Kitchen -> Bathroom is gated by Kitchen room-local switch `power-rerouted`. No quest/global flag was added.
+
+### W3B-T2 — Bathroom base presentation — COMPLETE
+
+Implemented anchors:
+- Kitchen return door;
 - sink/vanity;
-- large mirror;
-- light fixture/switch;
-- restrained domestic props;
-- real-room pulse termination point.
+- large central mirror;
+- light fixture and switch;
+- restrained domestic geometry;
+- real cyan pulse stopping near the sink.
 
-The mirror must have enough visual weight to become the room's focal object without needing an overlay.
+### W3B-T3 — Reflection mismatch — COMPLETE
 
-### W3B-T3 — Reflection mismatch
+The mirror deliberately disagrees with the real room:
+- reflected cyan pulse continues beyond the real termination point;
+- reflected vertical route/seam exists before the real wall adopts it;
+- contrast increases after the anomaly is explicitly inspected.
 
-Render a deliberately different reflected layer/state:
-- continuing cyan pulse;
-- route/door seam that does not exist in real geometry;
-- subtle enough to invite observation, clear enough to survive screenshot review.
+This is Bathroom-specific rendering, not reusable reflection infrastructure.
 
-This should be a Bathroom-specific presentation technique, not a reusable reflection engine yet.
+### W3B-T4 — Light-state interaction — COMPLETE
 
-### W3B-T4 — Light-state interaction
-
-The light switch creates the decisive contrast:
-- real room becomes dark;
-- mirror remains lit or electrically active;
+The Light Switch provides the deliberate manipulation step:
+- real room darkens;
+- mirror remains visibly cyan-lit;
 - reflected route becomes substantially clearer.
 
-This is the player's deliberate action, preventing the Bathroom from becoming another inspect-only story room.
+The route cannot be solved merely by inspecting the mirror repeatedly while the real light remains on.
 
-### W3B-T5 — Route reveal
+### W3B-T5 — Route reveal — COMPLETE
 
-After the player has observed/tested the anomaly:
-- persist `mirror-route-revealed`;
-- real wall gains a restrained distortion/seam matching the reflection;
-- reveal the concrete next route toward the Attic boundary;
-- do not enter or implement Attic content yet.
+After mirror observation + light test, confirming the mirror:
+- sets `mirror-route-revealed`;
+- records `mirror-route-confirmed`;
+- draws a corresponding cyan seam on the real right wall;
+- exposes a concrete Attic boundary while leaving W4 content unimplemented.
 
-### W3B-T6 — Persistence + deterministic evidence
+HUD endpoint:
 
-Automated coverage should prove:
-- Bathroom route locked before Kitchen `power-rerouted`;
-- Kitchen -> Bathroom -> Kitchen navigation;
-- mirror mismatch is initially present;
-- light switch changes geometry presentation state;
-- route cannot be revealed accidentally before required observation/action;
+`ATTIC ACCESS REVEALED`
+
+### W3B-T6 — Persistence + deterministic evidence — COMPLETE AUTOMATED
+
+Automated coverage proves:
+- Bathroom stays locked before Kitchen reroute;
+- Kitchen -> Bathroom and Bathroom -> Kitchen are production transitions;
+- deterministic Bathroom spawn and visited-room tracking;
+- mirror observation alone cannot solve the room;
+- light manipulation alone cannot solve the room;
+- mirror confirmation after the light test reveals the route;
 - solved state is idempotent;
-- save/load preserves current room and mirror progression.
+- save/load preserves current Bathroom plus all reflection progression.
+
+Repository validation passes TypeScript, automated tests, assets, and static architecture checks.
 
 ## Gate A — Dream Geometry
 
@@ -211,30 +154,30 @@ Required player path:
 ```text
 Kitchen solved
  -> Bathroom
- -> pulse appears to stop
+ -> pulse stops in reality
  -> inspect mirror mismatch
- -> switch off real light
- -> reflected route remains visible
- -> confirm anomaly
- -> real room reveals corresponding route
+ -> turn off real light
+ -> reflection stays illuminated
+ -> confirm reflected route
+ -> real wall reveals matching route
  -> Attic boundary exposed
 ```
 
 Definition of Done:
-1. Bathroom is inaccessible before Kitchen power reroute.
-2. Bathroom visually reads as distinct from Kitchen/Living Room.
-3. The player can notice the mirror mismatch without relying on reaction text.
-4. Light manipulation materially changes the room and strengthens the reflected clue.
-5. Progress comes from interpreting geometry, not combat or item collection.
-6. No generic portal/reflection engine is introduced.
-7. Route reveal is stable and survives save/load.
-8. The end state points to a concrete Attic boundary rather than another unexplained dead-end.
-9. W0–W3A regressions remain green.
-10. Focused Android screenshots make normal, mismatch and revealed-route states legible.
+1. Bathroom inaccessible before Kitchen power reroute. **Automated PASS**
+2. Bathroom visually distinct from Kitchen/Living Room. **Android review pending**
+3. Mirror mismatch noticeable without relying on reaction text. **Android review pending**
+4. Light manipulation materially strengthens the reflected clue. **Android review pending**
+5. Progress comes from geometry, not combat/item collection. **PASS**
+6. No generic portal/reflection engine. **PASS**
+7. Route reveal stable and survives save/load. **PASS**
+8. End state exposes concrete Attic boundary. **Implemented; Android review pending**
+9. W0–W3A regressions remain green. **PASS**
+10. Focused Android evidence is legible. **Pending user-run review**
 
-## Proposed deterministic evidence
+## Deterministic Android evidence
 
-Keep this small:
+The screenshot contract now expects 29 total screens. W3B adds:
 
 ```text
 26_bathroom_arrival
@@ -243,28 +186,27 @@ Keep this small:
 29_bathroom_route_revealed
 ```
 
-Exact numbering is provisional until W3A screenshot closeout is final.
+Review intent:
+- **26:** real pulse visibly stops while mirror continuation is subtle but discoverable;
+- **27:** mirror mismatch becomes the obvious focal clue;
+- **28:** real room is materially dark while mirror remains illuminated;
+- **29:** real-wall seam reads as concrete forward/Attic access, not decorative glow.
+
+The refreshed tour also revalidates corrected Kitchen screens 23–25.
 
 ## Architecture checkpoint
-
-Reuse the existing seams:
 
 ```text
 RoomRegistry
  -> Bathroom interactions
+ -> AdventureExplorationRuntime generic dispatch
  -> RoomInteractionEffects
  -> Bathroom room-local state
  -> BathroomPresentation
 ```
 
-The reflection is a presentation/state feature, not a new navigation model. Only extract reusable dream-geometry infrastructure if a later room demonstrates a second concrete need.
+Reflection remains a presentation/state feature rather than a new navigation model. Only extract reusable dream-geometry infrastructure if another later room demonstrates a second concrete need.
 
-## W3B acceptance question
+## Current gate
 
-At the end of the wave the player should be able to answer, through play rather than exposition:
-
-> Why did the pulse disappear in the real room but continue in the mirror?
-
-The useful answer is not lore yet. It is mechanical:
-
-> Because the reflection exposes a version of the house that the normal room is hiding.
+**Android Gate A review.** Do not implement Attic interior, additional Bathroom fixtures, enemies, or a portal engine before screenshots 26–29 are reviewed.
