@@ -9,6 +9,14 @@ import {
 
 type Px = (value: number) => number;
 
+const PIXEL_TEXTURE_BLOCKS = [
+  [8, 18, 2, 1], [24, 31, 1, 1], [39, 22, 2, 1], [57, 38, 1, 2],
+  [75, 17, 2, 1], [92, 33, 1, 1], [116, 23, 2, 1], [124, 42, 1, 2],
+  [14, 58, 1, 1], [33, 69, 2, 1], [52, 61, 1, 2], [72, 76, 2, 1],
+  [95, 66, 1, 1], [119, 73, 2, 1], [22, 94, 2, 1], [46, 99, 1, 1],
+  [69, 92, 2, 1], [99, 96, 1, 1], [121, 91, 2, 1],
+] as const;
+
 export function HauntedStageTreatment({ px, pressure }: { px: Px; pressure: number }) {
   const washAlpha = hauntedWashAlpha(pressure);
   const edgeAlpha = hauntedEdgeAlpha(pressure);
@@ -40,6 +48,16 @@ export function HauntedStageTreatment({ px, pressure }: { px: Px; pressure: numb
         r={px(2)}
         color={atmosphere.exitLaneGlow}
       />
+      {PIXEL_TEXTURE_BLOCKS.map(([x, y, width, height], index) => (
+        <Rect
+          key={`haunted-pixel-${index}`}
+          x={px(x)}
+          y={px(y)}
+          width={px(width)}
+          height={px(height)}
+          color={`rgba(${atmosphere.pixelTextureRgb},${atmosphere.pixelTextureAlpha})`}
+        />
+      ))}
     </>
   );
 }
@@ -73,18 +91,42 @@ export function HauntedPlayerReadability({ x, y, px }: { x: number; y: number; p
   );
 }
 
-export function HauntedHitFeedback({ x, y, px, pulse }: { x: number; y: number; px: Px; pulse: number }) {
+export function HauntedHitFeedback({
+  x,
+  y,
+  px,
+  pulse,
+  direction = 0,
+}: {
+  x: number;
+  y: number;
+  px: Px;
+  pulse: number;
+  direction?: -1 | 0 | 1;
+}) {
   const hit = HAUNTED_STAGE_TOKENS.hit;
-  const reach = pulse === 0 ? 8 : 10;
+  const reach = pulse === 0 ? 9 : 11;
+  const trailDirection = direction === 0 ? 1 : -direction;
+  const trailX = trailDirection > 0 ? x + px(6) : x - px(18);
+
   return (
     <>
-      <Circle cx={x} cy={y} r={px(pulse === 0 ? 7 : 9)} color={hit.glow} />
-      <Rect x={x - px(reach)} y={y - px(1)} width={px(4)} height={px(2)} color={hit.horizontalWarm} />
-      <Rect x={x + px(reach - 4)} y={y - px(1)} width={px(4)} height={px(2)} color={hit.horizontalCold} />
-      <Rect x={x - px(1)} y={y - px(reach)} width={px(2)} height={px(4)} color={hit.verticalDanger} />
-      <Rect x={x - px(1)} y={y + px(reach - 4)} width={px(2)} height={px(4)} color={hit.verticalWarm} />
-      <Rect x={x - px(6)} y={y - px(7)} width={px(2)} height={px(2)} color={hit.verticalWarm} />
-      <Rect x={x + px(5)} y={y + px(5)} width={px(2)} height={px(2)} color={hit.horizontalCold} />
+      <Circle cx={x} cy={y} r={px(11)} color={hit.backing} />
+      <Circle cx={x} cy={y} r={px(pulse === 0 ? 9 : 11)} color={hit.outerGlow} />
+      <Circle cx={x} cy={y} r={px(pulse === 0 ? 6 : 8)} color={hit.glow} />
+      <Circle cx={x} cy={y} r={px(2)} color={hit.core} />
+
+      <Rect x={x - px(reach)} y={y - px(1)} width={px(5)} height={px(2)} color={hit.horizontalWarm} />
+      <Rect x={x + px(reach - 5)} y={y - px(1)} width={px(5)} height={px(2)} color={hit.horizontalCold} />
+      <Rect x={x - px(1)} y={y - px(reach)} width={px(2)} height={px(5)} color={hit.verticalDanger} />
+      <Rect x={x - px(1)} y={y + px(reach - 5)} width={px(2)} height={px(5)} color={hit.verticalWarm} />
+
+      <Rect x={trailX} y={y - px(7)} width={px(12)} height={px(2)} color={hit.pushTrail} />
+      <Rect x={trailX + (trailDirection > 0 ? px(3) : px(-3))} y={y} width={px(9)} height={px(2)} color={hit.horizontalCold} />
+      <Rect x={trailX + (trailDirection > 0 ? px(6) : px(-6))} y={y + px(6)} width={px(6)} height={px(2)} color={hit.verticalWarm} />
+
+      <Rect x={x - px(7)} y={y - px(8)} width={px(2)} height={px(2)} color={hit.verticalWarm} />
+      <Rect x={x + px(6)} y={y + px(6)} width={px(2)} height={px(2)} color={hit.horizontalCold} />
     </>
   );
 }
