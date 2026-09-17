@@ -145,6 +145,26 @@ export function isBathroomRouteRevealed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'bathroom').switches['mirror-route-revealed'] === true;
 }
 
+export function isAtticLogInspected(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'attic').inspected.includes('attic-experiment-log');
+}
+
+export function isAtticSensorsInspected(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'attic').inspected.includes('attic-sensor-map');
+}
+
+export function isAtticExperimentRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'attic').switches['experiment-revealed'] === true;
+}
+
+export function isAtticBasementRouteRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'attic').switches['basement-route-revealed'] === true;
+}
+
+export function isAtticRecorderFocused(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'attic').switches['recorder-focused'] === true;
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
