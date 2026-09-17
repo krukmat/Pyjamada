@@ -1,6 +1,7 @@
+import { applyHauntedPlayerHit } from '../haunted/HauntedCombat';
 import { consumeTransientActions, createHauntedInputState } from '../haunted/HauntedInput';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
-import { stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
+import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import {
   getRoomState,
   markRoomInteraction,
@@ -8,6 +9,11 @@ import {
   type AdventureState,
   type RoomId,
 } from './AdventureState';
+import {
+  armBasementElectricalHazard,
+  isInsideBasementElectricalHazard,
+  resolveBasementElectricalHazard,
+} from './BasementElectricalHazard';
 import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
@@ -23,6 +29,7 @@ export type AdventureInteractionTarget = ResolvedRoomInteractionTarget;
 export type AdventureExplorationEvent =
   | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: RoomId; targetEntry: string }
   | { type: 'LIVING_ROOM_DOOR_REACHED' }
+  | { type: 'BASEMENT_DISCHARGE_HIT' }
   | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
@@ -197,8 +204,22 @@ export function stepAdventureExploration(
 ): AdventureExplorationStep {
   if (!isAdventureExplorationActive(adventure)) return { session, adventure, events: [] };
 
-  const player = stepHauntedPlayerPhysics(session.player, session.input, Math.max(0, deltaMs) / 1000);
+  const dtMs = Math.max(0, deltaMs);
+  let elapsedMs = session.elapsedMs;
   let nextAdventure = adventure;
+
+  // Exploration otherwise keeps the bedroom deadline frozen. T5 advances the
+  // existing clock only while the revealed Basement overload is actively in play.
+  if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
+    elapsedMs += dtMs;
+    const armed = armBasementElectricalHazard(nextAdventure, elapsedMs);
+    nextAdventure = armed.adventure;
+    elapsedMs = armed.elapsedMs;
+  }
+
+  let player = stepHauntedPlayerPhysics(session.player, session.input, dtMs / 1000);
+  let combat = session.combat;
+  let objective = session.objective;
   const events: AdventureExplorationEvent[] = [];
 
   if (session.input.interactPressed) {
@@ -219,12 +240,26 @@ export function stepAdventureExploration(
     }
   }
 
+  const hazard = resolveBasementElectricalHazard(nextAdventure, elapsedMs);
+  if (hazard.dangerous && isInsideBasementElectricalHazard(player.x) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, -1);
+      events.push({ type: 'BASEMENT_DISCHARGE_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
   return {
     adventure: nextAdventure,
     events,
     session: {
       ...session,
       player,
+      elapsedMs,
+      combat,
+      objective,
       domestic: {
         ...session.domestic,
         player: { x: Math.round(player.x), facing: player.facing },
