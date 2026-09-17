@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACTIVE — T0–T3 COMPLETE / T4 NEXT**
+**ACTIVE — T0–T4 COMPLETE / T5 NEXT**
 
-W4 Attic is accepted. The first W5 production slice is implemented and repository validation is green on `feat/haunted-house-adventure`.
+W4 Attic is accepted. W5 foundation, power loop and control-terminal reveal are implemented and repository validation is green on `feat/haunted-house-adventure`.
 
 ## Product goal
 
@@ -39,9 +39,9 @@ operate local isolation relay
         ↓
 power feed stabilizes
         ↓
-control terminal becomes meaningful
+READ THE CONTROL TERMINAL
         ↓
-SYSTEM OVERLOAD / RESONANCE ESCALATION
+RESONANCE LOAD CRITICAL
         ↓
 environmental hazard pressure
         ↓
@@ -101,7 +101,7 @@ Implemented visual language:
 - cyan resonance feed grafted across domestic utilities;
 - unstable fault node with flicker/arcs;
 - dedicated isolation relay;
-- deeper dormant control equipment reserved for T4;
+- deeper control terminal;
 - visibly steadier cyan feed after T3 stabilization.
 
 No generic power renderer or new enemy was introduced.
@@ -125,7 +125,7 @@ Objective progression:
 ```text
 FOLLOW THE POWER
 ISOLATE THE FAULT
-POWER FEED STABLE
+READ THE CONTROL TERMINAL
 ```
 
 Behavior:
@@ -135,9 +135,38 @@ Behavior:
 - repeated interactions are idempotent;
 - stabilized state materially changes the conduit/relay/deeper-feed presentation.
 
-Automated coverage in `tests/w5-basement-foundation.test.ts` proves navigation gating, deterministic spawns/return path, interaction ordering, idempotence and save/load restoration.
+### W5-T4 — Terminal / control reveal — COMPLETE
 
-Repository validation for the completed T0–T3 slice:
+Added one Basement-specific `CONTROL TERMINAL` interaction. No generic terminal framework was introduced.
+
+Behavior:
+- before T3 stabilization the CRT remains unreadable and emits one deterministic `BASEMENT_TERMINAL_OFFLINE` clue;
+- after the isolation relay stabilizes the feed, the terminal becomes readable;
+- interacting with it persists `basement-control-revealed` and emits `BASEMENT_CONTROL_REVEALED` once;
+- repeated terminal reads are idempotent;
+- save/load preserves the revealed control state.
+
+The reveal is expressed both through UI/narrative state and room presentation:
+
+```text
+READ THE CONTROL TERMINAL
+        ↓
+terminal gauge crosses its safe threshold
+        ↓
+red overload language replaces stable cyan-only readout
+        ↓
+RESONANCE LOAD CRITICAL
+```
+
+The player now has the first explicit evidence that the infrastructure is not merely damaged: Resonance demand itself is above safe operating parameters and still climbing.
+
+Automated coverage in `tests/w5-basement-foundation.test.ts` now proves:
+- terminal remains unreadable before stable power;
+- stable power is required before reveal;
+- reveal event is emitted exactly once;
+- `basement-control-revealed` survives Continue.
+
+Repository validation for T0–T4:
 
 ```text
 Assets                  PASS
@@ -146,20 +175,7 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T4 — Terminal / control reveal — NEXT
-
-- Add one local CRT/control terminal.
-- Before T3 solution: incomplete/noisy readout.
-- After power stabilization: reveal that Resonance load is exceeding expected operating parameters.
-- Keep this Basement-specific; no generic terminal framework.
-
-Expected milestone:
-
-```text
-basement-control-revealed
-```
-
-### W5-T5 — Environmental hazard
+### W5-T5 — Environmental hazard — NEXT
 
 Introduce one deterministic environmental pressure mechanic tied to the unstable experiment, for example electrical discharge/arcing conduit.
 
@@ -192,14 +208,15 @@ laboratory-route-revealed
 
 ### W5-T8 — Persistence / idempotence / tests
 
-Already covered for T0–T3:
+Already covered through T4:
 - Basement locked before Attic route reveal;
 - deterministic Attic ↔ Basement navigation;
 - fault trace and power stabilization ordering;
 - repeated stabilization does not duplicate milestones/events;
-- save/load preserves Basement and local power progression.
+- terminal gating and idempotence;
+- save/load preserves Basement power and control progression.
 
-Extend coverage as T4–T7 are implemented.
+Extend coverage as T5–T7 are implemented.
 
 ### W5-T9 — Android visual gate
 
@@ -259,11 +276,11 @@ Basement room-local persistent state
 RoomPresentation / BasementPresentation
 ```
 
-The conduit/relay relationship remains Basement-specific until another room demonstrates a real second use case.
+The conduit/relay/terminal relationship remains Basement-specific until another room demonstrates a real second use case.
 
 ## Current implementation slice
 
-**T0–T3 complete. T4 is next.**
+**T0–T4 complete. T5 is next.**
 
 Current production progression:
 
@@ -280,7 +297,9 @@ ISOLATE THE FAULT
     ↓
 Isolation Relay
     ↓
-POWER FEED STABLE
+READ THE CONTROL TERMINAL
+    ↓
+RESONANCE LOAD CRITICAL
 ```
 
-Next increment begins from the now-powered deeper control equipment; it should not broaden the subsystem abstraction.
+The next increment adds environmental pressure as a consequence of the now-visible overload; it should not introduce a reusable hazard framework or a new enemy by default.
