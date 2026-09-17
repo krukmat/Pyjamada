@@ -2,9 +2,9 @@
 
 ## Status
 
-**APPROVED — IMPLEMENTATION READY**
+**CODE COMPLETE — ANDROID REVIEW PENDING**
 
-W3A Kitchen and W3B Bathroom are accepted. W4 is the next production wave on `feat/haunted-house-adventure`.
+W3A Kitchen and W3B Bathroom are accepted. W4 is implemented on `feat/haunted-house-adventure`; the remaining gate is Android visual acceptance for screenshots 30–33.
 
 ## Product goal
 
@@ -20,7 +20,7 @@ By the end of W4 the player should be able to infer:
 
 W4 must **not** fully reveal Dr. Vesper, explain the complete Resonator architecture, implement Basement interior, or introduce a generic clue/inventory/dialogue system.
 
-## Narrative sequence
+## Implemented narrative sequence
 
 ```text
 Bathroom route revealed
@@ -29,34 +29,34 @@ Attic
         ↓
 SEARCH THE ATTIC
         ↓
-inspect experiment evidence
+inspect experiment log + sensor crate
         ↓
-connect prior rooms to one experiment
+CONNECT THE EVIDENCE
         ↓
-central recorder/monitor becomes meaningful
+PLAY THE RECORDING
         ↓
-partial recording: RESONANCE / SUBJECT / extraction clues
-        ↓
-player concludes someone is running the house
+SUBJECT W-01 / RESONANCE EXTRACTION
         ↓
 FIND THE MACHINE
         ↓
-Basement boundary becomes concrete
+trace recorder output cable downward
+        ↓
+Basement boundary revealed
 ```
 
-The revelation should answer **what kind of situation this is** before answering **who is responsible**.
+The revelation answers **what kind of situation this is** before answering **who is responsible**.
 
 ## Information budget
 
-### W4 may reveal
+### W4 reveals
 
 - Bedroom, Living Room, Kitchen and Bathroom readings belong to one experiment.
 - The experiment tracks resonance/dream-energy behavior.
-- Wally is a subject, e.g. `SUBJECT W-01` or equivalent partial identifier.
+- Wally is identified as `SUBJECT W-01`.
 - Energy/control infrastructure continues downward.
 - The machine responsible is below the house.
 
-### W4 must preserve for later waves
+### W4 preserves for later waves
 
 - Dr. Vesper's complete identity/motivation.
 - Full Resonator purpose and architecture.
@@ -65,81 +65,80 @@ The revelation should answer **what kind of situation this is** before answering
 
 ## Visual language
 
-Attic should be visually denser than Hallway/Living Room/Kitchen/Bathroom while still reading as part of the same house.
+Attic is intentionally denser than Hallway/Living Room/Kitchen/Bathroom while still reading as part of the same house.
 
-Required motifs:
+Implemented motifs:
 
 - rafters / sloped roof;
 - stacked domestic boxes and displaced household objects;
 - newer cables crossing older construction;
 - improvised observation equipment;
 - one central recorder/monitor with clear visual hierarchy;
-- a downward cable/hatch/seam used only after the revelation.
+- a downward cable/hatch seam exposed after the revelation.
 
-The room should initially look like storage that has been secretly converted into an observation station.
+The room should initially read as storage secretly converted into an observation station.
 
 ## Gameplay loop
 
-W4 is a **light evidence reconstruction**, not a new puzzle engine.
+W4 remains a **light evidence reconstruction**, not a new puzzle engine.
 
-Recommended concrete interaction set:
+Concrete interactions:
 
-1. **Experiment log / chart** — connects readings to rooms already visited.
+1. **Experiment log** — connects resonance readings to rooms already visited.
 2. **Sensor crate / wiring map** — proves the anomalies are instrumented rather than random.
-3. **Recorder / monitor** — initially ambiguous; becomes meaningful after evidence is inspected.
+3. **Recorder / monitor** — incomplete before both evidence interactions; meaningful afterward.
+4. **Downward cable** — traceable only after the main revelation; exposes the Basement boundary.
 
-A central interaction may require the evidence context, but this must remain room-local state rather than introducing a generalized clue graph.
+All progression remains room-local state rather than a generalized clue graph.
 
 ## Tasks
 
-### W4-T0 — Formal W3 closeout
+### W4-T0 — Formal W3 closeout — COMPLETE
 
-- Mark W3A Kitchen `ACCEPTED`.
-- Mark W3B Bathroom `ACCEPTED` after Android 26–29 review.
-- Preserve 1–29 screenshot tour as regression baseline.
+- W3A Kitchen `ACCEPTED`.
+- W3B Bathroom `ACCEPTED` after Android 26–29 review.
+- Screenshots 1–29 remain the regression baseline.
 
-### W4-T1 — Attic room foundation
+### W4-T1 — Attic room foundation — COMPLETE
 
-- Activate `attic` in `RoomRegistry`.
-- Add deterministic Bathroom → Attic entry and Attic → Bathroom return path.
-- Gate Bathroom → Attic on the accepted `mirror-route-revealed` state.
-- Do not activate Basement travel yet.
+- `attic` activated in `RoomRegistry`.
+- Deterministic Bathroom → Attic entry and Attic → Bathroom return path.
+- Bathroom → Attic gated on `mirror-route-revealed`.
+- Basement travel intentionally remains inactive.
 
-### W4-T2 — Attic presentation
+### W4-T2 — Attic presentation — COMPLETE
 
-- Add `AtticPresentation` through the existing `RoomPresentation` seam.
-- Establish storage/rafters/observation-station identity.
-- Keep Wally scale, floor baseline and interaction readability consistent with prior rooms.
+- Added `AtticPresentation` through the existing `RoomPresentation` seam.
+- Storage/rafters/observation-station visual identity established.
+- Wally scale, floor baseline and interaction readability reuse existing room conventions.
 
-### W4-T3 — Evidence interactions
+### W4-T3 — Evidence interactions — COMPLETE
 
-Implement 2 focused evidence interactions that refer back to prior gameplay rather than adding unrelated lore.
-
-Expected local state examples:
+Implemented two focused evidence interactions:
 
 ```text
-attic-log-inspected
-attic-sensors-inspected
+attic-experiment-log
+attic-sensor-map
 ```
 
-Both must be idempotent and persist through save/load.
+Both are idempotent and persist through save/load.
 
-### W4-T4 — Central recording / main revelation
+### W4-T4 — Central recording / main revelation — COMPLETE
 
-- Central recorder/monitor interaction.
-- Before sufficient evidence: ambiguous/incomplete output only.
-- After evidence: reveal resonance/subject/extraction language.
-- No full Vesper reveal.
+- Recorder/monitor interaction implemented.
+- Before sufficient evidence it yields only incomplete context.
+- After both evidence interactions it reveals `SUBJECT W-01` / resonance extraction language.
+- Full Vesper identity remains unrevealed.
 
-Expected room-local milestone:
+Room-local milestone:
 
 ```text
 experiment-revealed
 ```
 
-### W4-T5 — Objective progression
+### W4-T5 — Objective progression — COMPLETE
 
-Target objective sequence:
+Implemented objective sequence:
 
 ```text
 SEARCH THE ATTIC
@@ -148,36 +147,37 @@ PLAY THE RECORDING
 FIND THE MACHINE
 ```
 
-World state should communicate each transition before reaction text explains it.
+World state changes accompany the objective transitions.
 
-### W4-T6 — Basement hook
+### W4-T6 — Basement hook — COMPLETE
 
 After the main recording:
 
-- power/signal path visibly turns downward;
-- a Basement hatch/seam/boundary becomes clear;
-- W4 does **not** implement Basement interior or transition gameplay.
+- recorder output visibly continues downward;
+- tracing the downward cable exposes a Basement hatch/boundary;
+- Basement interior and transition gameplay remain outside W4.
 
-Expected room-local state:
+Room-local milestone:
 
 ```text
 basement-route-revealed
 ```
 
-### W4-T7 — Persistence and idempotence
+### W4-T7 — Persistence and idempotence — COMPLETE
 
-Cover:
+Covered by `tests/w4-attic-gate-a.test.ts`:
 
 - individual evidence inspection;
 - incomplete recorder state;
 - completed revelation;
 - Basement boundary state;
 - repeated interactions do not duplicate milestones/events;
-- Continue restores Attic and revelation state correctly.
+- Continue restores Attic and revelation state;
+- Attic retains a production return path to Bathroom.
 
-### W4-T8 — Deterministic Android review
+### W4-T8 — Deterministic Android review — PENDING USER RUN
 
-Extend the screenshot contract with:
+Screenshot contract now contains 33 screenshots:
 
 ```text
 30_attic_arrival.png
@@ -186,7 +186,7 @@ Extend the screenshot contract with:
 33_basement_route_revealed.png
 ```
 
-The first 29 screenshots remain regression evidence.
+Screenshots 1–29 remain regression evidence.
 
 ## Acceptance gate
 
@@ -205,7 +205,7 @@ Android review must confirm:
 
 ## Non-goals
 
-Do not add in W4:
+Not added in W4:
 
 - Basement interior;
 - new enemy/combat escalation;
@@ -218,7 +218,7 @@ Do not add in W4:
 
 ## Architecture constraint
 
-Continue the established pattern:
+The implementation continues the established pattern:
 
 ```text
 RoomRegistry
@@ -232,4 +232,15 @@ room-local persistent state
 RoomPresentation / AtticPresentation
 ```
 
-Only extract a broader evidence/terminal abstraction if a second concrete later-wave use proves it necessary.
+No broader evidence/terminal abstraction was extracted because W4 provides only the first concrete recorder use case.
+
+## Current gate
+
+Run locally:
+
+```bash
+git pull
+npm run screenshots:android
+```
+
+Expected total: **33 screenshots**. Review 30–33 specifically before marking W4 `ACCEPTED`.
