@@ -37,7 +37,8 @@ export type RoomInteractionEffect =
   | 'use-attic-recorder'
   | 'trace-attic-basement-route'
   | 'inspect-basement-conduit'
-  | 'use-basement-relay';
+  | 'use-basement-relay'
+  | 'use-basement-terminal';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -377,6 +378,13 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 92,
         radius: 10,
         behavior: { type: 'effect', effect: 'use-basement-relay' },
+      },
+      {
+        id: 'basement-control-terminal',
+        label: 'CONTROL TERMINAL',
+        x: 118,
+        radius: 8,
+        behavior: { type: 'effect', effect: 'use-basement-terminal' },
       },
     ],
   },
