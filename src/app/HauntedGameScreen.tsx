@@ -5,6 +5,11 @@ import {
   findAdventureInteractionTarget,
   hasLabTransmissionBeenSeen,
   isAdventureExplorationActive,
+  isAtticBasementRouteRevealed,
+  isAtticExperimentRevealed,
+  isAtticLogInspected,
+  isAtticRecorderFocused,
+  isAtticSensorsInspected,
   isBathroomLightOff,
   isBathroomMirrorAnomalySeen,
   isBathroomRouteRevealed,
@@ -159,6 +164,7 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
   if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
   if (roomId === 'bathroom') return 'HAUNTED HOUSE · BATHROOM';
+  if (roomId === 'attic') return 'HAUNTED HOUSE · ATTIC';
   return 'HAUNTED HOUSE · BEDROOM';
 }
 
@@ -180,6 +186,14 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (isBathroomLightOff(adventure)) return 'CHECK THE MIRROR';
       if (isBathroomMirrorAnomalySeen(adventure)) return 'TEST THE REFLECTION';
       return 'FOLLOW THE PULSE';
+    }
+    if (adventure.currentRoom === 'attic') {
+      if (isAtticExperimentRevealed(adventure)) return 'FIND THE MACHINE';
+      const logSeen = isAtticLogInspected(adventure);
+      const sensorsSeen = isAtticSensorsInspected(adventure);
+      if (logSeen && sensorsSeen) return 'PLAY THE RECORDING';
+      if (logSeen || sensorsSeen) return 'CONNECT THE EVIDENCE';
+      return 'SEARCH THE ATTIC';
     }
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
     return 'ENTER THE LIVING ROOM';
@@ -241,6 +255,17 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (isBathroomLightOff(adventure)) return 'The room went dark. The reflection did not.';
       if (isBathroomMirrorAnomalySeen(adventure)) return 'The pulse stops here. In the mirror, it keeps going.';
       return 'The pulse stops at the sink.';
+    }
+    if (adventure.currentRoom === 'attic') {
+      if (isAtticBasementRouteRevealed(adventure)) return 'The recorder output drops through the floor. The machine is below.';
+      if (isAtticExperimentRevealed(adventure)) return 'SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment.';
+      const logSeen = isAtticLogInspected(adventure);
+      const sensorsSeen = isAtticSensorsInspected(adventure);
+      if (logSeen && sensorsSeen) return 'Bedroom. Television. Power. Mirror. The readings all belong to the same experiment.';
+      if (isAtticRecorderFocused(adventure)) return 'The recorder has fragments, but the labels mean nothing yet.';
+      if (logSeen) return 'The log lists resonance spikes beside rooms I have already crossed.';
+      if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
+      return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
