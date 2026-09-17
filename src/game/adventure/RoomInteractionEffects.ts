@@ -22,7 +22,12 @@ export type RoomInteractionEffectEvent =
   | { type: 'KITCHEN_POWER_REROUTED' }
   | { type: 'BATHROOM_MIRROR_ANOMALY_SEEN' }
   | { type: 'BATHROOM_LIGHT_TESTED' }
-  | { type: 'BATHROOM_ROUTE_REVEALED' };
+  | { type: 'BATHROOM_ROUTE_REVEALED' }
+  | { type: 'ATTIC_LOG_INSPECTED' }
+  | { type: 'ATTIC_SENSORS_INSPECTED' }
+  | { type: 'ATTIC_RECORDER_INCOMPLETE' }
+  | { type: 'ATTIC_EXPERIMENT_REVEALED' }
+  | { type: 'ATTIC_BASEMENT_ROUTE_REVEALED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -51,6 +56,14 @@ export function applyRoomInteractionEffect(
       return inspectBathroomMirror(adventure, roomId);
     case 'use-bathroom-light':
       return useBathroomLight(adventure, roomId);
+    case 'inspect-attic-log':
+      return inspectAtticLog(adventure, roomId);
+    case 'inspect-attic-sensors':
+      return inspectAtticSensors(adventure, roomId);
+    case 'use-attic-recorder':
+      return useAtticRecorder(adventure, roomId);
+    case 'trace-attic-basement-route':
+      return traceAtticBasementRoute(adventure, roomId);
   }
 }
 
@@ -213,4 +226,71 @@ function useBathroomLight(adventure: AdventureState, roomId: RoomId): RoomIntera
   let next = markRoomInteraction(adventure, 'bathroom', 'light-switch-tested');
   next = setRoomSwitch(next, 'bathroom', 'bathroom-light-off', true);
   return { adventure: next, events: [{ type: 'BATHROOM_LIGHT_TESTED' }] };
+}
+
+function inspectAtticLog(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'attic') return { adventure, events: [] };
+
+  const attic = getRoomState(adventure, 'attic');
+  const alreadySeen = attic.inspected.includes('attic-experiment-log');
+  let next = markRoomInspected(adventure, 'attic', 'attic-experiment-log');
+  next = markRoomInteraction(next, 'attic', 'attic-log-inspected');
+  next = setRoomSwitch(next, 'attic', 'log-focused', true);
+  next = setRoomSwitch(next, 'attic', 'sensors-focused', false);
+  next = setRoomSwitch(next, 'attic', 'recorder-focused', false);
+
+  return { adventure: next, events: alreadySeen ? [] : [{ type: 'ATTIC_LOG_INSPECTED' }] };
+}
+
+function inspectAtticSensors(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'attic') return { adventure, events: [] };
+
+  const attic = getRoomState(adventure, 'attic');
+  const alreadySeen = attic.inspected.includes('attic-sensor-map');
+  let next = markRoomInspected(adventure, 'attic', 'attic-sensor-map');
+  next = markRoomInteraction(next, 'attic', 'attic-sensors-inspected');
+  next = setRoomSwitch(next, 'attic', 'log-focused', false);
+  next = setRoomSwitch(next, 'attic', 'sensors-focused', true);
+  next = setRoomSwitch(next, 'attic', 'recorder-focused', false);
+
+  return { adventure: next, events: alreadySeen ? [] : [{ type: 'ATTIC_SENSORS_INSPECTED' }] };
+}
+
+function useAtticRecorder(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'attic') return { adventure, events: [] };
+
+  const attic = getRoomState(adventure, 'attic');
+  const logSeen = attic.inspected.includes('attic-experiment-log');
+  const sensorsSeen = attic.inspected.includes('attic-sensor-map');
+  const revealed = attic.switches['experiment-revealed'] === true;
+  let next = setRoomSwitch(adventure, 'attic', 'log-focused', false);
+  next = setRoomSwitch(next, 'attic', 'sensors-focused', false);
+  next = setRoomSwitch(next, 'attic', 'recorder-focused', true);
+
+  if (!logSeen || !sensorsSeen) {
+    const alreadyProbed = attic.interactions.includes('attic-recorder-probed');
+    next = markRoomInteraction(next, 'attic', 'attic-recorder-probed');
+    return { adventure: next, events: alreadyProbed ? [] : [{ type: 'ATTIC_RECORDER_INCOMPLETE' }] };
+  }
+
+  if (revealed) return { adventure: next, events: [] };
+
+  next = markRoomInteraction(next, 'attic', 'attic-recording-played');
+  next = setRoomSwitch(next, 'attic', 'experiment-revealed', true);
+  return { adventure: next, events: [{ type: 'ATTIC_EXPERIMENT_REVEALED' }] };
+}
+
+function traceAtticBasementRoute(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'attic') return { adventure, events: [] };
+
+  const attic = getRoomState(adventure, 'attic');
+  if (attic.switches['experiment-revealed'] !== true || attic.switches['basement-route-revealed'] === true) {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'attic', 'downward-cable-run');
+  next = markRoomInteraction(next, 'attic', 'basement-route-traced');
+  next = setRoomSwitch(next, 'attic', 'recorder-focused', false);
+  next = setRoomSwitch(next, 'attic', 'basement-route-revealed', true);
+  return { adventure: next, events: [{ type: 'ATTIC_BASEMENT_ROUTE_REVEALED' }] };
 }
