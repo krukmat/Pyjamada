@@ -1,6 +1,10 @@
 import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
+import {
+  BASEMENT_ELECTRICAL_HAZARD,
+  resolveBasementElectricalHazard,
+} from '../adventure/BasementElectricalHazard';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 
@@ -23,7 +27,13 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
   const conduitFocused = basement?.switches['conduit-focused'] === true;
   const relayFocused = basement?.switches['relay-focused'] === true;
   const terminalFocused = basement?.switches['terminal-focused'] === true;
+  const hazard = adventure && hauntedSession
+    ? resolveBasementElectricalHazard(adventure, hauntedSession.elapsedMs)
+    : undefined;
+  const hazardTelegraph = hazard?.phase === 'telegraph';
+  const hazardDischarge = hazard?.phase === 'discharge';
   const pulse = Math.floor(nowMs / 160) % 4;
+  const fastPulse = Math.floor(nowMs / 70) % 2;
   const live = stabilized ? '#79e8ff' : pulse % 2 === 0 ? '#9ff3ff' : '#4aa9bd';
 
   return (
@@ -122,6 +132,37 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           <Circle cx={px(72)} cy={px(84)} r={px(24)} color="rgba(91,238,255,0.05)" />
           <Line p1={vec(px(92), px(84))} p2={vec(px(118), px(84))} color="rgba(121,232,255,0.68)" strokeWidth={px(1.1)} />
           <Line p1={vec(px(118), px(84))} p2={vec(px(118), px(101))} color={controlRevealed ? 'rgba(255,123,130,0.58)' : 'rgba(121,232,255,0.48)'} strokeWidth={px(1)} />
+        </>
+      )}
+
+      {/* W5-T5: local overload pressure on the downstream control feed. */}
+      {(hazardTelegraph || hazardDischarge) && (
+        <>
+          <Rect
+            x={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)}
+            y={px(98)}
+            width={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)}
+            height={px(5)}
+            color={hazardDischarge ? 'rgba(255,92,105,0.38)' : fastPulse === 0 ? 'rgba(248,218,118,0.18)' : 'rgba(248,218,118,0.30)'}
+          />
+          <Line
+            p1={vec(px(96), px(84))}
+            p2={vec(px(118), px(84))}
+            color={hazardDischarge ? '#fff0b8' : fastPulse === 0 ? '#f8da76' : '#ff9f73'}
+            strokeWidth={px(hazardDischarge ? 2 : 1.2)}
+          />
+          <Circle cx={px(104)} cy={px(84)} r={px(hazardDischarge ? 10 : 7 + fastPulse)} color={hazardDischarge ? 'rgba(255,92,105,0.12)' : 'rgba(248,218,118,0.08)'} />
+          <Circle cx={px(116)} cy={px(84)} r={px(hazardDischarge ? 13 : 8 + fastPulse)} color={hazardDischarge ? 'rgba(121,232,255,0.12)' : 'rgba(255,159,115,0.07)'} />
+        </>
+      )}
+      {hazardDischarge && (
+        <>
+          <Line p1={vec(px(96), px(84))} p2={vec(px(102), px(75))} color="#fff4c4" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(102), px(75))} p2={vec(px(108), px(88))} color="#9ff3ff" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(108), px(88))} p2={vec(px(113), px(72))} color="#fff4c4" strokeWidth={px(1.3)} />
+          <Line p1={vec(px(113), px(72))} p2={vec(px(119), px(86))} color="#9ff3ff" strokeWidth={px(1.5)} />
+          <Line p1={vec(px(119), px(86))} p2={vec(px(124), px(67))} color="#ff7b82" strokeWidth={px(1.1)} />
+          <Rect x={px(100)} y={px(37)} width={px(28)} height={px(64)} color="rgba(255,92,105,0.045)" />
         </>
       )}
 
