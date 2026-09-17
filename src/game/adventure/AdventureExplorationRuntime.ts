@@ -177,6 +177,14 @@ export function isBasementRelayProbed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'basement').interactions.includes('basement-relay-probed');
 }
 
+export function isBasementControlRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['basement-control-revealed'] === true;
+}
+
+export function isBasementTerminalFocused(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['terminal-focused'] === true;
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
