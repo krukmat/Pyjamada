@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACTIVE — GATE A CODE COMPLETE / ANDROID REVIEW PENDING**
+**ACCEPTED**
 
-W3A Kitchen is accepted. W3B validates a different gameplay idea: the house can expose useful information through impossible spatial relationships, not only through electrical cause/effect.
+W3A Kitchen and W3B Bathroom are both accepted. W3B validates a different gameplay idea: the house can expose useful information through impossible spatial relationships, not only through electrical cause/effect.
 
 ## Product goal
 
@@ -18,7 +18,7 @@ into:
 
 The anomaly must read visually before reaction text explains it.
 
-## Implemented player loop
+## Accepted player loop
 
 ```text
 Kitchen power rerouted
@@ -36,13 +36,13 @@ Kitchen power rerouted
  -> ATTIC ACCESS REVEALED
 ```
 
-The intended realization is:
+The accepted realization is:
 
 > The mirror is not reflecting this room. It is showing another valid version of it.
 
 ## Scope guardrails
 
-Delivered in Gate A:
+Delivered:
 - Kitchen <-> Bathroom production navigation after Kitchen `power-rerouted`;
 - distinct Bathroom presentation;
 - real pulse termination around the sink;
@@ -52,14 +52,15 @@ Delivered in Gate A:
 - corresponding real-wall seam after confirmation;
 - room-local persistence and deterministic tests/evidence.
 
-Not implemented:
+Not introduced in W3B:
 - generic mirror/portal engine;
 - arbitrary teleportation;
 - inventory/key-item puzzle;
 - Bathroom combat or new enemies;
 - faucet/toilet/shower mechanics;
-- Attic interior;
 - Vesper/W-01 reveal.
+
+Attic interior remained outside W3B and is handled by W4.
 
 ## Room-local state
 
@@ -77,9 +78,9 @@ Implemented without a new global story flag:
 ### W3B-T0 — Accept/close W3A — COMPLETE
 
 Kitchen review findings were resolved:
-- dead-appliance state and overhead-light presentation now agree;
+- dead-appliance state and overhead-light presentation agree;
 - overload deterministic framing points to the Breaker;
-- rerouted state now exposes an actionable Bathroom boundary.
+- rerouted state exposes an actionable Bathroom boundary.
 
 W3A is accepted.
 
@@ -110,7 +111,7 @@ The mirror deliberately disagrees with the real room:
 - reflected vertical route/seam exists before the real wall adopts it;
 - contrast increases after the anomaly is explicitly inspected.
 
-This is Bathroom-specific rendering, not reusable reflection infrastructure.
+This remains Bathroom-specific rendering, not reusable reflection infrastructure.
 
 ### W3B-T4 — Light-state interaction — COMPLETE
 
@@ -127,13 +128,13 @@ After mirror observation + light test, confirming the mirror:
 - sets `mirror-route-revealed`;
 - records `mirror-route-confirmed`;
 - draws a corresponding cyan seam on the real right wall;
-- exposes a concrete Attic boundary while leaving W4 content unimplemented.
+- exposes a concrete Attic boundary.
 
 HUD endpoint:
 
 `ATTIC ACCESS REVEALED`
 
-### W3B-T6 — Persistence + deterministic evidence — COMPLETE AUTOMATED
+### W3B-T6 — Persistence + deterministic evidence — COMPLETE
 
 Automated coverage proves:
 - Bathroom stays locked before Kitchen reroute;
@@ -147,9 +148,9 @@ Automated coverage proves:
 
 Repository validation passes TypeScript, automated tests, assets, and static architecture checks.
 
-## Gate A — Dream Geometry
+## Gate A — Dream Geometry — ACCEPTED
 
-Required player path:
+Accepted player path:
 
 ```text
 Kitchen solved
@@ -164,20 +165,20 @@ Kitchen solved
 ```
 
 Definition of Done:
-1. Bathroom inaccessible before Kitchen power reroute. **Automated PASS**
-2. Bathroom visually distinct from Kitchen/Living Room. **Android review pending**
-3. Mirror mismatch noticeable without relying on reaction text. **Android review pending**
-4. Light manipulation materially strengthens the reflected clue. **Android review pending**
+1. Bathroom inaccessible before Kitchen power reroute. **PASS**
+2. Bathroom visually distinct from Kitchen/Living Room. **PASS**
+3. Mirror mismatch noticeable without relying on reaction text. **PASS**
+4. Light manipulation materially strengthens the reflected clue. **PASS**
 5. Progress comes from geometry, not combat/item collection. **PASS**
 6. No generic portal/reflection engine. **PASS**
 7. Route reveal stable and survives save/load. **PASS**
-8. End state exposes concrete Attic boundary. **Implemented; Android review pending**
+8. End state exposes concrete Attic boundary. **PASS**
 9. W0–W3A regressions remain green. **PASS**
-10. Focused Android evidence is legible. **Pending user-run review**
+10. Focused Android evidence is legible. **PASS**
 
-## Deterministic Android evidence
+## Accepted Android evidence
 
-The screenshot contract now expects 29 total screens. W3B adds:
+W3B was accepted from the refreshed 29-screen Android tour. Focus screens:
 
 ```text
 26_bathroom_arrival
@@ -186,13 +187,13 @@ The screenshot contract now expects 29 total screens. W3B adds:
 29_bathroom_route_revealed
 ```
 
-Review intent:
-- **26:** real pulse visibly stops while mirror continuation is subtle but discoverable;
-- **27:** mirror mismatch becomes the obvious focal clue;
+Accepted reading:
+- **26:** real pulse visibly stops while mirror continuation is discoverable;
+- **27:** mirror mismatch becomes the focal clue;
 - **28:** real room is materially dark while mirror remains illuminated;
-- **29:** real-wall seam reads as concrete forward/Attic access, not decorative glow.
+- **29:** real-wall seam reads as concrete forward/Attic access rather than decorative glow.
 
-The refreshed tour also revalidates corrected Kitchen screens 23–25.
+The same review revalidated corrected Kitchen screens 23–25.
 
 ## Architecture checkpoint
 
@@ -205,8 +206,8 @@ RoomRegistry
  -> BathroomPresentation
 ```
 
-Reflection remains a presentation/state feature rather than a new navigation model. Only extract reusable dream-geometry infrastructure if another later room demonstrates a second concrete need.
+Reflection remains a presentation/state feature rather than a new navigation model. Reusable dream-geometry infrastructure should only be extracted if another later room demonstrates a second concrete need.
 
-## Current gate
+## Closeout
 
-**Android Gate A review.** Do not implement Attic interior, additional Bathroom fixtures, enemies, or a portal engine before screenshots 26–29 are reviewed.
+W3B is closed. W4 Attic is the active wave.
