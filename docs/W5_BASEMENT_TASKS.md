@@ -2,15 +2,15 @@
 
 ## Status
 
-**ACTIVE — T0–T5 COMPLETE / T6 NEXT**
+**ACTIVE — T0–T8 COMPLETE / T9 ANDROID REVIEW NEXT**
 
-W4 Attic is accepted. W5 foundation, power loop, control-terminal reveal and environmental pressure are implemented and repository validation is green on `feat/haunted-house-adventure`.
+W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence and automated closeout coverage are implemented on `feat/haunted-house-adventure`. The remaining acceptance work is the Android visual gate for screenshots 34–37.
 
 ## Product goal
 
 Turn the Attic revelation into direct interaction with the experiment's physical infrastructure.
 
-The Basement is the transition from haunted domestic space to unstable mad-science machinery. The player already knows the house is an experiment; W5 must let Wally touch the system, observe that it is failing, and reach a concrete Laboratory boundary.
+The Basement is the transition from haunted domestic space to unstable mad-science machinery. The player already knows the house is an experiment; W5 lets Wally touch the system, observe that it is failing, survive its instability, and identify a concrete Laboratory boundary.
 
 By the end of W5 the player should understand:
 
@@ -18,9 +18,10 @@ By the end of W5 the player should understand:
 2. the power/control infrastructure is unstable;
 3. Wally can manipulate a subsystem rather than merely inspect evidence;
 4. the experiment is no longer operating normally;
-5. the Laboratory is the next concrete destination.
+5. local safeguards cannot stop it;
+6. the Laboratory is the next concrete destination.
 
-W5 must **not** implement the final boss, reveal the complete Dr. Vesper story, or introduce generalized terminal/power/hazard engines.
+W5 does **not** implement the Laboratory interior, final boss, complete Dr. Vesper story, or generalized terminal/power/hazard engines.
 
 ## Target sequence
 
@@ -43,12 +44,18 @@ READ THE CONTROL TERMINAL
         ↓
 RESONANCE LOAD CRITICAL
         ↓
-environmental hazard pressure
+telegraphed electrical pressure
         ↓
-Laboratory boundary revealed
+TRIP THE FAILSAFE
+        ↓
+LOCAL CUTOFF REJECTED
+        ↓
+TRACE THE LAB FEED
+        ↓
+LABORATORY ROUTE IDENTIFIED
 ```
 
-W5 should feel more mechanical and dangerous than W4. Story information is now delivered through infrastructure behavior rather than evidence reconstruction.
+Story information is delivered primarily through infrastructure behavior rather than another evidence-inspection loop.
 
 ## Visual language
 
@@ -59,10 +66,10 @@ Required motifs:
 - masonry/concrete utility walls;
 - exposed pipes and old domestic utilities;
 - newer cyan resonance conduits crossing them;
-- electrical cabinets / isolation relay;
+- electrical cabinet / isolation relay;
 - CRT/control equipment deeper in the room;
-- cable trunks descending/continuing toward Laboratory;
-- local instability expressed through flicker/arcs/pulses, not a new enemy by default.
+- downstream service/feed hatch toward Laboratory;
+- local instability expressed through flicker/arcs/pulses, not a new enemy.
 
 The visual transition should read:
 
@@ -89,9 +96,7 @@ Implemented:
 - Laboratory travel remains inactive;
 - existing save envelope and room-local persistence retained.
 
-The Attic exit interaction is intentionally separate from the accepted `DOWNWARD CABLE` evidence interaction, so screenshot 33 remains readable while the player can move slightly left to enter the revealed hatch.
-
-### W5-T2 — Basement visual identity — COMPLETE CODE / ANDROID REVIEW DEFERRED TO T9
+### W5-T2 — Basement visual identity — COMPLETE CODE / ANDROID REVIEW IN T9
 
 Added `BasementPresentation` through the existing `RoomPresentation` seam.
 
@@ -102,7 +107,8 @@ Implemented visual language:
 - unstable fault node with flicker/arcs;
 - dedicated isolation relay;
 - deeper control terminal;
-- visibly steadier cyan feed after T3 stabilization.
+- downstream Laboratory feed hatch after loss of control;
+- visibly different stable, overload, rejected-failsafe and route-revealed states.
 
 No generic power renderer or new enemy was introduced.
 
@@ -132,7 +138,7 @@ Behavior:
 - probing the relay first gives a deterministic clue but does not solve the room;
 - tracing the conduit records the fault;
 - operating the relay afterward stabilizes the feed;
-- repeated interactions are idempotent;
+- repeated stabilization is idempotent;
 - stabilized state materially changes the conduit/relay/deeper-feed presentation.
 
 ### W5-T4 — Terminal / control reveal — COMPLETE
@@ -142,35 +148,21 @@ Added one Basement-specific `CONTROL TERMINAL` interaction. No generic terminal 
 Behavior:
 - before T3 stabilization the CRT remains unreadable and emits one deterministic `BASEMENT_TERMINAL_OFFLINE` clue;
 - after the isolation relay stabilizes the feed, the terminal becomes readable;
-- interacting with it persists `basement-control-revealed` and emits `BASEMENT_CONTROL_REVEALED` once;
-- repeated terminal reads are idempotent;
-- save/load preserves the revealed control state.
-
-The reveal is expressed both through UI/narrative state and room presentation:
+- first successful terminal use persists `basement-control-revealed` and emits `BASEMENT_CONTROL_REVEALED` once;
+- the reveal changes the room from stable cyan readout to overload language;
+- later terminal use is intentionally reused by T6 rather than adding another inspection object.
 
 ```text
 READ THE CONTROL TERMINAL
         ↓
-terminal gauge crosses its safe threshold
-        ↓
-red overload language replaces stable cyan-only readout
+terminal gauge crosses safe threshold
         ↓
 RESONANCE LOAD CRITICAL
 ```
 
-The player now has the first explicit evidence that the infrastructure is not merely damaged: Resonance demand itself is above safe operating parameters and still climbing.
-
-Automated coverage in `tests/w5-basement-foundation.test.ts` proves:
-- terminal remains unreadable before stable power;
-- stable power is required before reveal;
-- reveal event is emitted exactly once;
-- `basement-control-revealed` survives Continue.
-
 ### W5-T5 — Environmental hazard — COMPLETE
 
 Implemented one Basement-specific periodic electrical discharge on the downstream conduit/feed toward the control area.
-
-The mechanic begins only after `basement-control-revealed`, so the T4 reveal is the cause of the new environmental pressure rather than another inspection interaction.
 
 Cycle:
 
@@ -189,33 +181,102 @@ cycle repeats
 ```
 
 Behavior:
-- first activation is aligned to a deterministic safe cycle boundary, so reading the terminal can never cause an immediate untelegraphed hit;
-- the unsafe lane is local to the right-side control feed (`x=100..116`), leaving the rest of the Basement traversable;
-- telegraph is visible through a pulsing floor lane, feed brightening and local charge glow;
-- discharge is represented by a short high-energy electrical arc through the control feed;
-- leaving the marked lane before discharge avoids all damage;
-- remaining inside during discharge reuses the existing combat contract: one HP damage, existing invulnerability window and knockback away from the control area;
-- repeated contacts during the same discharge cannot multi-hit because the existing 900 ms invulnerability window is longer than the 360 ms discharge;
-- zero HP retains the existing `haunted` failure semantics;
-- leaving/re-entering Basement pauses/resumes the hazard clock rather than advancing unrelated exploration time.
+- first activation is aligned to a deterministic safe boundary;
+- unsafe lane is local to the right-side control feed (`x=100..116`);
+- telegraph uses floor lane, feed brightening and local charge glow;
+- discharge uses a short high-energy electrical arc;
+- leaving the lane avoids damage;
+- overlap reuses existing HP, invulnerability and knockback contracts;
+- zero HP retains existing `haunted` failure semantics;
+- the hazard remains active after T6/T7 instead of being solved by the route reveal.
 
-Architecture:
-- added `BasementElectricalHazard.ts` as a narrow room-specific timing/collision rule;
-- no `HazardEngine`, new enemy, generic electrical simulation or save-schema version was introduced;
-- arming uses the existing room-local interaction collection;
-- cycle timing reuses `HauntedSessionState.elapsedMs` only while the revealed Basement overload is active;
-- presentation derives telegraph/discharge state from the same deterministic resolver used by gameplay.
+Architecture stays deliberately narrow in `BasementElectricalHazard.ts`; no generic hazard engine or schema migration was introduced.
 
-Automated coverage in `tests/w5-basement-hazard.test.ts` proves:
-- hazard is inactive before T4;
-- first activation always starts safe;
-- telegraph supplies a real response window;
-- leaving the unsafe lane avoids damage;
-- unsafe overlap causes one hit and knockback;
-- existing invulnerability prevents duplicate same-window hits;
-- repeated failure to react can terminate the run.
+### W5-T6 — Out-of-control reveal — COMPLETE
 
-Repository validation after T5:
+The existing control terminal is reused instead of introducing another evidence object.
+
+After `basement-control-revealed`, the objective changes to:
+
+```text
+TRIP THE FAILSAFE
+```
+
+The next terminal interaction attempts the local cutoff and deterministically fails:
+
+```text
+RESONANCE LOAD CRITICAL
+        ↓
+local failsafe command
+        ↓
+LOCAL CUTOFF REJECTED
+        ↓
+safeguards are bypassed
+        ↓
+control/feed continues downstream
+```
+
+Persisted state:
+
+```text
+basement-loss-of-control-revealed
+basement-failsafe-attempted
+```
+
+The terminal presentation changes to a rejected/bypassed state. This establishes loss of control without explaining Vesper's motivation or the full Resonator architecture.
+
+### W5-T7 — Laboratory boundary — COMPLETE
+
+T6 exposes a concrete downstream `LAB FEED HATCH` at the right-side service/feed path.
+
+Properties:
+- hidden before the failsafe rejection, so it cannot interfere with T3/T4/T6 interactions;
+- becomes actionable only after `basement-loss-of-control-revealed`;
+- tracing it persists the route once and is idempotent afterward;
+- the player remains in `basement`; Laboratory is not activated as a production room in W5;
+- the final W5 objective becomes `LABORATORY ROUTE IDENTIFIED`.
+
+Persisted milestone:
+
+```text
+laboratory-route-revealed
+```
+
+This is a boundary, not a decorative clue: the feed physically leaves the Basement through the hatch and establishes W6's destination.
+
+### W5-T8 — Persistence / idempotence / tests — COMPLETE
+
+Persistence was extended so Attic and Basement milestones save immediately rather than relying only on later room transitions or menu exit.
+
+Immediate persistence now covers:
+- Attic evidence / experiment / Basement-route milestones;
+- Basement trace, relay, terminal, failsafe and Laboratory-route milestones;
+- electrical discharge hits;
+- terminal failure if the hazard reduces HP to zero.
+
+Automated coverage now proves:
+- Basement locked before accepted Attic route;
+- deterministic Attic ↔ Basement navigation;
+- conduit → relay → terminal ordering;
+- hazard arming, telegraph, dodge, hit and failure semantics;
+- T6 failsafe rejection occurs only after the control reveal;
+- T7 hatch is unavailable before T6 and becomes the concrete interaction afterward;
+- W5 stops at the Laboratory boundary instead of entering the room;
+- T6/T7 state survives save/load;
+- room transitions do not erase W5 progression;
+- hazard remains active after Laboratory route reveal;
+- repeated milestone effects remain idempotent.
+
+Relevant suites:
+
+```text
+tests/w5-basement-foundation.test.ts
+tests/w5-basement-hazard.test.ts
+tests/w5-basement-closeout.test.ts
+tests/haunted-screenshot-scenarios.test.ts
+```
+
+Current repository validation:
 
 ```text
 Assets                  PASS
@@ -224,45 +285,9 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T6 — Out-of-control reveal — NEXT
+### W5-T9 — Android visual gate — READY FOR CAPTURE
 
-Use infrastructure state/terminal output to establish that the experiment is no longer operating normally.
-
-Reveal may establish:
-- Resonance load escalating;
-- safeguards bypassed/failing;
-- control signal continues into Laboratory.
-
-Do not fully explain Vesper's motivation or Resonator architecture.
-
-### W5-T7 — Laboratory boundary
-
-- Make the Laboratory route visually concrete and actionable after W5 progression.
-- Do not implement Laboratory interior in W5.
-
-Expected milestone:
-
-```text
-laboratory-route-revealed
-```
-
-### W5-T8 — Persistence / idempotence / tests
-
-Already covered through T5:
-- Basement locked before Attic route reveal;
-- deterministic Attic ↔ Basement navigation;
-- fault trace and power stabilization ordering;
-- repeated stabilization does not duplicate milestones/events;
-- terminal gating and idempotence;
-- save/load preserves Basement power and control progression;
-- T5 hazard activation is deterministic and cannot begin with an untelegraphed discharge;
-- T5 discharge cannot multi-hit within one active window.
-
-Extend persistence/closeout coverage after T6–T7 are implemented.
-
-### W5-T9 — Android visual gate
-
-Extend deterministic review after W5 implementation stabilizes. Planned evidence:
+Deterministic presets and Maestro assertions are wired for:
 
 ```text
 34_basement_arrival.png
@@ -271,27 +296,27 @@ Extend deterministic review after W5 implementation stabilizes. Planned evidence
 37_laboratory_boundary.png
 ```
 
-Exact screenshots may be refined before Gate A, but 1–33 remain unchanged regression evidence.
+The Android screenshot runner now expects exactly screenshots 1–37 and retains the previous published evidence if the new run is incomplete or fails.
+
+T9 remains open until screenshots 34–37 are captured and visually reviewed. Screenshots 1–33 remain regression evidence and must stay materially stable.
 
 ## Acceptance gate
 
-W5 is accepted only when the player can infer primarily from play and world state:
+W5 is accepted only when Android review confirms primarily from play/world state:
 
-> The experiment's infrastructure runs through the Basement, it is becoming unstable, and the source/control path continues into the Laboratory.
+> The experiment's infrastructure runs through the Basement, it is becoming unstable, local safeguards cannot stop it, and the source/control path continues into the Laboratory.
 
-Android review must confirm:
-
+Review criteria:
 - Basement is immediately distinct from Attic and domestic rooms;
 - unstable versus stabilized power states are visually legible;
-- terminal/reveal changes understanding, not only caption text;
-- environmental hazard is readable/fair;
+- terminal overload and rejected failsafe change understanding, not only caption text;
+- electrical hazard telegraph is readable/fair;
 - Laboratory boundary is concrete rather than decorative;
 - screenshots 1–33 remain materially stable.
 
 ## Non-goals
 
 Do not add in W5:
-
 - Laboratory interior;
 - final boss;
 - full Dr. Vesper reveal/motivation;
@@ -305,8 +330,6 @@ Do not add in W5:
 
 ## Architecture constraint
 
-Continue the established path:
-
 ```text
 RoomRegistry
     ↓
@@ -319,13 +342,11 @@ Basement room-local persistent state
 RoomPresentation / BasementPresentation
 ```
 
-The conduit/relay/terminal/hazard relationship remains Basement-specific until another room demonstrates a real second use case.
+The conduit/relay/terminal/hazard relationship remains Basement-specific until another room demonstrates a real second reuse case.
 
 ## Current implementation slice
 
-**T0–T5 complete. T6 is next.**
-
-Current production progression:
+**T0–T8 complete. T9 Android visual review is next.**
 
 ```text
 W4 accepted Basement hatch
@@ -346,9 +367,15 @@ RESONANCE LOAD CRITICAL
     ↓
 telegraphed control-feed discharge
     ↓
-player clears unsafe lane or takes damage
+TRIP THE FAILSAFE
     ↓
-system remains out of control
+LOCAL CUTOFF REJECTED
+    ↓
+TRACE THE LAB FEED
+    ↓
+LAB FEED HATCH
+    ↓
+LABORATORY ROUTE IDENTIFIED
 ```
 
-The next increment is T6: turn the repeated instability into an explicit loss-of-control reveal that points the causal/control path toward Laboratory without explaining the final story.
+No further gameplay implementation is required before T9. The next required evidence is the Android screenshot run.
