@@ -165,6 +165,18 @@ export function isAtticRecorderFocused(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'attic').switches['recorder-focused'] === true;
 }
 
+export function isBasementFaultTraced(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['basement-fault-traced'] === true;
+}
+
+export function isBasementPowerStabilized(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['basement-power-stabilized'] === true;
+}
+
+export function isBasementRelayProbed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').interactions.includes('basement-relay-probed');
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
