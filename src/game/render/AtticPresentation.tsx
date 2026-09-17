@@ -92,16 +92,18 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
 
       {basementRouteRevealed && (
         <>
-          <Circle cx={px(121)} cy={px(100)} r={px(18 + pulse)} color="rgba(91,238,255,0.09)" />
-          <Rect x={px(113)} y={px(96)} width={px(17)} height={px(32)} color="#080d12" />
-          <RoundedRect x={px(111)} y={px(94)} width={px(20)} height={px(9)} r={px(1)} color="#132b35" />
-          <Line p1={vec(px(112), px(94.5))} p2={vec(px(130), px(94.5))} color="#9ff3ff" strokeWidth={px(1.2)} />
-          <Line p1={vec(px(113), px(102))} p2={vec(px(130), px(102))} color="rgba(121,232,255,0.76)" strokeWidth={px(0.9)} />
-          <Line p1={vec(px(118), px(83))} p2={vec(px(118), px(113))} color="#79e8ff" strokeWidth={px(1.2)} />
-          <Line p1={vec(px(118), px(113))} p2={vec(px(122), px(119))} color="rgba(121,232,255,0.72)" strokeWidth={px(1)} />
-          <Line p1={vec(px(122), px(119))} p2={vec(px(122), px(127))} color="rgba(121,232,255,0.44)" strokeWidth={px(0.9)} />
+          <Circle cx={px(104)} cy={px(101)} r={px(17 + pulse)} color="rgba(91,238,255,0.10)" />
+          <Rect x={px(97)} y={px(96)} width={px(15)} height={px(32)} color="#080d12" />
+          <RoundedRect x={px(95)} y={px(94)} width={px(18)} height={px(9)} r={px(1)} color="#132b35" />
+          <Line p1={vec(px(96), px(94.5))} p2={vec(px(112), px(94.5))} color="#9ff3ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(97), px(102))} p2={vec(px(112), px(102))} color="rgba(121,232,255,0.78)" strokeWidth={px(0.9)} />
+          <Line p1={vec(px(118), px(83))} p2={vec(px(118), px(90))} color="#79e8ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(118), px(90))} p2={vec(px(108), px(96))} color="#79e8ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(108), px(96))} p2={vec(px(108), px(114))} color="rgba(121,232,255,0.90)" strokeWidth={px(1.1)} />
+          <Line p1={vec(px(108), px(114))} p2={vec(px(104), px(120))} color="rgba(121,232,255,0.68)" strokeWidth={px(1)} />
+          <Line p1={vec(px(104), px(120))} p2={vec(px(104), px(127))} color="rgba(121,232,255,0.42)" strokeWidth={px(0.9)} />
           {[106, 112, 118].map((y) => (
-            <Line key={`basement-rung-${y}`} p1={vec(px(124), px(y))} p2={vec(px(129), px(y))} color="rgba(190,232,235,0.48)" strokeWidth={px(0.7)} />
+            <Line key={`basement-rung-${y}`} p1={vec(px(98), px(y))} p2={vec(px(103), px(y))} color="rgba(190,232,235,0.52)" strokeWidth={px(0.7)} />
           ))}
         </>
       )}
