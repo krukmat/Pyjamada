@@ -378,5 +378,58 @@ tags:
       text: "The wall is copying the mirror. A hidden stair climbs behind it."
     timeout: 5000
 - assertVisible: "ATTIC ACCESS REVEALED"
+- assertVisible: "INTERACT · ATTIC"
 - takeScreenshot:
     path: 29_bathroom_route_revealed
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-arrival
+- extendedWaitUntil:
+    visible:
+      text: "Old storage. New cables. Someone turned the attic into an observation post."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · ATTIC"
+- assertVisible: "SEARCH THE ATTIC"
+- takeScreenshot:
+    path: 30_attic_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-evidence
+- extendedWaitUntil:
+    visible:
+      text: "Bedroom. Television. Power. Mirror. The readings all belong to the same experiment."
+    timeout: 5000
+- assertVisible: "PLAY THE RECORDING"
+- assertVisible: "INTERACT · SENSOR CRATE"
+- takeScreenshot:
+    path: 31_attic_evidence
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-recording
+- extendedWaitUntil:
+    visible:
+      text: "SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment."
+    timeout: 5000
+- assertVisible: "FIND THE MACHINE"
+- assertVisible: "INTERACT · RECORDER"
+- takeScreenshot:
+    path: 32_attic_recording
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-basement-route
+- extendedWaitUntil:
+    visible:
+      text: "The recorder output drops through the floor. The machine is below."
+    timeout: 5000
+- assertVisible: "FIND THE MACHINE"
+- assertVisible: "INTERACT · DOWNWARD CABLE"
+- takeScreenshot:
+    path: 33_basement_route_revealed
