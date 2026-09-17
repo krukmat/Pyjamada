@@ -24,7 +24,8 @@ const EXPECTED = [
   '25_kitchen_power_rerouted.png', '26_bathroom_arrival.png', '27_bathroom_mirror_mismatch.png',
   '28_bathroom_reflected_route.png', '29_bathroom_route_revealed.png',
   '30_attic_arrival.png', '31_attic_evidence.png', '32_attic_recording.png',
-  '33_basement_route_revealed.png',
+  '33_basement_route_revealed.png', '34_basement_arrival.png', '35_basement_power_fault.png',
+  '36_basement_control_reveal.png', '37_laboratory_boundary.png',
 ];
 
 function writeExecutable(filePath, script) {
