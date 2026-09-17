@@ -2,15 +2,17 @@
 
 ## Status
 
-**CODE COMPLETE — ANDROID REVIEW PENDING**
+**ACCEPTED**
 
-W3A Kitchen and W3B Bathroom are accepted. W4 is implemented on `feat/haunted-house-adventure`; the remaining gate is Android visual acceptance for screenshots 30–33.
+W3A Kitchen, W3B Bathroom and W4 Attic are accepted on `feat/haunted-house-adventure`.
+
+Android evidence 30–33 has been reviewed. The final Basement-boundary polish was rebuilt from HEAD and the corrected `33_basement_route_revealed.png` now makes the downward destination readable without depending on reaction text.
 
 ## Product goal
 
 Turn the anomalies accumulated across Bedroom, Living Room, Kitchen and Bathroom into explicit understanding without collapsing the mystery into an exposition dump.
 
-By the end of W4 the player should be able to infer:
+By the end of W4 the player can infer:
 
 1. the house anomalies are connected;
 2. they are being produced deliberately;
@@ -18,9 +20,9 @@ By the end of W4 the player should be able to infer:
 4. the active machinery/source is below the house;
 5. the next concrete destination is Basement.
 
-W4 must **not** fully reveal Dr. Vesper, explain the complete Resonator architecture, implement Basement interior, or introduce a generic clue/inventory/dialogue system.
+W4 deliberately does **not** fully reveal Dr. Vesper, explain the complete Resonator architecture, implement Basement interior, or introduce a generic clue/inventory/dialogue system.
 
-## Implemented narrative sequence
+## Accepted narrative sequence
 
 ```text
 Bathroom route revealed
@@ -41,7 +43,7 @@ FIND THE MACHINE
         ↓
 trace recorder output cable downward
         ↓
-Basement boundary revealed
+Basement hatch / boundary revealed
 ```
 
 The revelation answers **what kind of situation this is** before answering **who is responsible**.
@@ -67,16 +69,16 @@ The revelation answers **what kind of situation this is** before answering **who
 
 Attic is intentionally denser than Hallway/Living Room/Kitchen/Bathroom while still reading as part of the same house.
 
-Implemented motifs:
+Accepted motifs:
 
 - rafters / sloped roof;
 - stacked domestic boxes and displaced household objects;
 - newer cables crossing older construction;
 - improvised observation equipment;
 - one central recorder/monitor with clear visual hierarchy;
-- a downward cable/hatch seam exposed after the revelation.
+- a downward cable terminating in an explicit floor hatch/shaft after the revelation.
 
-The room should initially read as storage secretly converted into an observation station.
+The room reads as storage secretly converted into an observation station.
 
 ## Gameplay loop
 
@@ -154,7 +156,8 @@ World state changes accompany the objective transitions.
 After the main recording:
 
 - recorder output visibly continues downward;
-- tracing the downward cable exposes a Basement hatch/boundary;
+- tracing the downward cable exposes a Basement hatch/shaft;
+- final Android polish keeps Wally clear enough that the opening, cyan edge, cable drop and ladder/rungs remain legible;
 - Basement interior and transition gameplay remain outside W4.
 
 Room-local milestone:
@@ -175,9 +178,9 @@ Covered by `tests/w4-attic-gate-a.test.ts`:
 - Continue restores Attic and revelation state;
 - Attic retains a production return path to Bathroom.
 
-### W4-T8 — Deterministic Android review — PENDING USER RUN
+### W4-T8 — Deterministic Android review — ACCEPTED
 
-Screenshot contract now contains 33 screenshots:
+Accepted screenshots:
 
 ```text
 30_attic_arrival.png
@@ -188,20 +191,28 @@ Screenshot contract now contains 33 screenshots:
 
 Screenshots 1–29 remain regression evidence.
 
-## Acceptance gate
+Android review result:
 
-W4 is accepted only when a player can infer, primarily from room state and short interactions:
+```text
+Attic room identity              PASS
+Evidence progression             PASS
+Recorder focal hierarchy         PASS
+W-01 / resonance revelation      PASS
+31 → 32 visual progression       PASS
+Concrete downward destination    PASS
+Basement boundary readability    PASS
+Regression 1–29                  PASS
+```
+
+The first review identified one presentation-only issue in screenshot 33: Wally obscured too much of the route and the boundary could read as another illuminated cable. The accepted rebuild resolves it with a visibly open floor hatch/shaft, stronger downward continuation, visible rungs, and Wally positioned beside rather than over the opening.
+
+## Acceptance gate — PASSED
+
+A player can infer, primarily from room state and short interactions:
 
 > The house is being instrumented as an experiment, Wally is one of its subjects, and the machinery driving it is below the house.
 
-Android review must confirm:
-
-- Attic reads immediately as storage converted into an observation space.
-- Evidence is visually related to previous rooms.
-- `31 → 32` changes understanding, not merely caption text.
-- Recorder/monitor is the revelation focal point.
-- `32 → 33` creates a concrete downward destination.
-- Basement boundary does not look like generic decoration.
+W4 is therefore **ACCEPTED**.
 
 ## Non-goals
 
@@ -216,7 +227,7 @@ Not added in W4:
 - generic recorder/terminal framework;
 - broad save-schema rewrite.
 
-## Architecture constraint
+## Architecture checkpoint
 
 The implementation continues the established pattern:
 
@@ -234,13 +245,8 @@ RoomPresentation / AtticPresentation
 
 No broader evidence/terminal abstraction was extracted because W4 provides only the first concrete recorder use case.
 
-## Current gate
+## Next wave
 
-Run locally:
+**W5 — Basement / Mad Science** is now unblocked.
 
-```bash
-git pull
-npm run screenshots:android
-```
-
-Expected total: **33 screenshots**. Review 30–33 specifically before marking W4 `ACCEPTED`.
+Do not alter accepted W4 behavior unless W5 integration exposes a concrete regression or transition requirement.
