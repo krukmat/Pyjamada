@@ -80,7 +80,7 @@ void test('W5 keeps Basement locked until the accepted Attic route is revealed',
   equal(premature.status, 'invalid', 'Basement remains locked before Attic route reveal');
 
   const revealed = setRoomSwitch(attic.adventure, 'attic', 'basement-route-revealed', true);
-  const exitStep = stepAdventureExploration(at(attic.session, 122), revealed, 33);
+  const exitStep = stepAdventureExploration(at(attic.session, 108), revealed, 33);
   const request = transitionRequest(exitStep.events);
   equal(request?.targetRoom, 'basement', 'Attic hatch targets Basement');
   equal(request?.targetEntry, 'basement-from-attic', 'Basement uses deterministic Attic entry');
