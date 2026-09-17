@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom' | 'attic';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom' | 'attic' | 'basement';
 
 export type RoomEntryPoint = {
   id: string;
@@ -35,7 +35,9 @@ export type RoomInteractionEffect =
   | 'inspect-attic-log'
   | 'inspect-attic-sensors'
   | 'use-attic-recorder'
-  | 'trace-attic-basement-route';
+  | 'trace-attic-basement-route'
+  | 'inspect-basement-conduit'
+  | 'use-basement-relay';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -63,7 +65,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom', 'attic'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom', 'attic', 'basement'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -288,9 +290,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'attic',
     entries: [
       { id: 'attic-from-bathroom', x: 14, y: 104, facing: 'right' },
+      { id: 'attic-from-basement', x: 110, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'attic-to-bathroom', targetRoom: 'bathroom', targetEntry: 'bathroom-from-attic' },
+      {
+        id: 'attic-to-basement',
+        targetRoom: 'basement',
+        targetEntry: 'basement-from-attic',
+        requiresRoomSwitch: 'basement-route-revealed',
+      },
     ],
     interactions: [
       {
@@ -327,6 +336,47 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 117,
         radius: 8,
         behavior: { type: 'effect', effect: 'trace-attic-basement-route' },
+      },
+      {
+        id: 'attic-basement-hatch',
+        label: 'BASEMENT',
+        unavailableLabel: 'SEALED HATCH',
+        x: 122,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'attic-to-basement' },
+      },
+    ],
+  },
+  basement: {
+    id: 'basement',
+    presentationId: 'basement',
+    entries: [
+      { id: 'basement-from-attic', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'basement-to-attic', targetRoom: 'attic', targetEntry: 'attic-from-basement' },
+    ],
+    interactions: [
+      {
+        id: 'basement-attic-ladder',
+        label: 'ATTIC',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'basement-to-attic' },
+      },
+      {
+        id: 'basement-power-conduit',
+        label: 'POWER CONDUIT',
+        x: 54,
+        radius: 10,
+        behavior: { type: 'effect', effect: 'inspect-basement-conduit' },
+      },
+      {
+        id: 'basement-isolation-relay',
+        label: 'ISOLATION RELAY',
+        x: 92,
+        radius: 10,
+        behavior: { type: 'effect', effect: 'use-basement-relay' },
       },
     ],
   },
