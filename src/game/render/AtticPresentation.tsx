@@ -92,11 +92,17 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
 
       {basementRouteRevealed && (
         <>
-          <Circle cx={px(119)} cy={px(96)} r={px(16 + pulse)} color="rgba(91,238,255,0.07)" />
-          <RoundedRect x={px(108)} y={px(94)} width={px(22)} height={px(9)} r={px(1)} color="#142932" />
-          <Line p1={vec(px(110), px(95))} p2={vec(px(128), px(95))} color="#79e8ff" strokeWidth={px(1)} />
-          <Line p1={vec(px(113), px(98))} p2={vec(px(125), px(98))} color="rgba(121,232,255,0.58)" strokeWidth={px(0.7)} />
-          <Line p1={vec(px(118), px(83))} p2={vec(px(118), px(95))} color="#79e8ff" strokeWidth={px(1.1)} />
+          <Circle cx={px(121)} cy={px(100)} r={px(18 + pulse)} color="rgba(91,238,255,0.09)" />
+          <Rect x={px(113)} y={px(96)} width={px(17)} height={px(32)} color="#080d12" />
+          <RoundedRect x={px(111)} y={px(94)} width={px(20)} height={px(9)} r={px(1)} color="#132b35" />
+          <Line p1={vec(px(112), px(94.5))} p2={vec(px(130), px(94.5))} color="#9ff3ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(113), px(102))} p2={vec(px(130), px(102))} color="rgba(121,232,255,0.76)" strokeWidth={px(0.9)} />
+          <Line p1={vec(px(118), px(83))} p2={vec(px(118), px(113))} color="#79e8ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(118), px(113))} p2={vec(px(122), px(119))} color="rgba(121,232,255,0.72)" strokeWidth={px(1)} />
+          <Line p1={vec(px(122), px(119))} p2={vec(px(122), px(127))} color="rgba(121,232,255,0.44)" strokeWidth={px(0.9)} />
+          {[106, 112, 118].map((y) => (
+            <Line key={`basement-rung-${y}`} p1={vec(px(124), px(y))} p2={vec(px(129), px(y))} color="rgba(190,232,235,0.48)" strokeWidth={px(0.7)} />
+          ))}
         </>
       )}
 
