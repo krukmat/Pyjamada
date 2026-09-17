@@ -135,6 +135,17 @@ export default function App() {
           return;
         }
 
+        const explorationFailed = current.objective.phase !== 'failed' && nextSession.objective.phase === 'failed';
+        if (explorationFailed) {
+          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'terminal').catch(() => undefined);
+          return;
+        }
+
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT')) {
+          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
+          return;
+        }
+
         if (events.some(event =>
           event.type === 'HALLWAY_CLOCK_INSPECTED'
           || event.type === 'LIVING_ROOM_DOOR_REACHED'
@@ -148,7 +159,19 @@ export default function App() {
           || event.type === 'KITCHEN_POWER_REROUTED'
           || event.type === 'BATHROOM_MIRROR_ANOMALY_SEEN'
           || event.type === 'BATHROOM_LIGHT_TESTED'
-          || event.type === 'BATHROOM_ROUTE_REVEALED')) {
+          || event.type === 'BATHROOM_ROUTE_REVEALED'
+          || event.type === 'ATTIC_LOG_INSPECTED'
+          || event.type === 'ATTIC_SENSORS_INSPECTED'
+          || event.type === 'ATTIC_RECORDER_INCOMPLETE'
+          || event.type === 'ATTIC_EXPERIMENT_REVEALED'
+          || event.type === 'ATTIC_BASEMENT_ROUTE_REVEALED'
+          || event.type === 'BASEMENT_FAULT_TRACED'
+          || event.type === 'BASEMENT_RELAY_NEEDS_TRACE'
+          || event.type === 'BASEMENT_POWER_STABILIZED'
+          || event.type === 'BASEMENT_TERMINAL_OFFLINE'
+          || event.type === 'BASEMENT_CONTROL_REVEALED'
+          || event.type === 'BASEMENT_FAILSAFE_REJECTED'
+          || event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
