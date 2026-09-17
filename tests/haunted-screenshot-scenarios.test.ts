@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 31, 'visual tour has thirty-one deterministic gameplay/adventure presets through W4 Attic');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 35, 'visual tour has thirty-five deterministic gameplay/adventure presets through W5 Basement');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -171,5 +171,28 @@ equal(atticRoute.currentRoom, 'attic', 'Basement route screenshot stays at W4 bo
 equal(getRoomState(atticRoute, 'attic').switches['experiment-revealed'], true, 'route screenshot follows experiment reveal');
 equal(getRoomState(atticRoute, 'attic').switches['basement-route-revealed'], true, 'route screenshot materializes concrete downward destination');
 equal(getRoomState(atticRoute, 'attic').interactions.includes('basement-route-traced'), true, 'Basement route trace persists in screenshot state');
+
+const basementArrival = createScreenshotAdventureState('basement-arrival');
+equal(basementArrival.currentRoom, 'basement', 'Basement arrival screenshot enters W5');
+equal(basementArrival.currentEntry, 'basement-from-attic', 'Basement screenshot uses production Attic entry');
+ok(basementArrival.visitedRooms.includes('basement'), 'Basement becomes visited in deterministic evidence');
+equal(getRoomState(basementArrival, 'basement').switches['basement-fault-traced'], undefined, 'Basement arrival precedes fault diagnosis');
+
+const basementFault = createScreenshotAdventureState('basement-power-fault');
+equal(getRoomState(basementFault, 'basement').switches['basement-fault-traced'], true, 'fault screenshot captures traced conduit');
+equal(getRoomState(basementFault, 'basement').switches['basement-power-stabilized'], undefined, 'fault screenshot precedes relay stabilization');
+equal(getRoomState(basementFault, 'basement').switches['conduit-focused'], true, 'fault screenshot focuses the failing conduit');
+
+const basementControl = createScreenshotAdventureState('basement-control-reveal');
+equal(getRoomState(basementControl, 'basement').switches['basement-power-stabilized'], true, 'control screenshot follows relay stabilization');
+equal(getRoomState(basementControl, 'basement').switches['basement-control-revealed'], true, 'control screenshot exposes critical resonance load');
+equal(getRoomState(basementControl, 'basement').interactions.includes('basement-electrical-hazard-armed'), true, 'control screenshot includes the armed T5 hazard state');
+equal(getRoomState(basementControl, 'basement').switches['basement-loss-of-control-revealed'], undefined, 'control screenshot precedes rejected failsafe');
+
+const labBoundary = createScreenshotAdventureState('laboratory-boundary');
+equal(labBoundary.currentRoom, 'basement', 'Laboratory boundary intentionally remains inside W5 Basement');
+equal(getRoomState(labBoundary, 'basement').switches['basement-loss-of-control-revealed'], true, 'boundary screenshot follows rejected local failsafe');
+equal(getRoomState(labBoundary, 'basement').switches['laboratory-route-revealed'], true, 'boundary screenshot exposes the downstream Laboratory route');
+equal(getRoomState(labBoundary, 'basement').inspected.includes('laboratory-feed-hatch'), true, 'boundary screenshot persists the physical feed hatch discovery');
 
 console.log('haunted screenshot scenario tests passed');
