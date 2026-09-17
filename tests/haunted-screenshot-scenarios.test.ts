@@ -11,7 +11,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 27, 'visual tour has twenty-seven deterministic gameplay/adventure presets through W3B Bathroom Gate A');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 31, 'visual tour has thirty-one deterministic gameplay/adventure presets through W4 Attic');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -147,5 +147,29 @@ equal(bathroomRevealed.currentRoom, 'bathroom', 'route reveal stays at the W3B b
 equal(getRoomState(bathroomRevealed, 'bathroom').switches['bathroom-light-off'], true, 'route reveal keeps the real room dark');
 equal(getRoomState(bathroomRevealed, 'bathroom').switches['mirror-route-revealed'], true, 'route reveal materializes the matching real-wall seam');
 equal(getRoomState(bathroomRevealed, 'bathroom').interactions.includes('mirror-route-confirmed'), true, 'route confirmation is persisted in deterministic evidence');
+
+const atticArrival = createScreenshotAdventureState('attic-arrival');
+equal(atticArrival.currentRoom, 'attic', 'Attic arrival screenshot enters W4');
+equal(atticArrival.currentEntry, 'attic-from-bathroom', 'Attic screenshot uses production Bathroom entry');
+ok(atticArrival.visitedRooms.includes('attic'), 'Attic becomes visited in deterministic evidence');
+equal(getRoomState(atticArrival, 'attic').inspected.length, 0, 'Attic arrival precedes evidence inspection');
+
+const atticEvidence = createScreenshotAdventureState('attic-evidence');
+equal(atticEvidence.currentRoom, 'attic', 'evidence screenshot remains in Attic');
+equal(getRoomState(atticEvidence, 'attic').inspected.includes('attic-experiment-log'), true, 'evidence screenshot includes experiment log');
+equal(getRoomState(atticEvidence, 'attic').inspected.includes('attic-sensor-map'), true, 'evidence screenshot includes sensor map');
+equal(getRoomState(atticEvidence, 'attic').switches['experiment-revealed'], undefined, 'evidence screenshot precedes central recording');
+
+const atticRecording = createScreenshotAdventureState('attic-recording');
+equal(atticRecording.currentRoom, 'attic', 'recording screenshot remains in Attic');
+equal(getRoomState(atticRecording, 'attic').switches['experiment-revealed'], true, 'recording screenshot captures W-01 experiment reveal');
+equal(getRoomState(atticRecording, 'attic').switches['recorder-focused'], true, 'recording screenshot focuses the central recorder');
+equal(getRoomState(atticRecording, 'attic').switches['basement-route-revealed'], undefined, 'recording screenshot precedes route trace');
+
+const atticRoute = createScreenshotAdventureState('attic-basement-route');
+equal(atticRoute.currentRoom, 'attic', 'Basement route screenshot stays at W4 boundary');
+equal(getRoomState(atticRoute, 'attic').switches['experiment-revealed'], true, 'route screenshot follows experiment reveal');
+equal(getRoomState(atticRoute, 'attic').switches['basement-route-revealed'], true, 'route screenshot materializes concrete downward destination');
+equal(getRoomState(atticRoute, 'attic').interactions.includes('basement-route-traced'), true, 'Basement route trace persists in screenshot state');
 
 console.log('haunted screenshot scenario tests passed');
