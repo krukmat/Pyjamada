@@ -14,8 +14,8 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W1 — The House Opens | **ACCEPTED** | False escape + altered Bedroom + Hallway + backward-clock anomaly + Living Room threshold |
 | W2 — Living Room | **ACCEPTED** | Mystery hook + lab transmission + directional source cue |
 | W3A — Kitchen | **ACCEPTED** | Domestic electrical manipulation: overload → reroute → Bathroom boundary |
-| W3B — Bathroom | **ACTIVE — GATE A REVIEW** | Mirror mismatch + light-state reveal + concrete Attic boundary |
-| W4 — Attic | Planned | Vesper/W-01 revelation |
+| W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
+| W4 — Attic | **ACTIVE — CODE COMPLETE / ANDROID REVIEW PENDING** | Connected evidence + W-01 revelation + Basement boundary |
 | W5 — Basement | Planned | Mad-science transition |
 | W6 — Laboratory | Planned | Final boss |
 | W7 — Ending/Cohesion | Planned | Product hardening |
@@ -27,6 +27,7 @@ Implementation/task checkpoints:
 - `docs/W2_LIVING_ROOM_TASKS.md`
 - `docs/W3_KITCHEN_TASKS.md`
 - `docs/W3_BATHROOM_TASKS.md`
+- `docs/W4_ATTIC_REVELATION_TASKS.md`
 
 ## Narrative spine
 
@@ -57,16 +58,16 @@ Hallway ── Living Room
               │
           Bathroom
               │
-        Attic boundary
-              │
            Attic
+              │
+      Basement boundary
               │
           Basement
               │
          Laboratory
 ```
 
-The topology may evolve when gameplay proves a better route, but W3B deliberately turns Kitchen's signal into Bathroom dream-geometry progression and then a concrete Attic boundary.
+The topology may evolve when gameplay proves a better route, but W3B turns Kitchen's signal into Bathroom dream-geometry progression, and W4 turns the reflected Attic route into the first explicit experiment revelation.
 
 ## Wave plan
 
@@ -158,21 +159,21 @@ Delivered:
 - solved-state idempotence and save/load coverage;
 - distinct normal/overload/rerouted presentation;
 - no extra appliance mechanic or combat;
-- Android evidence 23–25 established the mechanic.
+- Android evidence 23–25 accepted.
 
 The Android review identified two small presentation debts, both closed before W3B:
 - initial overhead light no longer contradicts the dead-appliance state;
 - deterministic overload framing now points Wally at the Breaker/next action.
 
-The rerouted state now exposes a concrete Bathroom boundary, removing the temporary `FOLLOW THE PULSE` dead-end.
+The rerouted state exposes a concrete Bathroom boundary, removing the temporary `FOLLOW THE PULSE` dead-end.
 
 Detailed closeout: `docs/W3_KITCHEN_TASKS.md`.
 
-### W3B — Bathroom / Reflection Geometry — ACTIVE
+### W3B — Bathroom / Reflection Geometry — ACCEPTED
 
 **Goal:** introduce useful impossible spatial logic while making environmental state carry the mechanic before explanatory text.
 
-Implemented Gate A sequence:
+Accepted sequence:
 
 ```text
 Kitchen power rerouted
@@ -189,7 +190,7 @@ Kitchen power rerouted
  -> ATTIC ACCESS REVEALED
 ```
 
-Delivered code scope:
+Delivered:
 - Kitchen ↔ Bathroom production navigation gated by Kitchen `power-rerouted`;
 - distinct Bathroom renderer with sink, mirror, light switch and stopped real pulse;
 - reflected continuation and route seam absent from normal geometry;
@@ -197,38 +198,60 @@ Delivered code scope:
 - room-local `mirror-anomaly-seen`, `bathroom-light-off`, `mirror-route-revealed` progression;
 - route cannot be revealed by repeated mirror inspection before the light test;
 - route reveal is idempotent and survives save/load;
-- final real-wall seam exposes an Attic boundary without implementing Attic interior;
-- no generic portal/reflection engine, inventory, combat, or extra Bathroom fixtures.
+- final real-wall seam exposes an actionable Attic boundary;
+- no generic portal/reflection engine, inventory, combat, or extra Bathroom fixtures;
+- Android evidence 26–29 accepted.
 
-Android Gate A evidence pending review:
+**Accepted gate:** the player understands through visual state and one deliberate room manipulation that the reflection exposes geometry hidden from the normal house.
+
+Detailed closeout: `docs/W3_BATHROOM_TASKS.md`.
+
+### W4 — Attic / Revelation — ACTIVE
+
+**Goal:** convert accumulated mystery into explicit understanding without fully revealing Vesper or the Resonator.
+
+Implemented sequence:
 
 ```text
-26_bathroom_arrival
-27_bathroom_mirror_mismatch
-28_bathroom_reflected_route
-29_bathroom_route_revealed
+Bathroom route revealed
+ -> Attic
+ -> SEARCH THE ATTIC
+ -> experiment log + sensor crate
+ -> CONNECT THE EVIDENCE
+ -> PLAY THE RECORDING
+ -> SUBJECT W-01 / RESONANCE EXTRACTION
+ -> FIND THE MACHINE
+ -> trace recorder output downward
+ -> Basement boundary revealed
 ```
 
-The same refreshed tour revalidates corrected Kitchen evidence 23–25.
+Delivered code scope:
+- production Bathroom ↔ Attic navigation gated by `mirror-route-revealed`;
+- dedicated `AtticPresentation` through the existing room presentation seam;
+- rafters/storage plus newer observation equipment and cabling;
+- two evidence interactions tied back to prior rooms;
+- recorder remains incomplete before evidence context and becomes meaningful afterward;
+- room-local `experiment-revealed` milestone;
+- concrete downward cable/hatch state via `basement-route-revealed`;
+- save/load and idempotence coverage in `tests/w4-attic-gate-a.test.ts`;
+- no full Vesper reveal, Basement interior, clue engine, inventory, dialogue system or new enemy.
 
-**Gate:** the player should understand through visual state and one deliberate room manipulation that the reflection exposes geometry hidden from the normal house.
+The W4 reveal intentionally answers:
+- the anomalies are connected;
+- they are instrumented deliberately;
+- Wally is `SUBJECT W-01`;
+- resonance extraction is involved;
+- the active machine is below the house.
 
-Detailed checkpoint: `docs/W3_BATHROOM_TASKS.md`.
+It intentionally preserves for later:
+- Dr. Vesper's complete identity/motivation;
+- full Resonator architecture;
+- why Wally is unusually compatible;
+- whether the experiment is still under deliberate control.
 
-### W4 — Attic / Revelation — PLANNED
+**Pending gate:** Android evidence 30–33 must prove that the Attic reads as storage converted into an observation post, that the recording materially changes understanding, and that the final downward route is visually concrete.
 
-**Goal:** convert mystery into explicit understanding.
-
-Story objects:
-- Dr. Vesper photograph;
-- Resonator prototype/plan;
-- dream-energy notes;
-- `SUBJECT W-01` record;
-- phrase: `DREAMS ARE MATTER WAITING FOR INSTRUCTIONS`.
-
-Information remains fragmented across interactions rather than one exposition dump.
-
-**Gate:** player understands that a scientist, machine and Wally's dream signature are connected and that the laboratory must be found.
+Detailed checkpoint: `docs/W4_ATTIC_REVELATION_TASKS.md`.
 
 ### W5 — Basement / Mad Science — PLANNED
 
@@ -314,11 +337,12 @@ applyRoomInteractionEffect()
         +-- Living Room
         +-- Kitchen
         +-- Bathroom
+        +-- Attic
 ```
 
 The runtime owns movement, target resolution and dispatch. Room-specific mutations/events stay outside it.
 
-W3 does **not** generalize the microwave/breaker relationship into a generic power engine, nor the Bathroom reflection into a generic portal engine. A second concrete reuse case is required before extracting either abstraction.
+W3 does **not** generalize the microwave/breaker relationship into a generic power engine, nor the Bathroom reflection into a generic portal engine. W4 likewise keeps evidence/recorder behavior local rather than introducing a clue or terminal framework. A second concrete reuse case is required before extracting those abstractions.
 
 ### Presentation seam
 
@@ -330,7 +354,8 @@ RoomPresentation
    ├── Hallway
    ├── Living Room
    ├── Kitchen
-   └── Bathroom
+   ├── Bathroom
+   └── Attic
 ```
 
 Shared Wally/camera/control systems remain above room presentation.
@@ -346,7 +371,8 @@ Room-local switches/history remain local unless a later wave proves cross-room d
 - Hallway `living-room-unlocked`;
 - Living Room `source-hum-traced`;
 - Kitchen `circuit-overloaded` / `power-rerouted`;
-- Bathroom `mirror-anomaly-seen` / `bathroom-light-off` / `mirror-route-revealed`.
+- Bathroom `mirror-anomaly-seen` / `bathroom-light-off` / `mirror-route-revealed`;
+- Attic `experiment-revealed` / `basement-route-revealed` plus evidence inspection history.
 
 ### Deterministic review
 
@@ -368,7 +394,7 @@ Accepted W2:
 22_living_room_source_cue
 ```
 
-W3A accepted gameplay evidence / refreshed polish validation:
+Accepted W3A:
 
 ```text
 23_kitchen_arrival
@@ -376,13 +402,22 @@ W3A accepted gameplay evidence / refreshed polish validation:
 25_kitchen_power_rerouted
 ```
 
-W3B Gate A review:
+Accepted W3B:
 
 ```text
 26_bathroom_arrival
 27_bathroom_mirror_mismatch
 28_bathroom_reflected_route
 29_bathroom_route_revealed
+```
+
+W4 Android review pending:
+
+```text
+30_attic_arrival
+31_attic_evidence
+32_attic_recording
+33_basement_route_revealed
 ```
 
 The Android flow validates real UI state/text rather than a synthetic renderer-ready gate.
@@ -399,19 +434,19 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W3B Gate A — Bathroom Dream Geometry / Android review.**
+**W4 — Attic / Revelation Android review.**
 
 Required evidence:
 
 ```text
-1. 23 Kitchen arrival now reads electrically dead without contradictory warm ceiling light
-2. 24 Kitchen overload frames Breaker as the next action
-3. 25 Kitchen rerouted exposes an actionable Bathroom boundary
-4. 26 Bathroom arrival clearly shows real pulse terminating
-5. 27 mirror mismatch is discoverable without depending on caption text
-6. 28 real room becomes materially dark while mirror remains visibly active
-7. 29 the real-wall seam reads as concrete Attic access, not decorative glow
-8. W0–W3A automated regression remains green
+1. 30 Attic arrival immediately reads as old storage converted into an observation post
+2. 31 evidence state visually links the log/sensors to rooms already traversed
+3. 32 recorder becomes the dominant focal point and communicates W-01 / resonance revelation
+4. 31 → 32 changes understanding, not only caption text
+5. 33 creates an unmistakable downward Basement destination
+6. 32 → 33 is visibly distinct
+7. screenshots 1–29 remain materially stable
+8. W0–W4 automated regression remains green
 ```
 
-Do not implement Attic interior until this gate passes.
+Do not implement Basement interior until this gate passes.
