@@ -433,3 +433,55 @@ tags:
 - assertVisible: "INTERACT · DOWNWARD CABLE"
 - takeScreenshot:
     path: 33_basement_route_revealed
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The Attic cable ends here, grafted into the house utilities."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · BASEMENT"
+- assertVisible: "FOLLOW THE POWER"
+- takeScreenshot:
+    path: 34_basement_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-power-fault
+- extendedWaitUntil:
+    visible:
+      text: "The cyan feed is arcing into the old utility line. The relay can isolate it."
+    timeout: 5000
+- assertVisible: "ISOLATE THE FAULT"
+- assertVisible: "INTERACT · POWER CONDUIT"
+- takeScreenshot:
+    path: 35_basement_power_fault
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-control-reveal
+- extendedWaitUntil:
+    visible:
+      text: "Resonance load is above the safe line. The system is still climbing."
+    timeout: 5000
+- assertVisible: "TRIP THE FAILSAFE"
+- assertVisible: "INTERACT · CONTROL TERMINAL"
+- takeScreenshot:
+    path: 36_basement_control_reveal
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-laboratory-boundary
+- extendedWaitUntil:
+    visible:
+      text: "The feed disappears through a service hatch. The Laboratory is below."
+    timeout: 5000
+- assertVisible: "LABORATORY ROUTE IDENTIFIED"
+- assertVisible: "INTERACT · LAB FEED HATCH"
+- takeScreenshot:
+    path: 37_laboratory_boundary
