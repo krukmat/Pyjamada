@@ -10,6 +10,9 @@ import {
   isAtticLogInspected,
   isAtticRecorderFocused,
   isAtticSensorsInspected,
+  isBasementFaultTraced,
+  isBasementPowerStabilized,
+  isBasementRelayProbed,
   isBathroomLightOff,
   isBathroomMirrorAnomalySeen,
   isBathroomRouteRevealed,
@@ -165,6 +168,7 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
   if (roomId === 'bathroom') return 'HAUNTED HOUSE · BATHROOM';
   if (roomId === 'attic') return 'HAUNTED HOUSE · ATTIC';
+  if (roomId === 'basement') return 'HAUNTED HOUSE · BASEMENT';
   return 'HAUNTED HOUSE · BEDROOM';
 }
 
@@ -194,6 +198,11 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (logSeen && sensorsSeen) return 'PLAY THE RECORDING';
       if (logSeen || sensorsSeen) return 'CONNECT THE EVIDENCE';
       return 'SEARCH THE ATTIC';
+    }
+    if (adventure.currentRoom === 'basement') {
+      if (isBasementPowerStabilized(adventure)) return 'POWER FEED STABLE';
+      if (isBasementFaultTraced(adventure)) return 'ISOLATE THE FAULT';
+      return 'FOLLOW THE POWER';
     }
     if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
     return 'ENTER THE LIVING ROOM';
@@ -266,6 +275,12 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (logSeen) return 'The log lists resonance spikes beside rooms I have already crossed.';
       if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
+    }
+    if (adventure.currentRoom === 'basement') {
+      if (isBasementPowerStabilized(adventure)) return 'The relay holds. The resonance feed is stable enough to read.';
+      if (isBasementFaultTraced(adventure)) return 'The cyan feed is arcing into the old utility line. The relay can isolate it.';
+      if (isBasementRelayProbed(adventure)) return 'The relay has no useful reading yet. Trace the live conduit first.';
+      return 'The Attic cable ends here, grafted into the house utilities.';
     }
     if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
     return 'This hallway feels longer than it should.';
