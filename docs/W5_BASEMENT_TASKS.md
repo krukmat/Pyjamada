@@ -2,9 +2,9 @@
 
 ## Status
 
-**APPROVED — T0–T3 IN PROGRESS**
+**ACTIVE — T0–T3 COMPLETE / T4 NEXT**
 
-W4 Attic is accepted. W5 is the next production wave on `feat/haunted-house-adventure`.
+W4 Attic is accepted. The first W5 production slice is implemented and repository validation is green on `feat/haunted-house-adventure`.
 
 ## Product goal
 
@@ -74,44 +74,53 @@ Laboratory = purpose-built source (W6)
 
 ## Tasks
 
-### W5-T0 — W4 closeout / regression baseline
+### W5-T0 — W4 closeout / regression baseline — COMPLETE
 
-- Preserve screenshots 1–33 as accepted regression evidence.
+- Screenshots 1–33 remain the accepted regression baseline.
 - W4 remains `ACCEPTED`.
-- Use the accepted Attic floor hatch as the only production entry into Basement.
+- The accepted Attic floor hatch is the only production entry into Basement.
 
-### W5-T1 — Basement room foundation
+### W5-T1 — Basement room foundation — COMPLETE
 
-- Activate `basement` in `RoomRegistry`.
-- Add deterministic Attic → Basement entry and Basement → Attic return path.
-- Gate Attic → Basement on Attic room-local `basement-route-revealed`.
-- Do not activate Laboratory travel yet.
-- Preserve current save envelope and room-local state model.
+Implemented:
+- `basement` activated in `RoomRegistry`;
+- deterministic Attic → Basement entry and Basement → Attic return path;
+- Attic → Basement gated by Attic room-local `basement-route-revealed`;
+- Laboratory travel remains inactive;
+- existing save envelope and room-local persistence retained.
 
-### W5-T2 — Basement visual identity
+The Attic exit interaction is intentionally separate from the accepted `DOWNWARD CABLE` evidence interaction, so screenshot 33 remains readable while the player can move slightly left to enter the revealed hatch.
 
-- Add `BasementPresentation` through the existing `RoomPresentation` seam.
-- Establish masonry, pipes, old utilities, new conduits and electrical cabinets.
-- Maintain Wally scale/floor/readability conventions.
-- Initial room must visually communicate that the cyan infrastructure continues from Attic and is unstable.
+### W5-T2 — Basement visual identity — COMPLETE CODE / ANDROID REVIEW DEFERRED TO T9
 
-### W5-T3 — Power infrastructure loop
+Added `BasementPresentation` through the existing `RoomPresentation` seam.
 
-Implement one concrete local subsystem rather than a generic power engine.
+Implemented visual language:
+- dark masonry/utility-room structure;
+- exposed old pipes and Attic return ladder;
+- cyan resonance feed grafted across domestic utilities;
+- unstable fault node with flicker/arcs;
+- dedicated isolation relay;
+- deeper dormant control equipment reserved for T4;
+- visibly steadier cyan feed after T3 stabilization.
 
-Initial interaction set:
+No generic power renderer or new enemy was introduced.
+
+### W5-T3 — Power infrastructure loop — COMPLETE
+
+Implemented one Basement-specific subsystem:
 
 1. **Power Conduit** — trace the unstable feed and identify the fault.
-2. **Isolation Relay** — ineffective before the fault is traced; after tracing, stabilizes the local feed.
+2. **Isolation Relay** — cannot solve the fault before it has been traced; afterward it stabilizes the local feed.
 
-Room-local milestones:
+Persisted room-local milestones:
 
 ```text
 basement-fault-traced
 basement-power-stabilized
 ```
 
-Expected objective progression:
+Objective progression:
 
 ```text
 FOLLOW THE POWER
@@ -119,9 +128,25 @@ ISOLATE THE FAULT
 POWER FEED STABLE
 ```
 
-The stabilized state should materially change the room presentation so the player sees the effect before explanatory text confirms it.
+Behavior:
+- probing the relay first gives a deterministic clue but does not solve the room;
+- tracing the conduit records the fault;
+- operating the relay afterward stabilizes the feed;
+- repeated interactions are idempotent;
+- stabilized state materially changes the conduit/relay/deeper-feed presentation.
 
-### W5-T4 — Terminal / control reveal
+Automated coverage in `tests/w5-basement-foundation.test.ts` proves navigation gating, deterministic spawns/return path, interaction ordering, idempotence and save/load restoration.
+
+Repository validation for the completed T0–T3 slice:
+
+```text
+Assets                  PASS
+Game/tests              PASS
+TypeScript              PASS
+Static architecture     PASS
+```
+
+### W5-T4 — Terminal / control reveal — NEXT
 
 - Add one local CRT/control terminal.
 - Before T3 solution: incomplete/noisy readout.
@@ -167,17 +192,18 @@ laboratory-route-revealed
 
 ### W5-T8 — Persistence / idempotence / tests
 
-Cover:
-- Basement remains locked before Attic route reveal;
+Already covered for T0–T3:
+- Basement locked before Attic route reveal;
 - deterministic Attic ↔ Basement navigation;
 - fault trace and power stabilization ordering;
-- repeated interactions do not duplicate milestones/events;
-- save/load preserves Basement and local progression;
-- later terminal/hazard/Lab boundary states when implemented.
+- repeated stabilization does not duplicate milestones/events;
+- save/load preserves Basement and local power progression.
+
+Extend coverage as T4–T7 are implemented.
 
 ### W5-T9 — Android visual gate
 
-Extend deterministic review after the implementation stabilizes. Planned evidence:
+Extend deterministic review after W5 implementation stabilizes. Planned evidence:
 
 ```text
 34_basement_arrival.png
@@ -233,24 +259,28 @@ Basement room-local persistent state
 RoomPresentation / BasementPresentation
 ```
 
-T3's conduit/relay relationship remains Basement-specific until another room demonstrates a real second use case.
+The conduit/relay relationship remains Basement-specific until another room demonstrates a real second use case.
 
 ## Current implementation slice
 
-**T0–T3 only.**
+**T0–T3 complete. T4 is next.**
 
-Deliver before advancing to T4:
+Current production progression:
 
 ```text
-W4 accepted baseline
+W4 accepted Basement hatch
     ↓
-Attic → Basement production route
+Attic → Basement
     ↓
-Basement presentation
+FOLLOW THE POWER
     ↓
-Power Conduit trace
+Power Conduit / fault trace
     ↓
-Isolation Relay stabilization
+ISOLATE THE FAULT
     ↓
-automated navigation/state/save validation
+Isolation Relay
+    ↓
+POWER FEED STABLE
 ```
+
+Next increment begins from the now-powered deeper control equipment; it should not broaden the subsystem abstraction.
