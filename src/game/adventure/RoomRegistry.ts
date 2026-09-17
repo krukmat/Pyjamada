@@ -38,7 +38,8 @@ export type RoomInteractionEffect =
   | 'trace-attic-basement-route'
   | 'inspect-basement-conduit'
   | 'use-basement-relay'
-  | 'use-basement-terminal';
+  | 'use-basement-terminal'
+  | 'trace-basement-laboratory-route';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -48,6 +49,8 @@ export type RoomInteractionDefinition = {
   id: string;
   label: string;
   unavailableLabel?: string;
+  requiresRoomSwitch?: string;
+  hiddenWhenUnavailable?: boolean;
   x: number;
   radius: number;
   behavior: RoomInteractionBehavior;
@@ -386,6 +389,15 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         radius: 8,
         behavior: { type: 'effect', effect: 'use-basement-terminal' },
       },
+      {
+        id: 'basement-laboratory-feed-hatch',
+        label: 'LAB FEED HATCH',
+        requiresRoomSwitch: 'basement-loss-of-control-revealed',
+        hiddenWhenUnavailable: true,
+        x: 116,
+        radius: 7,
+        behavior: { type: 'effect', effect: 'trace-basement-laboratory-route' },
+      },
     ],
   },
 };
@@ -423,6 +435,9 @@ export function isRoomInteractionAvailable(
   roomId: RoomId,
   interaction: RoomInteractionDefinition,
 ): boolean {
+  if (interaction.requiresRoomSwitch && getRoomState(state, roomId).switches[interaction.requiresRoomSwitch] !== true) {
+    return false;
+  }
   if (interaction.behavior.type !== 'exit') return true;
   const exit = getRoomExit(roomId, interaction.behavior.exitId);
   return Boolean(exit && isRoomExitAvailable(state, roomId, exit));
@@ -446,6 +461,7 @@ export function resolveRoomInteractionTarget(
       };
     })
     .filter(target => target.distance <= target.radius)
+    .filter(target => target.available || !target.hiddenWhenUnavailable)
     .sort((a, b) => a.distance - b.distance || a.x - b.x)
     .map(({ distance: _distance, ...target }) => target)[0];
 }

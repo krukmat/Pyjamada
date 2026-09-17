@@ -188,6 +188,14 @@ export function isBasementControlRevealed(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'basement').switches['basement-control-revealed'] === true;
 }
 
+export function isBasementLossOfControlRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['basement-loss-of-control-revealed'] === true;
+}
+
+export function isBasementLaboratoryRouteRevealed(adventure: AdventureState): boolean {
+  return getRoomState(adventure, 'basement').switches['laboratory-route-revealed'] === true;
+}
+
 export function isBasementTerminalFocused(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'basement').switches['terminal-focused'] === true;
 }

@@ -24,6 +24,8 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
   const faultTraced = basement?.switches['basement-fault-traced'] === true;
   const stabilized = basement?.switches['basement-power-stabilized'] === true;
   const controlRevealed = basement?.switches['basement-control-revealed'] === true;
+  const lossOfControlRevealed = basement?.switches['basement-loss-of-control-revealed'] === true;
+  const laboratoryRouteRevealed = basement?.switches['laboratory-route-revealed'] === true;
   const conduitFocused = basement?.switches['conduit-focused'] === true;
   const relayFocused = basement?.switches['relay-focused'] === true;
   const terminalFocused = basement?.switches['terminal-focused'] === true;
@@ -99,7 +101,7 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
       <Line p1={vec(px(92), px(78))} p2={vec(px(92), px(89))} color={stabilized ? '#79e8ff' : '#777f7f'} strokeWidth={px(1.3)} />
       {relayFocused && <Circle cx={px(92)} cy={px(72)} r={px(15)} color="rgba(248,218,118,0.07)" />}
 
-      {/* Basement control terminal. Before stabilization it is effectively dead; after T4 it exposes overload. */}
+      {/* Basement control terminal. */}
       <RoundedRect x={px(108)} y={px(56)} width={px(20)} height={px(45)} r={px(2)} color="#252b30" />
       <Rect x={px(111)} y={px(61)} width={px(14)} height={px(15)} color="#101619" />
       {!stabilized && (
@@ -122,8 +124,15 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           <Circle cx={px(118)} cy={px(68)} r={px(12)} color="rgba(255,92,105,0.06)" />
         </>
       )}
+      {lossOfControlRevealed && (
+        <>
+          <Line p1={vec(px(112), px(63))} p2={vec(px(124), px(74))} color="#ff7b82" strokeWidth={px(1)} />
+          <Line p1={vec(px(124), px(63))} p2={vec(px(112), px(74))} color="#ff7b82" strokeWidth={px(1)} />
+          <Rect x={px(112)} y={px(77)} width={px(12)} height={px(2)} color={fastPulse === 0 ? '#f8da76' : '#ff9f73'} />
+        </>
+      )}
       {[113, 118, 123].map((x, index) => (
-        <Circle key={`panel-${x}`} cx={px(x)} cy={px(84)} r={px(1)} color={controlRevealed && index === 2 ? '#ff7b82' : stabilized && index === pulse % 3 ? '#79e8ff' : '#596164'} />
+        <Circle key={`panel-${x}`} cx={px(x)} cy={px(84)} r={px(1)} color={lossOfControlRevealed ? '#ff7b82' : controlRevealed && index === 2 ? '#ff7b82' : stabilized && index === pulse % 3 ? '#79e8ff' : '#596164'} />
       ))}
       {terminalFocused && <Circle cx={px(118)} cy={px(69)} r={px(16)} color={controlRevealed ? 'rgba(255,92,105,0.08)' : 'rgba(121,232,255,0.06)'} />}
 
@@ -132,6 +141,42 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           <Circle cx={px(72)} cy={px(84)} r={px(24)} color="rgba(91,238,255,0.05)" />
           <Line p1={vec(px(92), px(84))} p2={vec(px(118), px(84))} color="rgba(121,232,255,0.68)" strokeWidth={px(1.1)} />
           <Line p1={vec(px(118), px(84))} p2={vec(px(118), px(101))} color={controlRevealed ? 'rgba(255,123,130,0.58)' : 'rgba(121,232,255,0.48)'} strokeWidth={px(1)} />
+        </>
+      )}
+
+      {/* W5-T6/T7: rejected local failsafe exposes the downstream Laboratory feed hatch. */}
+      {lossOfControlRevealed && (
+        <>
+          <Line p1={vec(px(118), px(84))} p2={vec(px(124), px(92))} color="#ff8f72" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(124), px(92))} p2={vec(px(124), px(97))} color="#79e8ff" strokeWidth={px(1.2)} />
+          <RoundedRect
+            x={px(107)}
+            y={px(94)}
+            width={px(20)}
+            height={px(9)}
+            r={px(1.5)}
+            color={laboratoryRouteRevealed ? '#315b62' : '#2b3032'}
+          />
+          <Rect
+            x={px(109)}
+            y={px(96)}
+            width={px(16)}
+            height={px(5)}
+            color={laboratoryRouteRevealed ? 'rgba(121,232,255,0.26)' : '#171c1f'}
+          />
+          <Line
+            p1={vec(px(109), px(98.5))}
+            p2={vec(px(125), px(98.5))}
+            color={laboratoryRouteRevealed ? '#9ff3ff' : '#697377'}
+            strokeWidth={px(laboratoryRouteRevealed ? 1.1 : 0.8)}
+          />
+          <Circle
+            cx={px(123)}
+            cy={px(96)}
+            r={px(1.2)}
+            color={laboratoryRouteRevealed ? '#79e8ff' : fastPulse === 0 ? '#f8da76' : '#ff9f73'}
+          />
+          {laboratoryRouteRevealed && <Circle cx={px(117)} cy={px(99)} r={px(12)} color="rgba(121,232,255,0.07)" />}
         </>
       )}
 

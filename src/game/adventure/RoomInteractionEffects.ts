@@ -32,7 +32,9 @@ export type RoomInteractionEffectEvent =
   | { type: 'BASEMENT_RELAY_NEEDS_TRACE' }
   | { type: 'BASEMENT_POWER_STABILIZED' }
   | { type: 'BASEMENT_TERMINAL_OFFLINE' }
-  | { type: 'BASEMENT_CONTROL_REVEALED' };
+  | { type: 'BASEMENT_CONTROL_REVEALED' }
+  | { type: 'BASEMENT_FAILSAFE_REJECTED' }
+  | { type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -75,6 +77,8 @@ export function applyRoomInteractionEffect(
       return useBasementRelay(adventure, roomId);
     case 'use-basement-terminal':
       return useBasementTerminal(adventure, roomId);
+    case 'trace-basement-laboratory-route':
+      return traceBasementLaboratoryRoute(adventure, roomId);
   }
 }
 
@@ -353,7 +357,8 @@ function useBasementTerminal(adventure: AdventureState, roomId: RoomId): RoomInt
 
   const basement = getRoomState(adventure, 'basement');
   const powerStable = basement.switches['basement-power-stabilized'] === true;
-  const alreadyRevealed = basement.switches['basement-control-revealed'] === true;
+  const controlRevealed = basement.switches['basement-control-revealed'] === true;
+  const lossOfControlRevealed = basement.switches['basement-loss-of-control-revealed'] === true;
   let next = setRoomSwitch(adventure, 'basement', 'conduit-focused', false);
   next = setRoomSwitch(next, 'basement', 'relay-focused', false);
   next = setRoomSwitch(next, 'basement', 'terminal-focused', true);
@@ -364,10 +369,31 @@ function useBasementTerminal(adventure: AdventureState, roomId: RoomId): RoomInt
     return { adventure: next, events: alreadyProbed ? [] : [{ type: 'BASEMENT_TERMINAL_OFFLINE' }] };
   }
 
-  if (alreadyRevealed) return { adventure: next, events: [] };
+  if (!controlRevealed) {
+    next = markRoomInspected(next, 'basement', 'resonance-control-terminal');
+    next = markRoomInteraction(next, 'basement', 'basement-control-read');
+    next = setRoomSwitch(next, 'basement', 'basement-control-revealed', true);
+    return { adventure: next, events: [{ type: 'BASEMENT_CONTROL_REVEALED' }] };
+  }
 
-  next = markRoomInspected(next, 'basement', 'resonance-control-terminal');
-  next = markRoomInteraction(next, 'basement', 'basement-control-read');
-  next = setRoomSwitch(next, 'basement', 'basement-control-revealed', true);
-  return { adventure: next, events: [{ type: 'BASEMENT_CONTROL_REVEALED' }] };
+  if (lossOfControlRevealed) return { adventure: next, events: [] };
+
+  next = markRoomInteraction(next, 'basement', 'basement-failsafe-attempted');
+  next = setRoomSwitch(next, 'basement', 'basement-loss-of-control-revealed', true);
+  return { adventure: next, events: [{ type: 'BASEMENT_FAILSAFE_REJECTED' }] };
+}
+
+function traceBasementLaboratoryRoute(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'basement') return { adventure, events: [] };
+
+  const basement = getRoomState(adventure, 'basement');
+  const lossOfControlRevealed = basement.switches['basement-loss-of-control-revealed'] === true;
+  const routeRevealed = basement.switches['laboratory-route-revealed'] === true;
+  if (!lossOfControlRevealed || routeRevealed) return { adventure, events: [] };
+
+  let next = markRoomInspected(adventure, 'basement', 'laboratory-feed-hatch');
+  next = markRoomInteraction(next, 'basement', 'laboratory-route-traced');
+  next = setRoomSwitch(next, 'basement', 'terminal-focused', false);
+  next = setRoomSwitch(next, 'basement', 'laboratory-route-revealed', true);
+  return { adventure: next, events: [{ type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' }] };
 }
