@@ -10,9 +10,11 @@ import {
   isAtticLogInspected,
   isAtticRecorderFocused,
   isAtticSensorsInspected,
+  isBasementControlRevealed,
   isBasementFaultTraced,
   isBasementPowerStabilized,
   isBasementRelayProbed,
+  isBasementTerminalFocused,
   isBathroomLightOff,
   isBathroomMirrorAnomalySeen,
   isBathroomRouteRevealed,
@@ -200,7 +202,8 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       return 'SEARCH THE ATTIC';
     }
     if (adventure.currentRoom === 'basement') {
-      if (isBasementPowerStabilized(adventure)) return 'POWER FEED STABLE';
+      if (isBasementControlRevealed(adventure)) return 'RESONANCE LOAD CRITICAL';
+      if (isBasementPowerStabilized(adventure)) return 'READ THE CONTROL TERMINAL';
       if (isBasementFaultTraced(adventure)) return 'ISOLATE THE FAULT';
       return 'FOLLOW THE POWER';
     }
@@ -277,7 +280,9 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
     if (adventure.currentRoom === 'basement') {
-      if (isBasementPowerStabilized(adventure)) return 'The relay holds. The resonance feed is stable enough to read.';
+      if (isBasementControlRevealed(adventure)) return 'Resonance load is above the safe line. The system is still climbing.';
+      if (isBasementTerminalFocused(adventure) && !isBasementPowerStabilized(adventure)) return 'The control terminal is dark. The unstable feed cannot hold a reading.';
+      if (isBasementPowerStabilized(adventure)) return 'The relay holds. The control terminal finally has a readable signal.';
       if (isBasementFaultTraced(adventure)) return 'The cyan feed is arcing into the old utility line. The relay can isolate it.';
       if (isBasementRelayProbed(adventure)) return 'The relay has no useful reading yet. Trace the live conduit first.';
       return 'The Attic cable ends here, grafted into the house utilities.';
