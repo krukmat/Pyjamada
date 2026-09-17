@@ -16,7 +16,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W3A — Kitchen | **ACCEPTED** | Domestic electrical manipulation: overload → reroute → Bathroom boundary |
 | W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
-| W5 — Basement | **PLANNED — UNBLOCKED** | Mad-science transition |
+| W5 — Basement | **ACTIVE — T0–T3 COMPLETE** | Basement foundation + local power stabilization; terminal/hazard/Lab boundary next |
 | W6 — Laboratory | Planned | Final boss |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
@@ -28,6 +28,7 @@ Implementation/task checkpoints:
 - `docs/W3_KITCHEN_TASKS.md`
 - `docs/W3_BATHROOM_TASKS.md`
 - `docs/W4_ATTIC_REVELATION_TASKS.md`
+- `docs/W5_BASEMENT_TASKS.md`
 
 ## Narrative spine
 
@@ -60,14 +61,14 @@ Hallway ── Living Room
               │
            Attic
               │
-      Basement boundary
-              │
           Basement
+              │
+    Laboratory boundary
               │
          Laboratory
 ```
 
-W3B turns Kitchen's signal into Bathroom dream-geometry progression. W4 then turns the reflected Attic route into explicit experiment knowledge and a concrete Basement destination.
+W3B turns Kitchen's signal into Bathroom dream-geometry progression. W4 turns the reflected Attic route into explicit experiment knowledge and a concrete Basement destination. W5 now turns that destination into direct manipulation of the experiment's physical infrastructure.
 
 ## Wave plan
 
@@ -261,20 +262,47 @@ Android closeout:
 
 Detailed closeout: `docs/W4_ATTIC_REVELATION_TASKS.md`.
 
-### W5 — Basement / Mad Science — PLANNED — UNBLOCKED
+### W5 — Basement / Mad Science — ACTIVE — T0–T3 COMPLETE
 
-**Goal:** transition the tone from haunted house to haunted-house-plus-mad-science.
+**Goal:** transition the tone from haunted-house investigation to direct interaction with unstable experiment infrastructure.
 
-Initial scope:
-- activate a real Attic → Basement transition from the accepted W4 hatch;
-- cables, CRTs, energy conduits and machine infrastructure;
-- power/door/terminal interactions only where they serve a concrete room loop;
-- escalated environmental hazards;
-- experimental creature only if room gameplay requires it;
-- establish that the experiment is no longer safely contained;
-- expose a concrete Laboratory boundary without implementing the final boss early.
+Current implemented sequence:
+
+```text
+Attic hatch
+ -> Basement
+ -> FOLLOW THE POWER
+ -> inspect unstable Power Conduit
+ -> ISOLATE THE FAULT
+ -> operate Isolation Relay
+ -> POWER FEED STABLE
+```
+
+Delivered T0–T3:
+- W4 1–33 screenshot baseline preserved;
+- production Attic ↔ Basement navigation gated by Attic `basement-route-revealed`;
+- dedicated `BasementPresentation`;
+- masonry/old-utility visual identity crossed by newer cyan resonance infrastructure;
+- Power Conduit fault trace;
+- Isolation Relay cannot solve before trace and stabilizes feed afterward;
+- room-local `basement-fault-traced` / `basement-power-stabilized` state;
+- unstable/stabilized presentation states;
+- deterministic events, idempotence and save/load coverage in `tests/w5-basement-foundation.test.ts`;
+- no generic power engine or Laboratory interior.
+
+The next increment is T4: use the stabilized feed to make one local control terminal readable and establish that Resonance load is exceeding normal operating parameters.
+
+Remaining W5 scope:
+- T4 control-terminal reveal;
+- T5 environmental hazard tied to the unstable experiment;
+- T6 out-of-control reveal;
+- T7 concrete Laboratory boundary;
+- T8 complete persistence/idempotence coverage;
+- T9 Android screenshots planned after the room stabilizes.
 
 **Gate:** player reaches the Laboratory entrance and understands the experiment is no longer under control.
+
+Detailed checkpoint: `docs/W5_BASEMENT_TASKS.md`.
 
 ### W6 — Laboratory / Final Boss — PLANNED
 
@@ -285,7 +313,7 @@ Boss structure:
 2. **The Resonator** — room geometry and earlier objects become distorted.
 3. **Vesper Nightmare** — Vesper is transformed by the experiment.
 
-Reuse motifs from Bedroom, Living Room, Bathroom and Attic.
+Reuse motifs from Bedroom, Living Room, Bathroom, Attic and Basement.
 
 **Gate:** complete end-to-end adventure from Bedroom to boss defeat.
 
@@ -349,11 +377,12 @@ applyRoomInteractionEffect()
         +-- Kitchen
         +-- Bathroom
         +-- Attic
+        +-- Basement
 ```
 
 The runtime owns movement, target resolution and dispatch. Room-specific mutations/events stay outside it.
 
-W3 does **not** generalize the microwave/breaker relationship into a generic power engine, nor the Bathroom reflection into a generic portal engine. W4 likewise keeps evidence/recorder behavior local rather than introducing a clue or terminal framework. A second concrete reuse case is required before extracting those abstractions.
+W3 does **not** generalize the microwave/breaker relationship into a generic power engine, nor the Bathroom reflection into a generic portal engine. W4 keeps evidence/recorder behavior local rather than introducing a clue or terminal framework. W5 likewise keeps the Power Conduit/Isolation Relay relationship Basement-specific until a second concrete reuse proves an abstraction necessary.
 
 ### Presentation seam
 
@@ -366,7 +395,8 @@ RoomPresentation
    ├── Living Room
    ├── Kitchen
    ├── Bathroom
-   └── Attic
+   ├── Attic
+   └── Basement
 ```
 
 Shared Wally/camera/control systems remain above room presentation.
@@ -383,7 +413,8 @@ Room-local switches/history remain local unless a later wave proves cross-room d
 - Living Room `source-hum-traced`;
 - Kitchen `circuit-overloaded` / `power-rerouted`;
 - Bathroom `mirror-anomaly-seen` / `bathroom-light-off` / `mirror-route-revealed`;
-- Attic `experiment-revealed` / `basement-route-revealed` plus evidence inspection history.
+- Attic `experiment-revealed` / `basement-route-revealed` plus evidence inspection history;
+- Basement `basement-fault-traced` / `basement-power-stabilized`.
 
 ### Deterministic review
 
@@ -431,6 +462,8 @@ Accepted W4:
 33_basement_route_revealed
 ```
 
+W5 screenshot expansion is deliberately deferred until the complete Basement loop stabilizes; current plan targets 34–37.
+
 The Android flow validates real UI state/text rather than a synthetic renderer-ready gate.
 
 ## Development policy
@@ -445,17 +478,18 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W5 — Basement / Mad Science planning.**
+**W5-T4 — Basement control reveal.**
 
-W4 is accepted. W5 may now start from the concrete Basement hatch established by screenshot 33.
-
-Before implementation, define a focused Basement loop that:
+T0–T3 are code complete with green repository validation. Build on the stabilized local power feed rather than creating another subsystem:
 
 ```text
-1. makes the technological layer materially stronger than Attic
-2. reuses the established resonance/electrical language without duplicating Kitchen
-3. introduces environmental danger only where it adds gameplay value
-4. reveals loss of control through play/environment rather than exposition
-5. ends at a concrete Laboratory boundary
-6. does not prematurely implement the final boss or full Vesper reveal
+POWER FEED STABLE
+        ↓
+local CRT/control terminal becomes readable
+        ↓
+RESONANCE LOAD exceeds safe/expected parameters
+        ↓
+prepare T5/T6 environmental pressure + loss-of-control reveal
 ```
+
+Keep the terminal Basement-specific, preserve W4/W5 information budget, and do not activate the Laboratory transition until the W5 progression earns it.
