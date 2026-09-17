@@ -46,6 +46,10 @@ EXPECTED_SCREENSHOTS=(
   "27_bathroom_mirror_mismatch.png"
   "28_bathroom_reflected_route.png"
   "29_bathroom_route_revealed.png"
+  "30_attic_arrival.png"
+  "31_attic_evidence.png"
+  "32_attic_recording.png"
+  "33_basement_route_revealed.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published
