@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACTIVE — T0–T4 COMPLETE / T5 NEXT**
+**ACTIVE — T0–T5 COMPLETE / T6 NEXT**
 
-W4 Attic is accepted. W5 foundation, power loop and control-terminal reveal are implemented and repository validation is green on `feat/haunted-house-adventure`.
+W4 Attic is accepted. W5 foundation, power loop, control-terminal reveal and environmental pressure are implemented and repository validation is green on `feat/haunted-house-adventure`.
 
 ## Product goal
 
@@ -160,13 +160,62 @@ RESONANCE LOAD CRITICAL
 
 The player now has the first explicit evidence that the infrastructure is not merely damaged: Resonance demand itself is above safe operating parameters and still climbing.
 
-Automated coverage in `tests/w5-basement-foundation.test.ts` now proves:
+Automated coverage in `tests/w5-basement-foundation.test.ts` proves:
 - terminal remains unreadable before stable power;
 - stable power is required before reveal;
 - reveal event is emitted exactly once;
 - `basement-control-revealed` survives Continue.
 
-Repository validation for T0–T4:
+### W5-T5 — Environmental hazard — COMPLETE
+
+Implemented one Basement-specific periodic electrical discharge on the downstream conduit/feed toward the control area.
+
+The mechanic begins only after `basement-control-revealed`, so the T4 reveal is the cause of the new environmental pressure rather than another inspection interaction.
+
+Cycle:
+
+```text
+RESONANCE LOAD CRITICAL
+        ↓
+400 ms safe lead
+        ↓
+1200 ms visible telegraph
+        ↓
+360 ms electrical discharge
+        ↓
+recovery / safe interval
+        ↓
+cycle repeats
+```
+
+Behavior:
+- first activation is aligned to a deterministic safe cycle boundary, so reading the terminal can never cause an immediate untelegraphed hit;
+- the unsafe lane is local to the right-side control feed (`x=100..116`), leaving the rest of the Basement traversable;
+- telegraph is visible through a pulsing floor lane, feed brightening and local charge glow;
+- discharge is represented by a short high-energy electrical arc through the control feed;
+- leaving the marked lane before discharge avoids all damage;
+- remaining inside during discharge reuses the existing combat contract: one HP damage, existing invulnerability window and knockback away from the control area;
+- repeated contacts during the same discharge cannot multi-hit because the existing 900 ms invulnerability window is longer than the 360 ms discharge;
+- zero HP retains the existing `haunted` failure semantics;
+- leaving/re-entering Basement pauses/resumes the hazard clock rather than advancing unrelated exploration time.
+
+Architecture:
+- added `BasementElectricalHazard.ts` as a narrow room-specific timing/collision rule;
+- no `HazardEngine`, new enemy, generic electrical simulation or save-schema version was introduced;
+- arming uses the existing room-local interaction collection;
+- cycle timing reuses `HauntedSessionState.elapsedMs` only while the revealed Basement overload is active;
+- presentation derives telegraph/discharge state from the same deterministic resolver used by gameplay.
+
+Automated coverage in `tests/w5-basement-hazard.test.ts` proves:
+- hazard is inactive before T4;
+- first activation always starts safe;
+- telegraph supplies a real response window;
+- leaving the unsafe lane avoids damage;
+- unsafe overlap causes one hit and knockback;
+- existing invulnerability prevents duplicate same-window hits;
+- repeated failure to react can terminate the run.
+
+Repository validation after T5:
 
 ```text
 Assets                  PASS
@@ -175,16 +224,7 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T5 — Environmental hazard — NEXT
-
-Introduce one deterministic environmental pressure mechanic tied to the unstable experiment, for example electrical discharge/arcing conduit.
-
-Constraints:
-- no new enemy unless later testing proves it necessary;
-- hazard must have readable telegraph and safe response window;
-- avoid a global hazard engine unless a second concrete reuse case proves the need.
-
-### W5-T6 — Out-of-control reveal
+### W5-T6 — Out-of-control reveal — NEXT
 
 Use infrastructure state/terminal output to establish that the experiment is no longer operating normally.
 
@@ -208,15 +248,17 @@ laboratory-route-revealed
 
 ### W5-T8 — Persistence / idempotence / tests
 
-Already covered through T4:
+Already covered through T5:
 - Basement locked before Attic route reveal;
 - deterministic Attic ↔ Basement navigation;
 - fault trace and power stabilization ordering;
 - repeated stabilization does not duplicate milestones/events;
 - terminal gating and idempotence;
-- save/load preserves Basement power and control progression.
+- save/load preserves Basement power and control progression;
+- T5 hazard activation is deterministic and cannot begin with an untelegraphed discharge;
+- T5 discharge cannot multi-hit within one active window.
 
-Extend coverage as T5–T7 are implemented.
+Extend persistence/closeout coverage after T6–T7 are implemented.
 
 ### W5-T9 — Android visual gate
 
@@ -242,7 +284,7 @@ Android review must confirm:
 - Basement is immediately distinct from Attic and domestic rooms;
 - unstable versus stabilized power states are visually legible;
 - terminal/reveal changes understanding, not only caption text;
-- environmental hazard is readable/fair if implemented;
+- environmental hazard is readable/fair;
 - Laboratory boundary is concrete rather than decorative;
 - screenshots 1–33 remain materially stable.
 
@@ -255,6 +297,7 @@ Do not add in W5:
 - full Dr. Vesper reveal/motivation;
 - generic terminal framework;
 - generic electrical simulation/power-grid engine;
+- generic hazard engine without a second concrete reuse case;
 - inventory system;
 - dialogue system;
 - new creature solely to increase difficulty;
@@ -269,18 +312,18 @@ RoomRegistry
     ↓
 AdventureExplorationRuntime
     ↓
-RoomInteractionEffects
+RoomInteractionEffects / BasementElectricalHazard
     ↓
 Basement room-local persistent state
     ↓
 RoomPresentation / BasementPresentation
 ```
 
-The conduit/relay/terminal relationship remains Basement-specific until another room demonstrates a real second use case.
+The conduit/relay/terminal/hazard relationship remains Basement-specific until another room demonstrates a real second use case.
 
 ## Current implementation slice
 
-**T0–T4 complete. T5 is next.**
+**T0–T5 complete. T6 is next.**
 
 Current production progression:
 
@@ -300,6 +343,12 @@ Isolation Relay
 READ THE CONTROL TERMINAL
     ↓
 RESONANCE LOAD CRITICAL
+    ↓
+telegraphed control-feed discharge
+    ↓
+player clears unsafe lane or takes damage
+    ↓
+system remains out of control
 ```
 
-The next increment adds environmental pressure as a consequence of the now-visible overload; it should not introduce a reusable hazard framework or a new enemy by default.
+The next increment is T6: turn the repeated instability into an explicit loss-of-control reveal that points the causal/control path toward Laboratory without explaining the final story.
