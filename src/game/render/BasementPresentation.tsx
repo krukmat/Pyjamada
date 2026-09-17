@@ -19,8 +19,10 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
   const basement = adventure ? getRoomState(adventure, 'basement') : undefined;
   const faultTraced = basement?.switches['basement-fault-traced'] === true;
   const stabilized = basement?.switches['basement-power-stabilized'] === true;
+  const controlRevealed = basement?.switches['basement-control-revealed'] === true;
   const conduitFocused = basement?.switches['conduit-focused'] === true;
   const relayFocused = basement?.switches['relay-focused'] === true;
+  const terminalFocused = basement?.switches['terminal-focused'] === true;
   const pulse = Math.floor(nowMs / 160) % 4;
   const live = stabilized ? '#79e8ff' : pulse % 2 === 0 ? '#9ff3ff' : '#4aa9bd';
 
@@ -87,19 +89,39 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
       <Line p1={vec(px(92), px(78))} p2={vec(px(92), px(89))} color={stabilized ? '#79e8ff' : '#777f7f'} strokeWidth={px(1.3)} />
       {relayFocused && <Circle cx={px(92)} cy={px(72)} r={px(15)} color="rgba(248,218,118,0.07)" />}
 
-      {/* Deeper control area reserved for later W5 tasks. */}
-      <RoundedRect x={px(108)} y={px(58)} width={px(20)} height={px(43)} r={px(2)} color="#252b30" />
-      <Rect x={px(112)} y={px(63)} width={px(12)} height={px(11)} color="#11171a" />
-      <Line p1={vec(px(114), px(68))} p2={vec(px(122), px(68))} color={stabilized ? 'rgba(121,232,255,0.34)' : '#354044'} strokeWidth={px(0.7)} />
-      {[114, 119, 124].map((x, index) => (
-        <Circle key={`panel-${x}`} cx={px(x)} cy={px(83)} r={px(1)} color={stabilized && index === pulse % 3 ? '#79e8ff' : '#596164'} />
+      {/* Basement control terminal. Before stabilization it is effectively dead; after T4 it exposes overload. */}
+      <RoundedRect x={px(108)} y={px(56)} width={px(20)} height={px(45)} r={px(2)} color="#252b30" />
+      <Rect x={px(111)} y={px(61)} width={px(14)} height={px(15)} color="#101619" />
+      {!stabilized && (
+        <Line p1={vec(px(113), px(68))} p2={vec(px(123), px(68))} color="#354044" strokeWidth={px(0.7)} />
+      )}
+      {stabilized && !controlRevealed && (
+        <>
+          <Line p1={vec(px(113), px(65))} p2={vec(px(123), px(65))} color="rgba(121,232,255,0.45)" strokeWidth={px(0.7)} />
+          <Line p1={vec(px(113), px(68))} p2={vec(px(120), px(68))} color="rgba(121,232,255,0.62)" strokeWidth={px(0.7)} />
+          <Line p1={vec(px(113), px(71))} p2={vec(px(122), px(71))} color="rgba(121,232,255,0.34)" strokeWidth={px(0.7)} />
+        </>
+      )}
+      {controlRevealed && (
+        <>
+          <Rect x={px(113)} y={px(72)} width={px(10)} height={px(1)} color="#7f3434" />
+          <Rect x={px(113)} y={px(69)} width={px(8)} height={px(2)} color="#d65f5f" />
+          <Rect x={px(113)} y={px(66)} width={px(6)} height={px(2)} color="#f08b62" />
+          <Line p1={vec(px(121.5), px(63))} p2={vec(px(121.5), px(74))} color="#f8da76" strokeWidth={px(0.6)} />
+          <Circle cx={px(123)} cy={px(63.5)} r={px(1.2)} color="#ff7b82" />
+          <Circle cx={px(118)} cy={px(68)} r={px(12)} color="rgba(255,92,105,0.06)" />
+        </>
+      )}
+      {[113, 118, 123].map((x, index) => (
+        <Circle key={`panel-${x}`} cx={px(x)} cy={px(84)} r={px(1)} color={controlRevealed && index === 2 ? '#ff7b82' : stabilized && index === pulse % 3 ? '#79e8ff' : '#596164'} />
       ))}
+      {terminalFocused && <Circle cx={px(118)} cy={px(69)} r={px(16)} color={controlRevealed ? 'rgba(255,92,105,0.08)' : 'rgba(121,232,255,0.06)'} />}
 
       {stabilized && (
         <>
           <Circle cx={px(72)} cy={px(84)} r={px(24)} color="rgba(91,238,255,0.05)" />
           <Line p1={vec(px(92), px(84))} p2={vec(px(118), px(84))} color="rgba(121,232,255,0.68)" strokeWidth={px(1.1)} />
-          <Line p1={vec(px(118), px(84))} p2={vec(px(118), px(101))} color="rgba(121,232,255,0.48)" strokeWidth={px(1)} />
+          <Line p1={vec(px(118), px(84))} p2={vec(px(118), px(101))} color={controlRevealed ? 'rgba(255,123,130,0.58)' : 'rgba(121,232,255,0.48)'} strokeWidth={px(1)} />
         </>
       )}
 
