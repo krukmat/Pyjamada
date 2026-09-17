@@ -58,7 +58,11 @@ export function GameCanvas({
   const exploration = adventure?.storyFlags.bedroomEscapeAttempted === true;
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
   const shake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
-  const playerInvulnerable = Boolean(!exploration && hauntedSession && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs);
+  const playerInvulnerable = Boolean(
+    hauntedSession
+    && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs
+    && (!exploration || roomId === 'basement'),
+  );
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
 
   return (
