@@ -12,6 +12,8 @@ import {
   isAtticSensorsInspected,
   isBasementControlRevealed,
   isBasementFaultTraced,
+  isBasementLaboratoryRouteRevealed,
+  isBasementLossOfControlRevealed,
   isBasementPowerStabilized,
   isBasementRelayProbed,
   isBasementTerminalFocused,
@@ -202,7 +204,9 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       return 'SEARCH THE ATTIC';
     }
     if (adventure.currentRoom === 'basement') {
-      if (isBasementControlRevealed(adventure)) return 'RESONANCE LOAD CRITICAL';
+      if (isBasementLaboratoryRouteRevealed(adventure)) return 'LABORATORY ROUTE IDENTIFIED';
+      if (isBasementLossOfControlRevealed(adventure)) return 'TRACE THE LAB FEED';
+      if (isBasementControlRevealed(adventure)) return 'TRIP THE FAILSAFE';
       if (isBasementPowerStabilized(adventure)) return 'READ THE CONTROL TERMINAL';
       if (isBasementFaultTraced(adventure)) return 'ISOLATE THE FAULT';
       return 'FOLLOW THE POWER';
@@ -280,6 +284,8 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
     if (adventure.currentRoom === 'basement') {
+      if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
+      if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. Safeguards are bypassed. Control continues beyond the Basement.';
       if (isBasementControlRevealed(adventure)) return 'Resonance load is above the safe line. The system is still climbing.';
       if (isBasementTerminalFocused(adventure) && !isBasementPowerStabilized(adventure)) return 'The control terminal is dark. The unstable feed cannot hold a reading.';
       if (isBasementPowerStabilized(adventure)) return 'The relay holds. The control terminal finally has a readable signal.';
