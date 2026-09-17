@@ -1,6 +1,7 @@
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
+  isBasementControlRevealed,
   isBasementFaultTraced,
   isBasementPowerStabilized,
   stepAdventureExploration,
@@ -134,6 +135,40 @@ void test('W5 requires tracing the conduit before the isolation relay can stabil
   equal(restored.state.adventure.currentRoom, 'basement', 'Continue restores Basement');
   equal(isBasementFaultTraced(restored.state.adventure), true, 'fault trace survives Continue');
   equal(isBasementPowerStabilized(restored.state.adventure), true, 'stabilized feed survives Continue');
+});
+
+void test('W5 control terminal stays unreadable before stable power and reveals overload afterward', () => {
+  const attic = setupAttic('w5-basement-terminal');
+  const revealed = setRoomSwitch(attic.adventure, 'attic', 'basement-route-revealed', true);
+  const basement = transitionAdventure(revealed, 'basement', 'basement-from-attic');
+  if (basement.status !== 'ok') throw new Error(basement.reason);
+
+  let session: HauntedSessionState = {
+    ...attic.session,
+    player: { ...attic.session.player, x: basement.spawn.x, y: basement.spawn.y, vx: 0, vy: 0, grounded: true, facing: basement.spawn.facing },
+    domestic: { ...attic.session.domestic, player: { x: Math.round(basement.spawn.x), facing: basement.spawn.facing } },
+    input: createHauntedInputState(),
+  };
+
+  const offline = stepAdventureExploration(at(session, 118), basement.state, 33);
+  equal(isBasementControlRevealed(offline.adventure), false, 'terminal cannot reveal control data before power is stable');
+  equal(offline.events.some(event => event.type === 'BASEMENT_TERMINAL_OFFLINE'), true, 'offline terminal emits one deterministic clue');
+
+  const trace = stepAdventureExploration(at(offline.session, 54), offline.adventure, 33);
+  const stabilize = stepAdventureExploration(at(trace.session, 92), trace.adventure, 33);
+  const read = stepAdventureExploration(at(stabilize.session, 118), stabilize.adventure, 33);
+
+  equal(isBasementControlRevealed(read.adventure), true, 'terminal reveals resonance control data after stabilization');
+  equal(read.events.some(event => event.type === 'BASEMENT_CONTROL_REVEALED'), true, 'control reveal emits one deterministic event');
+
+  const repeated = stepAdventureExploration(at(read.session, 118), read.adventure, 33);
+  equal(repeated.events.some(event => event.type === 'BASEMENT_CONTROL_REVEALED'), false, 'terminal reveal is idempotent');
+
+  const encoded = encodeAdventureGameSession({ schemaVersion: 3, haunted: repeated.session, adventure: repeated.adventure });
+  const restored = decodeAdventureGameSession(encoded);
+  equal(restored.status, 'ok', 'terminal reveal survives save/load');
+  if (restored.status !== 'ok') return;
+  equal(isBasementControlRevealed(restored.state.adventure), true, 'resonance overload reveal survives Continue');
 });
 
 console.log('W5 Basement foundation tests passed');
