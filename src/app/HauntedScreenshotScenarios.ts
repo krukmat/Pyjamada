@@ -392,7 +392,10 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                           : scenario === 'laboratory-boundary'
                                             ? 110
                                             : 99;
-  return withPlayer(falseEscape.session, x);
+  const positioned = withPlayer(falseEscape.session, x);
+  if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };
+  if (scenario === 'laboratory-boundary') return { ...positioned, elapsedMs: 1_720 };
+  return positioned;
 }
 
 function explorationSeed(scenario: HauntedScreenshotScenario): HauntedSessionState {
