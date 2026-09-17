@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom' | 'attic';
 
 export type RoomEntryPoint = {
   id: string;
@@ -31,7 +31,11 @@ export type RoomInteractionEffect =
   | 'use-kitchen-microwave'
   | 'use-kitchen-breaker'
   | 'inspect-bathroom-mirror'
-  | 'use-bathroom-light';
+  | 'use-bathroom-light'
+  | 'inspect-attic-log'
+  | 'inspect-attic-sensors'
+  | 'use-attic-recorder'
+  | 'trace-attic-basement-route';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -59,7 +63,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom', 'attic'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -236,9 +240,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'bathroom',
     entries: [
       { id: 'bathroom-from-kitchen', x: 14, y: 104, facing: 'right' },
+      { id: 'bathroom-from-attic', x: 110, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'bathroom-to-kitchen', targetRoom: 'kitchen', targetEntry: 'kitchen-from-bathroom' },
+      {
+        id: 'bathroom-to-attic',
+        targetRoom: 'attic',
+        targetEntry: 'attic-from-bathroom',
+        requiresRoomSwitch: 'mirror-route-revealed',
+      },
     ],
     interactions: [
       {
@@ -261,6 +272,61 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 99,
         radius: 8,
         behavior: { type: 'effect', effect: 'use-bathroom-light' },
+      },
+      {
+        id: 'bathroom-attic-route',
+        label: 'ATTIC',
+        unavailableLabel: 'HIDDEN SEAM',
+        x: 116,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'bathroom-to-attic' },
+      },
+    ],
+  },
+  attic: {
+    id: 'attic',
+    presentationId: 'attic',
+    entries: [
+      { id: 'attic-from-bathroom', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'attic-to-bathroom', targetRoom: 'bathroom', targetEntry: 'bathroom-from-attic' },
+    ],
+    interactions: [
+      {
+        id: 'attic-bathroom-stair',
+        label: 'BATHROOM',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'attic-to-bathroom' },
+      },
+      {
+        id: 'attic-experiment-log',
+        label: 'EXPERIMENT LOG',
+        x: 42,
+        radius: 9,
+        behavior: { type: 'effect', effect: 'inspect-attic-log' },
+      },
+      {
+        id: 'attic-sensor-crate',
+        label: 'SENSOR CRATE',
+        x: 70,
+        radius: 9,
+        behavior: { type: 'effect', effect: 'inspect-attic-sensors' },
+      },
+      {
+        id: 'attic-recorder',
+        label: 'RECORDER',
+        x: 98,
+        radius: 10,
+        behavior: { type: 'effect', effect: 'use-attic-recorder' },
+      },
+      {
+        id: 'attic-downward-cable',
+        label: 'DOWNWARD CABLE',
+        x: 117,
+        radius: 8,
+        behavior: { type: 'effect', effect: 'trace-attic-basement-route' },
       },
     ],
   },
