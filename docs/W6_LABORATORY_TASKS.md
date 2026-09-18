@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0 CONTRACT CONFIRMED**
+**ACTIVE — T0–T3 COMPLETE / T4 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -67,7 +67,7 @@ T0–T3 stop before `LaboratoryEncounter` exists.
 
 ## Tasks
 
-### W6-T0 — Contract / W5 closeout sync — IN PROGRESS
+### W6-T0 — Contract / W5 closeout sync — COMPLETE
 
 - mark W5 accepted in the stable adventure roadmap;
 - freeze W6 T0–T9 scope;
@@ -77,7 +77,7 @@ T0–T3 stop before `LaboratoryEncounter` exists.
 Acceptance:
 - roadmap and W6 task document agree on W5/W6 status and scope.
 
-### W6-T1 — Laboratory room foundation — PLANNED
+### W6-T1 — Laboratory room foundation — COMPLETE
 
 Activate the already-declared `laboratory` RoomId.
 
@@ -94,7 +94,7 @@ Acceptance:
 - W5 route reveal exposes the production Laboratory transition;
 - round-trip navigation and save/load pass.
 
-### W6-T2 — Laboratory visual identity — PLANNED
+### W6-T2 — Laboratory visual identity — COMPLETE
 
 Add `LaboratoryPresentation` through the existing RoomPresentation seam.
 
@@ -110,7 +110,7 @@ Acceptance:
 - room reads as the source of the experiment without relying on caption text;
 - Basement and Laboratory are immediately distinguishable.
 
-### W6-T3 — Laboratory-only Dream Spark bridge — PLANNED
+### W6-T3 — Laboratory-only Dream Spark bridge — COMPLETE
 
 Exploration currently disables ATTACK and does not advance Dream Sparks. W6 must bridge that gap narrowly.
 
@@ -196,4 +196,41 @@ T0–T3 must not add:
 
 W6 is accepted only when an accepted W5 save can enter Laboratory, complete all three encounter phases with movement + Dream Spark, recover reasonably from failure, survive Save/Continue, and reach a persistent `RESONATOR SHUT DOWN` state.
 
-Current execution boundary: **T0–T3 only.**
+## T0–T3 implementation checkpoint
+
+Delivered:
+- W5 roadmap synchronized to accepted/closed;
+- `laboratory` activated in the production room registry;
+- Basement trace hatch deterministically changes into a Laboratory entry only after `laboratory-route-revealed`;
+- Laboratory ↔ Basement round-trip and save/load work under existing envelope v3;
+- dedicated `LaboratoryPresentation` establishes a purpose-built source room with incoming Basement feed, central Resonator and operator station;
+- HUD identifies Laboratory and guides the player toward the Resonator;
+- ATTACK/Dream Spark is enabled only in Laboratory exploration;
+- existing projectile cooldown/cap/motion are reused;
+- no Ghost spawning, domestic noise or Bedroom deadline logic is reactivated;
+- transient Laboratory projectiles are cleared after leaving the combat room;
+- Basement electrical discharge is now explicitly room-scoped and cannot leak into Laboratory;
+- W5 screenshot 37 contract now expects the newly actionable `INTERACT · LABORATORY` boundary.
+
+Automated coverage:
+```text
+tests/w6-laboratory-foundation.test.ts
+```
+
+Repository validation:
+```text
+Assets                         PASS
+Game/settings/presentation     PASS
+TypeScript                     PASS
+Static architecture audit      PASS
+```
+
+RRI checkpoint:
+- aggregate T0–T3 actual scope: 12 files;
+- base score 48;
+- final RRI 56 / Complex due external-write and gameplay-semantics floor;
+- decomposition requirement satisfied through separate T0, T1, T2 and T3 commits;
+- local developer: ineligible for the aggregate architecture/gameplay block;
+- required independent model reviewers were unavailable in this tool surface; no independent PASS is claimed.
+
+Current execution boundary: **T4 next. Do not begin T5–T9 until T4 encounter/checkpoint semantics are defined and verified.**

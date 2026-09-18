@@ -17,7 +17,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
 | W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
-| W6 — Laboratory | **ACTIVE — T0 CONTRACT** | Laboratory foundation + combat bridge + three-phase final encounter |
+| W6 — Laboratory | **ACTIVE — T0–T3 COMPLETE** | Laboratory foundation + combat bridge complete; encounter state/checkpoint next |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
 Implementation/task checkpoints:
@@ -503,20 +503,20 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W6-T0 → T3 — Laboratory foundation block.**
+**W6-T4 — Encounter state / checkpoint / retry contract.**
 
-The first executable W6 block is intentionally bounded:
+T0–T3 are implemented and green:
 
 ```text
-W5 accepted boundary
+W5 accepted Laboratory boundary
         ↓
-T0 contract sync
+production Laboratory navigation
         ↓
-T1 Laboratory navigation
+purpose-built Laboratory presentation
         ↓
-T2 Laboratory visual identity
-        ↓
-T3 Laboratory-only Dream Spark bridge
+Laboratory-only Dream Spark bridge
 ```
 
-Do not implement Vesper damage phases, Resonator weak points, boss checkpoint/retry, Nightmare behavior or W7 ending content until T0–T3 are green and reviewed.
+T4 must now define deterministic Laboratory encounter activation, phase state, retry/checkpoint behavior and save/continue semantics before any Vesper damage phase is implemented.
+
+Do not implement T5 Vesper attacks, T6 Resonator weak points, T7 Nightmare behavior, T8 defeat state or T9 Android evidence until T4 is accepted.
