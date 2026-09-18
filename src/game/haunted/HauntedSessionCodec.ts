@@ -21,9 +21,18 @@ export function encodeHauntedSession(state: HauntedSessionState): string {
 export function decodeHauntedSession(raw: string): DecodeHauntedSessionResult {
   let value: unknown;
   try { value = JSON.parse(raw); } catch { return invalid('Haunted save is not valid JSON.'); }
+  value = migrateLegacyExplorationPhase(value);
   const validated = validateSave(value);
   if (validated.status === 'invalid') return validated;
   return { status: 'ok', state: { ...validated.state, input: createHauntedInputState() } };
+}
+
+function migrateLegacyExplorationPhase(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.objective) || value.objective.phase !== 'exploration') return value;
+  return {
+    ...value,
+    objective: { phase: 'completed' },
+  };
 }
 
 function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState } | { status: 'invalid'; reason: string } {
@@ -80,7 +89,9 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
   } else if (value.objective.reason !== undefined) return invalid('Only failed haunted objectives may have a reason.');
 
   const prepared = domestic.flags.dressed && domestic.collected.includes('keys');
-  if ((phase === 'escape-ready' || phase === 'completed') && !prepared) return invalid('Escape-ready state requires clothes and keys.');
+  if ((phase === 'escape-ready' || phase === 'completed') && !prepared) {
+    return invalid('Escape-ready and completed states require clothes and keys.');
+  }
   if (phase === 'prepare' && prepared) return invalid('Prepared state must advance to escape-ready.');
 
   return { status: 'ok', state: value as unknown as HauntedSaveState };

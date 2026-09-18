@@ -1,4 +1,14 @@
-import { createHauntedScreenshotScenario, HAUNTED_SCREENSHOT_SCENARIOS } from '../src/app/HauntedScreenshotScenarios';
+import {
+  createHauntedScreenshotScenario,
+  createScreenshotAdventureState,
+  HAUNTED_SCREENSHOT_SCENARIOS,
+} from '../src/app/HauntedScreenshotScenarios';
+import { getAdventureEndingPhase } from '../src/game/adventure/AdventureEnding';
+import { getRoomState } from '../src/game/adventure/AdventureState';
+import { getLaboratoryEncounterPhase, LABORATORY_ENCOUNTER_SWITCHES } from '../src/game/adventure/LaboratoryEncounter';
+import { resolveVesperControlState } from '../src/game/adventure/LaboratoryVesperControl';
+import { resolveResonatorInstabilityState } from '../src/game/adventure/LaboratoryResonatorInstability';
+import { resolveVesperNightmareState } from '../src/game/adventure/LaboratoryVesperNightmare';
 import { GHOST_RULES } from '../src/game/haunted/HauntedThreats';
 
 function equal(actual: unknown, expected: unknown, label: string) {
@@ -6,7 +16,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 12, 'visual tour has twelve deterministic haunted gameplay presets');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 44, 'visual tour has forty-four deterministic gameplay and adventure presets');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -57,5 +67,204 @@ const fail = createHauntedScreenshotScenario('haunted-fail');
 equal(fail.objective.phase, 'failed', 'failure preset renders terminal defeat');
 equal(fail.objective.reason, 'haunted', 'failure preset is specifically combat defeat');
 equal(fail.combat.hp, 0, 'haunted failure has no hearts remaining');
+
+const alteredBedroom = createHauntedScreenshotScenario('altered-bedroom');
+const alteredAdventure = createScreenshotAdventureState('altered-bedroom');
+equal(alteredBedroom.objective.phase, 'completed', 'Haunted slice remains completed after the false escape');
+equal(alteredAdventure.currentRoom, 'bedroom', 'altered Bedroom remains in Bedroom');
+equal(alteredAdventure.storyFlags.bedroomEscapeAttempted, true, 'Adventure state owns post-false-escape exploration');
+
+const hallwayArrival = createScreenshotAdventureState('hallway-arrival');
+equal(hallwayArrival.currentRoom, 'hallway', 'hallway arrival screenshot selects Hallway');
+equal(getRoomState(hallwayArrival, 'hallway').inspected.length, 0, 'arrival precedes anomaly inspection');
+
+const hallwayClock = createScreenshotAdventureState('hallway-clock');
+equal(getRoomState(hallwayClock, 'hallway').inspected.includes('backward-clock'), true, 'clock screenshot records anomaly');
+equal(getRoomState(hallwayClock, 'hallway').switches['living-room-unlocked'], true, 'clock screenshot reveals Living Room path');
+
+const livingDoor = createScreenshotAdventureState('living-door');
+equal(livingDoor.currentRoom, 'hallway', 'Living Room door screenshot remains at the Hallway threshold');
+equal(getRoomState(livingDoor, 'hallway').switches['living-room-unlocked'], true, 'Living Room door is unlocked for the threshold screenshot');
+
+const livingRoomArrival = createScreenshotAdventureState('living-room-arrival');
+equal(livingRoomArrival.currentRoom, 'living-room', 'Gate A screenshot enters Living Room');
+equal(livingRoomArrival.currentEntry, 'living-room-from-hallway', 'Living Room screenshot uses production Hallway entry');
+ok(livingRoomArrival.visitedRooms.includes('living-room'), 'Living Room becomes visited in the screenshot state');
+equal(getRoomState(livingRoomArrival, 'hallway').switches['living-room-unlocked'], true, 'Living Room arrival preserves Hallway unlock state');
+
+const livingRoomStatic = createScreenshotAdventureState('living-room-static');
+equal(livingRoomStatic.currentRoom, 'living-room', 'TV static screenshot remains in Living Room');
+equal(getRoomState(livingRoomStatic, 'living-room').switches['tv-on'], true, 'TV static screenshot powers on the television');
+equal(livingRoomStatic.storyFlags.labTransmissionSeen, false, 'static screenshot precedes lab transmission');
+
+const livingRoomTransmission = createScreenshotAdventureState('living-room-transmission');
+equal(livingRoomTransmission.currentRoom, 'living-room', 'transmission screenshot remains in Living Room');
+equal(livingRoomTransmission.storyFlags.labTransmissionSeen, true, 'transmission screenshot records the global mystery hook');
+equal(getRoomState(livingRoomTransmission, 'living-room').inspected.includes('television'), true, 'transmission screenshot records TV discovery');
+equal(getRoomState(livingRoomTransmission, 'living-room').interactions.includes('tv-transmission'), true, 'transmission screenshot records TV interaction history');
+
+const sourceCue = createScreenshotAdventureState('living-room-source-cue');
+equal(sourceCue.currentRoom, 'living-room', 'source-cue screenshot stays inside W2');
+equal(sourceCue.storyFlags.labTransmissionSeen, true, 'source cue follows the lab transmission');
+equal(getRoomState(sourceCue, 'living-room').inspected.includes('photo-reflection'), true, 'source-cue screenshot includes the photo anomaly');
+equal(getRoomState(sourceCue, 'living-room').inspected.includes('radio-static'), true, 'source-cue screenshot includes the radio clue');
+equal(getRoomState(sourceCue, 'living-room').switches['source-hum-traced'], true, 'source-cue screenshot exposes the directional hook');
+equal(getRoomState(sourceCue, 'living-room').switches['radio-focused'], true, 'source-cue screenshot focuses the radio feedback');
+
+const kitchenArrival = createScreenshotAdventureState('kitchen-arrival');
+equal(kitchenArrival.currentRoom, 'kitchen', 'Kitchen arrival screenshot enters the room');
+equal(kitchenArrival.currentEntry, 'kitchen-from-living-room', 'Kitchen screenshot uses the production Living Room entry');
+ok(kitchenArrival.visitedRooms.includes('kitchen'), 'Kitchen becomes visited in deterministic evidence');
+equal(getRoomState(kitchenArrival, 'kitchen').switches['circuit-overloaded'], undefined, 'Kitchen arrival precedes electrical manipulation');
+
+const kitchenOverload = createScreenshotAdventureState('kitchen-overload');
+equal(kitchenOverload.currentRoom, 'kitchen', 'overload screenshot remains in Kitchen');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['microwave-on'], true, 'overload screenshot powers the microwave');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['circuit-overloaded'], true, 'overload screenshot captures failed circuit state');
+equal(getRoomState(kitchenOverload, 'kitchen').switches['power-rerouted'], undefined, 'overload screenshot precedes puzzle solution');
+
+const kitchenRerouted = createScreenshotAdventureState('kitchen-power-rerouted');
+equal(kitchenRerouted.currentRoom, 'kitchen', 'rerouted screenshot remains in Kitchen');
+equal(getRoomState(kitchenRerouted, 'kitchen').inspected.includes('breaker-panel'), true, 'rerouted screenshot records breaker discovery');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['circuit-overloaded'], false, 'rerouted screenshot clears the overload');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['microwave-on'], false, 'rerouted screenshot shuts down the microwave');
+equal(getRoomState(kitchenRerouted, 'kitchen').switches['power-rerouted'], true, 'rerouted screenshot captures the solution');
+
+const bathroomArrival = createScreenshotAdventureState('bathroom-arrival');
+equal(bathroomArrival.currentRoom, 'bathroom', 'Bathroom arrival screenshot enters the room');
+equal(bathroomArrival.currentEntry, 'bathroom-from-kitchen', 'Bathroom screenshot uses the production Kitchen entry');
+ok(bathroomArrival.visitedRooms.includes('bathroom'), 'Bathroom becomes visited in deterministic evidence');
+equal(getRoomState(bathroomArrival, 'bathroom').switches['mirror-anomaly-seen'], undefined, 'Bathroom arrival precedes explicit mirror inspection');
+
+const mirrorMismatch = createScreenshotAdventureState('bathroom-mirror-mismatch');
+equal(mirrorMismatch.currentRoom, 'bathroom', 'mirror mismatch screenshot stays in Bathroom');
+equal(getRoomState(mirrorMismatch, 'bathroom').inspected.includes('mirror-mismatch'), true, 'mirror screenshot records anomaly inspection');
+equal(getRoomState(mirrorMismatch, 'bathroom').switches['mirror-anomaly-seen'], true, 'mirror mismatch becomes explicit state');
+equal(getRoomState(mirrorMismatch, 'bathroom').switches['bathroom-light-off'], undefined, 'mirror mismatch precedes light experiment');
+
+const reflectedRoute = createScreenshotAdventureState('bathroom-reflected-route');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['mirror-anomaly-seen'], true, 'reflected route follows mirror discovery');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['bathroom-light-off'], true, 'reflected route screenshot darkens the real room');
+equal(getRoomState(reflectedRoute, 'bathroom').switches['mirror-route-revealed'], undefined, 'reflected route screenshot precedes real-wall reveal');
+
+const bathroomRevealed = createScreenshotAdventureState('bathroom-route-revealed');
+equal(bathroomRevealed.currentRoom, 'bathroom', 'route reveal stays at the boundary');
+equal(getRoomState(bathroomRevealed, 'bathroom').switches['bathroom-light-off'], true, 'route reveal keeps the real room dark');
+equal(getRoomState(bathroomRevealed, 'bathroom').switches['mirror-route-revealed'], true, 'route reveal materializes the matching real-wall seam');
+equal(getRoomState(bathroomRevealed, 'bathroom').interactions.includes('mirror-route-confirmed'), true, 'route confirmation is persisted in deterministic evidence');
+
+const atticArrival = createScreenshotAdventureState('attic-arrival');
+equal(atticArrival.currentRoom, 'attic', 'Attic arrival screenshot enters W4');
+equal(atticArrival.currentEntry, 'attic-from-bathroom', 'Attic screenshot uses production Bathroom entry');
+ok(atticArrival.visitedRooms.includes('attic'), 'Attic becomes visited in deterministic evidence');
+equal(getRoomState(atticArrival, 'attic').inspected.length, 0, 'Attic arrival precedes evidence inspection');
+
+const atticEvidence = createScreenshotAdventureState('attic-evidence');
+equal(atticEvidence.currentRoom, 'attic', 'evidence screenshot remains in Attic');
+equal(getRoomState(atticEvidence, 'attic').inspected.includes('attic-experiment-log'), true, 'evidence screenshot includes experiment log');
+equal(getRoomState(atticEvidence, 'attic').inspected.includes('attic-sensor-map'), true, 'evidence screenshot includes sensor map');
+equal(getRoomState(atticEvidence, 'attic').switches['experiment-revealed'], undefined, 'evidence screenshot precedes central recording');
+
+const atticRecording = createScreenshotAdventureState('attic-recording');
+equal(atticRecording.currentRoom, 'attic', 'recording screenshot remains in Attic');
+equal(getRoomState(atticRecording, 'attic').switches['experiment-revealed'], true, 'recording screenshot captures W-01 experiment reveal');
+equal(getRoomState(atticRecording, 'attic').switches['recorder-focused'], true, 'recording screenshot focuses the central recorder');
+equal(getRoomState(atticRecording, 'attic').switches['basement-route-revealed'], undefined, 'recording screenshot precedes route trace');
+
+const atticRoute = createScreenshotAdventureState('attic-basement-route');
+equal(atticRoute.currentRoom, 'attic', 'Basement route screenshot stays at boundary');
+equal(getRoomState(atticRoute, 'attic').switches['experiment-revealed'], true, 'route screenshot follows experiment reveal');
+equal(getRoomState(atticRoute, 'attic').switches['basement-route-revealed'], true, 'route screenshot materializes concrete downward destination');
+equal(getRoomState(atticRoute, 'attic').interactions.includes('basement-route-traced'), true, 'Basement route trace persists in screenshot state');
+
+const basementArrival = createScreenshotAdventureState('basement-arrival');
+equal(basementArrival.currentRoom, 'basement', 'Basement arrival screenshot enters W5');
+equal(basementArrival.currentEntry, 'basement-from-attic', 'Basement screenshot uses production Attic entry');
+ok(basementArrival.visitedRooms.includes('basement'), 'Basement becomes visited in deterministic evidence');
+equal(getRoomState(basementArrival, 'basement').switches['basement-fault-traced'], undefined, 'Basement arrival precedes fault diagnosis');
+
+const basementFault = createScreenshotAdventureState('basement-power-fault');
+equal(getRoomState(basementFault, 'basement').switches['basement-fault-traced'], true, 'fault screenshot captures traced conduit');
+equal(getRoomState(basementFault, 'basement').switches['basement-power-stabilized'], undefined, 'fault screenshot precedes relay stabilization');
+equal(getRoomState(basementFault, 'basement').switches['conduit-focused'], false, 'fault screenshot releases the traced conduit');
+equal(getRoomState(basementFault, 'basement').switches['relay-focused'], true, 'fault screenshot focuses the next actionable isolation relay');
+const basementFaultSession = createHauntedScreenshotScenario('basement-power-fault');
+equal(basementFaultSession.player.x, 92, 'fault evidence positions Wally at the isolation relay');
+
+const basementControl = createScreenshotAdventureState('basement-control-reveal');
+equal(getRoomState(basementControl, 'basement').switches['basement-power-stabilized'], true, 'control screenshot follows relay stabilization');
+equal(getRoomState(basementControl, 'basement').switches['basement-control-revealed'], true, 'control screenshot exposes critical resonance load');
+equal(getRoomState(basementControl, 'basement').interactions.includes('basement-electrical-hazard-armed'), true, 'control screenshot includes the armed hazard state');
+equal(getRoomState(basementControl, 'basement').switches['basement-loss-of-control-revealed'], undefined, 'control screenshot precedes rejected failsafe');
+const basementControlSession = createHauntedScreenshotScenario('basement-control-reveal');
+equal(basementControlSession.player.x, 120, 'control evidence keeps Wally outside the electrical hazard lane');
+equal(basementControlSession.elapsedMs, 1000, 'control evidence freezes inside the telegraph phase');
+
+const labBoundary = createScreenshotAdventureState('laboratory-boundary');
+equal(labBoundary.currentRoom, 'basement', 'Laboratory boundary intentionally remains inside Basement');
+equal(getRoomState(labBoundary, 'basement').switches['basement-loss-of-control-revealed'], true, 'boundary screenshot follows rejected local failsafe');
+equal(getRoomState(labBoundary, 'basement').switches['laboratory-route-revealed'], true, 'boundary screenshot exposes the downstream Laboratory route');
+equal(getRoomState(labBoundary, 'basement').inspected.includes('laboratory-feed-hatch'), true, 'boundary screenshot persists the physical feed hatch discovery');
+const labBoundarySession = createHauntedScreenshotScenario('laboratory-boundary');
+equal(labBoundarySession.player.x, 109, 'boundary evidence keeps the LAB FEED HATCH as the nearest interaction');
+equal(labBoundarySession.elapsedMs, 1720, 'boundary evidence freezes inside the active discharge phase');
+
+
+const laboratoryArrival = createScreenshotAdventureState('laboratory-arrival');
+const laboratoryArrivalSession = createHauntedScreenshotScenario('laboratory-arrival');
+equal(laboratoryArrival.currentRoom, 'laboratory', 'Laboratory arrival enters the production room');
+equal(getLaboratoryEncounterPhase(laboratoryArrival), 'dormant', 'arrival precedes Resonator activation');
+equal(laboratoryArrivalSession.player.x, 24, 'arrival keeps Wally clear of the Resonator for a readable establishing frame');
+
+const vesperControl = createScreenshotAdventureState('vesper-control');
+const vesperControlSession = createHauntedScreenshotScenario('vesper-control');
+equal(getLaboratoryEncounterPhase(vesperControl), 'vesper-control', 'control preset freezes the first encounter phase');
+const vesperControlVisual = resolveVesperControlState(vesperControl, vesperControlSession.elapsedMs);
+equal(vesperControlVisual.devices.right, 'vulnerable', 'control evidence exposes the right coil vulnerability');
+equal(vesperControlVisual.pressure.phase, 'active', 'control evidence shows an active pressure lane');
+equal(vesperControlVisual.pressure.lane, 'left', 'active pressure stays opposite the vulnerable control');
+equal(vesperControlSession.player.x, 90, 'Wally is staged in the readable safe lane');
+
+const resonatorRunaway = createScreenshotAdventureState('resonator-runaway');
+const resonatorRunawaySession = createHauntedScreenshotScenario('resonator-runaway');
+equal(getLaboratoryEncounterPhase(resonatorRunaway), 'resonator', 'runaway preset freezes the Resonator instability phase');
+const runawayVisual = resolveResonatorInstabilityState(resonatorRunaway, resonatorRunawaySession.elapsedMs);
+equal(runawayVisual.weakPoints.right, 'vulnerable', 'runaway evidence exposes one Resonator weak point');
+equal(runawayVisual.distortion.phase, 'active', 'runaway evidence captures active central distortion');
+equal(resonatorRunawaySession.player.x, 40, 'Wally remains outside the distortion zone for readable staging');
+
+const vesperNightmare = createScreenshotAdventureState('vesper-nightmare');
+const vesperNightmareSession = createHauntedScreenshotScenario('vesper-nightmare');
+equal(getLaboratoryEncounterPhase(vesperNightmare), 'nightmare', 'Nightmare preset freezes the transformed encounter phase');
+const nightmareVisual = resolveVesperNightmareState(vesperNightmare, vesperNightmareSession.elapsedMs);
+equal(nightmareVisual.attack, 'left-slam', 'Nightmare evidence selects the first deterministic attack');
+equal(nightmareVisual.phase, 'active', 'Nightmare evidence captures the active attack zone');
+equal(vesperNightmareSession.player.x, 90, 'Wally is staged outside the active left attack zone');
+
+const resonatorShutdown = createScreenshotAdventureState('resonator-shutdown');
+const resonatorShutdownSession = createHauntedScreenshotScenario('resonator-shutdown');
+equal(getLaboratoryEncounterPhase(resonatorShutdown), 'complete', 'shutdown preset freezes the stable completed encounter');
+equal(getRoomState(resonatorShutdown, 'laboratory').switches[LABORATORY_ENCOUNTER_SWITCHES.complete], true, 'shutdown evidence persists encounter completion');
+equal(resonatorShutdownSession.combat.projectiles.length, 0, 'shutdown evidence contains no transient Dream Sparks');
+equal(resonatorShutdownSession.player.x, 70, 'final evidence keeps Wally near the powered-down Resonator without obscuring it');
+
+const endingAwakening = createScreenshotAdventureState('ending-awakening');
+const endingAwakeningSession = createHauntedScreenshotScenario('ending-awakening');
+equal(endingAwakening.currentRoom, 'bedroom', 'awakening evidence returns to Bedroom');
+equal(getAdventureEndingPhase(endingAwakening), 'awakening', 'awakening preset freezes the first morning-after beat');
+equal(endingAwakeningSession.player.x, 16, 'awakening stages Wally beside the bed');
+
+const endingEvidence = createScreenshotAdventureState('ending-evidence');
+const endingEvidenceSession = createHauntedScreenshotScenario('ending-evidence');
+equal(getAdventureEndingPhase(endingEvidence), 'evidence', 'evidence preset confirms the physical sensor tag');
+equal(endingEvidenceSession.player.x, 56, 'evidence frame stages Wally beside the burned tag');
+
+const endingGhost = createScreenshotAdventureState('ending-ghost-sting');
+const endingGhostSession = createHauntedScreenshotScenario('ending-ghost-sting');
+equal(getAdventureEndingPhase(endingGhost), 'ghost-sting', 'Ghost sting preset freezes the final supernatural beat');
+equal(endingGhostSession.player.x, 108, 'Ghost sting stages Wally at the window');
+
+const endingCredits = createScreenshotAdventureState('ending-credits');
+equal(getAdventureEndingPhase(endingCredits), 'complete', 'credits preset represents a terminal completed run');
 
 console.log('haunted screenshot scenario tests passed');

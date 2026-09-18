@@ -1,9 +1,9 @@
 appId: com.krukmat.pyjamada
-name: Haunted Arcade Android Screenshot Tour
+name: Haunted House Android Screenshot Tour
 tags:
   - android
   - screenshots
-  - haunted-arcade
+  - haunted-house
 ---
 - launchApp:
     clearState: true
@@ -44,9 +44,8 @@ tags:
     timeout: 10000
 
 # Screenshot builds expose a test-only scenario picker. Haunted actor rendering
-# now has synchronous Skia fallbacks, so the tour waits on the actual scenario
-# UI state instead of a synthetic renderer-ready probe. This guarantees that a
-# renderer problem produces screenshot evidence rather than blocking the tour.
+# has synchronous Skia fallbacks, so the tour waits on actual scenario UI state
+# instead of a synthetic renderer-ready probe.
 
 - tapOn:
     id: screenshot-scenario-menu
@@ -190,3 +189,416 @@ tags:
 - assertVisible: "The haunting got Wally."
 - takeScreenshot:
     path: 14_haunted_failure
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-altered-bedroom
+- extendedWaitUntil:
+    visible:
+      text: "That door did not lead outside. The room is wrong."
+    timeout: 5000
+- assertVisible: "FIND ANOTHER WAY OUT"
+- takeScreenshot:
+    path: 15_altered_bedroom
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-hallway-arrival
+- extendedWaitUntil:
+    visible:
+      text: "This hallway feels longer than it should."
+    timeout: 5000
+- assertVisible: "CHECK THE HALLWAY"
+- takeScreenshot:
+    path: 16_hallway_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-hallway-clock
+- extendedWaitUntil:
+    visible:
+      text: "The clock runs backward. A door at the far end just clicked."
+    timeout: 5000
+- assertVisible: "ENTER THE LIVING ROOM"
+- takeScreenshot:
+    path: 17_hallway_clock
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-door
+- extendedWaitUntil:
+    visible:
+      text: "The clock runs backward. A door at the far end just clicked."
+    timeout: 5000
+- assertVisible: "ENTER THE LIVING ROOM"
+- assertVisible: "INTERACT · LIVING ROOM"
+- takeScreenshot:
+    path: 18_living_room_door
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The television is dark. The room is listening."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LIVING ROOM"
+- assertVisible: "CHECK THE LIVING ROOM"
+- takeScreenshot:
+    path: 19_living_room_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-static
+- extendedWaitUntil:
+    visible:
+      text: "Static. Not a channel. Something is underneath it."
+    timeout: 5000
+- assertVisible: "CHECK THE SIGNAL"
+- assertVisible: "INTERACT · TELEVISION"
+- takeScreenshot:
+    path: 20_living_room_static
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-transmission
+- extendedWaitUntil:
+    visible:
+      text: "A voice cuts through: RESONANCE STABLE... SUBJECT... Then static."
+    timeout: 5000
+- assertVisible: "FIND THE SOURCE"
+- assertVisible: "INTERACT · TELEVISION"
+- takeScreenshot:
+    path: 21_lab_transmission
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-living-room-source-cue
+- extendedWaitUntil:
+    visible:
+      text: "The radio catches the same pulse. Stronger through the wall."
+    timeout: 5000
+- assertVisible: "FIND THE SOURCE"
+- assertVisible: "INTERACT · RADIO"
+- takeScreenshot:
+    path: 22_living_room_source_cue
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The appliances are dead. Something in the wall is still drawing power."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · KITCHEN"
+- assertVisible: "TRACE THE POWER"
+- takeScreenshot:
+    path: 23_kitchen_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-overload
+- extendedWaitUntil:
+    visible:
+      text: "The microwave killed the lights. The breaker is buzzing now."
+    timeout: 5000
+- assertVisible: "CHECK THE BREAKER"
+- assertVisible: "INTERACT · BREAKER"
+- takeScreenshot:
+    path: 24_kitchen_overload
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-kitchen-power-rerouted
+- extendedWaitUntil:
+    visible:
+      text: "The circuit settles. The same pulse is moving deeper into the house."
+    timeout: 5000
+- assertVisible: "FOLLOW THE PULSE"
+- assertVisible: "INTERACT · BATHROOM"
+- takeScreenshot:
+    path: 25_kitchen_power_rerouted
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The pulse stops at the sink."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · BATHROOM"
+- assertVisible: "FOLLOW THE PULSE"
+- takeScreenshot:
+    path: 26_bathroom_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-mirror-mismatch
+- extendedWaitUntil:
+    visible:
+      text: "The pulse stops here. In the mirror, it keeps going."
+    timeout: 5000
+- assertVisible: "TEST THE REFLECTION"
+- assertVisible: "INTERACT · MIRROR"
+- takeScreenshot:
+    path: 27_bathroom_mirror_mismatch
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-reflected-route
+- extendedWaitUntil:
+    visible:
+      text: "The room went dark. The reflection did not."
+    timeout: 5000
+- assertVisible: "CHECK THE MIRROR"
+- assertVisible: "INTERACT · MIRROR"
+- takeScreenshot:
+    path: 28_bathroom_reflected_route
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-bathroom-route-revealed
+- extendedWaitUntil:
+    visible:
+      text: "The wall is copying the mirror. A hidden stair climbs behind it."
+    timeout: 5000
+- assertVisible: "ATTIC ACCESS REVEALED"
+- assertVisible: "INTERACT · ATTIC"
+- takeScreenshot:
+    path: 29_bathroom_route_revealed
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-arrival
+- extendedWaitUntil:
+    visible:
+      text: "Old storage. New cables. Someone turned the attic into an observation post."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · ATTIC"
+- assertVisible: "SEARCH THE ATTIC"
+- takeScreenshot:
+    path: 30_attic_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-evidence
+- extendedWaitUntil:
+    visible:
+      text: "Bedroom. Television. Power. Mirror. The readings all belong to the same experiment."
+    timeout: 5000
+- assertVisible: "PLAY THE RECORDING"
+- assertVisible: "INTERACT · SENSOR CRATE"
+- takeScreenshot:
+    path: 31_attic_evidence
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-recording
+- extendedWaitUntil:
+    visible:
+      text: "SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment."
+    timeout: 5000
+- assertVisible: "FIND THE MACHINE"
+- assertVisible: "INTERACT · RECORDER"
+- takeScreenshot:
+    path: 32_attic_recording
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-attic-basement-route
+- extendedWaitUntil:
+    visible:
+      text: "The recorder output drops through the floor. The machine is below."
+    timeout: 5000
+- assertVisible: "FIND THE MACHINE"
+- assertVisible: "INTERACT · DOWNWARD CABLE"
+- takeScreenshot:
+    path: 33_basement_route_revealed
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-arrival
+- extendedWaitUntil:
+    visible:
+      text: "The Attic cable ends here, grafted into the house utilities."
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · BASEMENT"
+- assertVisible: "FOLLOW THE POWER"
+- takeScreenshot:
+    path: 34_basement_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-power-fault
+- extendedWaitUntil:
+    visible:
+      text: "The cyan feed is arcing into the old utility line. The relay can isolate it."
+    timeout: 5000
+- assertVisible: "ISOLATE THE FAULT"
+- assertVisible: "INTERACT · ISOLATION RELAY"
+- takeScreenshot:
+    path: 35_basement_power_fault
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-basement-control-reveal
+- extendedWaitUntil:
+    visible:
+      text: "Resonance load is above the safe line. The system is still climbing."
+    timeout: 5000
+- assertVisible: "TRIP THE FAILSAFE"
+- assertVisible: "INTERACT · CONTROL TERMINAL"
+- takeScreenshot:
+    path: 36_basement_control_reveal
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-laboratory-boundary
+- extendedWaitUntil:
+    visible:
+      text: "The feed disappears through a service hatch. The Laboratory is below."
+    timeout: 5000
+- assertVisible: "LABORATORY ROUTE IDENTIFIED"
+- assertVisible: "INTERACT · LABORATORY"
+- takeScreenshot:
+    path: 37_laboratory_boundary
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-laboratory-arrival
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "APPROACH THE RESONATOR"
+- takeScreenshot:
+    path: 38_laboratory_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-vesper-control
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "BREAK VESPER'S CONTROL"
+- takeScreenshot:
+    path: 39_vesper_control
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-resonator-runaway
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "DESTABILIZE THE RESONATOR"
+- takeScreenshot:
+    path: 40_resonator_runaway
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-vesper-nightmare
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "DEFEAT VESPER NIGHTMARE"
+- takeScreenshot:
+    path: 41_vesper_nightmare
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-resonator-shutdown
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "RESONATOR SHUT DOWN"
+- takeScreenshot:
+    path: 42_resonator_shutdown
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-awakening
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "PYJAMADA · MORNING AFTER"
+- assertVisible: "CHECK WHAT CAME BACK"
+- takeScreenshot:
+    path: 43_ending_awakening
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-evidence
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "CHECK THE WINDOW"
+- assertVisible: "The burned sensor tag is real. So was the Laboratory."
+- takeScreenshot:
+    path: 44_ending_evidence
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-ghost-sting
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "THE HOUSE IS QUIET. PROBABLY."
+- assertVisible: "A tiny face grins from the glass. Of course."
+- takeScreenshot:
+    path: 45_ending_ghost_sting
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-credits
+- extendedWaitUntil:
+    visible:
+      id: ending-screen
+    timeout: 5000
+- assertVisible: "GOOD MORNING, WALLY."
+- assertVisible: "PLAY AGAIN"
+- takeScreenshot:
+    path: 46_ending_credits

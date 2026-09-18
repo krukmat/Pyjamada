@@ -1,100 +1,143 @@
 # Pyjamada
 
-**A tiny domestic adventure where getting ready in the morning can become a complete disaster.**
+**A small domestic arcade adventure that starts with getting dressed and ends underneath a haunted house.**
 
-Pyjamada is an Android-first React Native game experiment built around a deliberately small systemic sandbox. Wally needs to get dressed and find his keys, but every action costs **time**, **energy** or **noise** — and simple objects can combine into surprisingly bad decisions.
+Pyjamada is an Android-first React Native game built around deterministic TypeScript gameplay, room-by-room exploration and an illustrated Skia presentation.
 
-Six objects. Ten deterministic rules. One bedroom. No game engine hiding the interesting parts.
+Wally's morning begins with a simple objective: get dressed, find the keys and leave without waking the house. The successful escape immediately goes wrong, opening a connected haunted-house adventure that leads through increasingly impossible domestic spaces, an underground experiment and a final confrontation with Dr. Vesper and the Resonator.
 
 ```text
-move → interact → consequence → adapt → succeed / fail → retry
+Bedroom
+   ↓
+false escape
+   ↓
+Hallway → Living Room → Kitchen → Bathroom → Attic → Basement → Laboratory
+                                                                ↓
+                                                        Vesper / Resonator
+                                                                ↓
+                                                           morning after
 ```
 
-## Why this repo exists
+## What the game is
 
-Pyjamada is also a compact game-architecture playground:
+The opening Bedroom is a compact systemic arcade sandbox:
 
-- **React Native owns the app shell.**
-- **TypeScript owns deterministic gameplay.**
-- **A semantic presentation layer owns transient reactions.**
-- **Skia owns the illustrated gameplay renderer.**
-- **AsyncStorage owns persistence.**
-- **Maestro owns the Android visual tour.**
+- six interactive objects: `bed · slippers · alarm clock · wardrobe · keys · window`;
+- time, energy and noise pressure;
+- deterministic rules and consequences;
+- Dream Spark combat and Ghost pressure;
+- success/failure/retry loops.
 
-The goal is to see how much emergent gameplay and visual causality can come from a very small deterministic model before adding more rooms, progression or monetization.
+Escaping the Bedroom becomes Act I rather than the end of the game. From there, Adventure mode owns progression across a connected house.
 
-## The current game
+Each room has a concrete gameplay purpose:
 
-The bedroom contains six interactive objects:
+- **Hallway** — establishes that normal space/time rules are broken.
+- **Living Room** — reveals that the haunting is being observed and driven deliberately.
+- **Kitchen** — introduces causal environmental manipulation through the electrical system.
+- **Bathroom** — uses reflection geometry to expose an impossible route.
+- **Attic** — connects the evidence and identifies Wally as Subject W-01.
+- **Basement** — turns investigation into direct interaction with unstable experiment infrastructure.
+- **Laboratory** — resolves the conflict through a three-stage Vesper/Resonator encounter.
+- **Ending** — returns Wally to the Bedroom, leaves physical evidence behind and closes with one final Ghost sting.
 
-`bed · slippers · alarm clock · wardrobe · keys · window`
+The Laboratory finale is deliberately specific rather than built on a generic boss engine:
 
-Wally can be `sleepy`, `normal`, `rushed` or `startled`. Ten ordered rules connect those states with object interactions and movement, producing efficient escapes, near misses and full domestic chaos.
+```text
+BREAK VESPER'S CONTROL
+        ↓
+DESTABILIZE THE RESONATOR
+        ↓
+DEFEAT VESPER NIGHTMARE
+        ↓
+SHUT DOWN RESONATOR
+```
 
-> **Get dressed + find the keys before the house wakes up, Wally runs out of energy, or time runs out.**
+## Design principles
 
-There is one active gameplay path and one save model.
+Pyjamada keeps a few constraints intentionally strong:
 
-## Modern 80s arcade presentation
-
-The active gameplay direction is **arcade-first, Wonder-Boy-flavored and modernized for mobile**. It borrows transferable principles — immediate readability, strong silhouettes, horizontal stage rhythm, warm color, layered depth and expressive consequences — without copying any existing game's characters, layouts, art, sprites or UI.
-
-The current visual principle is:
-
-> **Charming layered world + expressive actors + exaggerated consequences.**
-
-Wally, the six gameplay objects and semantic FX are now drawn as original procedural Skia illustration. `WallyAnimator`, `ObjectAnimator`, `FxSystem` and the existing clip manifests still provide deterministic semantic selection and timing; the historical PNG atlases remain validated assets/contracts but are no longer the primary gameplay artwork.
-
-The gameplay viewport is a presentation-only panoramic stage. Logical gameplay coordinates, hit radii, rules and persistence remain unchanged.
+1. **Arcade first, adventure second.** Story and exploration should not turn the game into a slow point-and-click experience.
+2. **Domestic object + supernatural distortion = gameplay.** Ordinary spaces and objects become mechanics, hazards or clues.
+3. **The house is one connected world.** Rooms are not isolated level-select screens.
+4. **State before exposition.** Visual/world changes should communicate progression before text explains it.
+5. **Deterministic systems are easier to test, save and review.**
+6. **Do not generalize too early.** Room-specific gameplay stays local until a real second reuse case exists.
 
 ## Architecture
 
-```text
-                         PYJAMADA
-                            │
-                    React Native shell
-                            │
-             ┌──────────────┼──────────────┐
-             ▼              ▼              ▼
-         MainMenu      SettingsScreen   GameScreen
-                                           │
-                                           ▼
-                                    SystemicRuntime
-                                      pure TypeScript
-                                           │
-                                  completed state/update
-                                           │
-                                           ▼
-                                    VisualEventMapper
-                                           │
-                                           ▼
-                                  PresentationRuntime
-                              ┌────────────┼────────────┐
-                              ▼            ▼            ▼
-                        WallyAnimator ObjectAnimator  FxSystem
-                              └────────────┼────────────┘
-                                           ▼
-                                  presentation clip/frame
-                                           │
-                                           ▼
-                                     GameCanvas / Skia
-                              ┌────────────┼─────────────┐
-                              ▼            ▼             ▼
-                       illustrated Wally  objects   semantic FX
-                              │            │             │
-                              └────────────┼─────────────┘
-                                           ▼
-                         layered bedroom + lighting + camera
+React Native owns the application shell. TypeScript owns gameplay state and rules. Skia owns the rendered world.
 
-Persistence stores gameplay state only; transient presentation is rebuilt from state/events.
+```text
+                              PYJAMADA
+                                  │
+                           React Native shell
+                                  │
+                  ┌───────────────┼────────────────┐
+                  ▼               ▼                ▼
+              MainMenu        Settings         Ending
+                  │
+                  ▼
+          HauntedGameScreen
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+   Bedroom/Systemic   Adventure exploration
+       runtime             runtime
+          │                │
+          │          AdventureState
+          │          RoomRegistry
+          │          room-local effects
+          │                │
+          └───────┬────────┘
+                  ▼
+             GameCanvas
+                  │
+          RoomPresentation
+        ┌─────────┼──────────────────────────────┐
+        ▼         ▼                              ▼
+     Bedroom   domestic rooms                Laboratory
+                  │
+                  ▼
+                 Skia
 ```
 
-The `systemic` folder describes the gameplay architecture; it is not a second game mode.
+The persistence model separates the original Haunted session from connected-adventure progression:
+
+```text
+AdventureGameSessionState · envelope v3
+├── HauntedSessionState
+└── AdventureState · schema v1
+    ├── current room / entry
+    ├── visited rooms
+    ├── global story flags
+    └── room-local inspected/interactions/switches
+```
+
+Transient projectiles, presentation events and attempt-level combat state are normalized at the appropriate save/Continue boundaries.
+
+The ending reuses the existing Bedroom and save model rather than creating a separate level or cinematic framework.
+
+## Presentation
+
+The visual direction is modern 80s/90s arcade: strong silhouettes, horizontal stage rhythm, readable hazards, layered depth and exaggerated consequences.
+
+The renderer combines:
+
+- procedural Skia environments;
+- illustrated Wally/object presentation;
+- semantic animation selection;
+- deterministic telegraphs and hazard states;
+- room-specific visual language;
+- a shared mobile-oriented viewport.
+
+The goal is not to reproduce an existing game's art or layout. The presentation uses original characters, room compositions, UI and procedural artwork.
 
 ## Stack
 
-- React Native 0.86 + Expo 57
-- TypeScript
+- React Native 0.86
+- Expo 57
+- TypeScript 5.8
 - React Native Skia 2.6
 - React Native Reanimated 4.5
 - AsyncStorage
@@ -103,7 +146,11 @@ The `systemic` folder describes the gameplay architecture; it is not a second ga
 
 ## Run it
 
-Requirements: Node.js `>=22.13`, Android tooling and Java 17.
+Requirements:
+
+- Node.js `>=22.13`
+- Java 17
+- Android SDK / emulator or device
 
 ```bash
 npm install
@@ -118,22 +165,24 @@ npm start
 
 ## Validate it
 
-Normal validation:
+Run the complete automated suite:
 
 ```bash
 npm run test:all
 npm run typecheck
 ```
 
-Pre-merge/audit evidence package:
+Run the full pre-merge validation package:
 
 ```bash
 npm run audit:premerge
 ```
 
-That command adds strict PNG validation plus static architecture checks for the gameplay→presentation boundary, legacy-renderer removal and screenshot-tour contract.
+That covers gameplay, adventure progression, save/Continue behavior, presentation contracts, screenshot contracts, assets, agent/repository invariants, TypeScript and static architecture checks.
 
-## Generate the Android visual tour
+## Android visual acceptance
+
+The deterministic Android tour currently contains **46 screenshots** covering the game from main menu and Bedroom gameplay through every adventure room, the Laboratory encounter and the ending.
 
 With an Android emulator running and Maestro installed:
 
@@ -141,85 +190,96 @@ With an Android emulator running and Maestro installed:
 npm run screenshots:android
 ```
 
-If the release APK is already built:
+If the APK is already built:
 
 ```bash
 SKIP_BUILD=1 npm run screenshots:android
 ```
 
-The tour writes fourteen local checkpoints to:
+Successful output is published locally to:
 
 ```text
 artifacts/android-screenshots/
 ```
 
-It covers the main menu and settings, sleepy run start, bed/slippers/alarm/wardrobe interactions, success and restart, restored continue state, and the `HOUSE AWAKE!`, `OUT OF ENERGY!` and `TOO LATE!` failure outcomes.
+The final sequence is represented by:
 
-The generated local files are ignored evidence; rerun the command whenever the renderer changes. The GitHub execution environment does **not** claim to have performed Android visual review or performance profiling.
+```text
+38_laboratory_arrival.png
+39_vesper_control.png
+40_resonator_runaway.png
+41_vesper_nightmare.png
+42_resonator_shutdown.png
+43_ending_awakening.png
+44_ending_evidence.png
+45_ending_ghost_sting.png
+46_ending_credits.png
+```
 
-A curated six-shot gallery is checked in under `docs/screenshots/`, selected from the latest generated tour to show the game's strongest beats without repeating near-identical states. It remains a visual checkpoint: after a substantial renderer change, run the tour again before making aesthetic or performance claims about the new code.
+The screenshot runner validates the expected set before replacing previous evidence. A failed local capture is kept separately instead of overwriting the last complete set.
 
-### A morning in Pyjamada
+CI verifies the deterministic scenario and screenshot contracts; actual Android visual acceptance still requires the local/device run.
 
-From the mission briefing to a barely controlled escape, the room turns every small choice into a visible consequence.
+## Act I gallery
+
+The checked-in gallery under `docs/screenshots/` shows the original Bedroom/Act-I gameplay baseline.
 
 <p align="center">
-  <img src="docs/screenshots/01_main_menu.png" alt="Pyjamada main menu and morning mission" width="30%" />
-  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Wally starting the morning sleepy in the bedroom" width="30%" />
-  <img src="docs/screenshots/07_startled.png" alt="Wally startled after making too much noise with the alarm" width="30%" />
+  <img src="docs/screenshots/01_main_menu.png" alt="Pyjamada main menu" width="30%" />
+  <img src="docs/screenshots/03_run_start_sleepy.png" alt="Wally starting sleepy in the bedroom" width="30%" />
+  <img src="docs/screenshots/07_startled.png" alt="Wally startled after making too much noise" width="30%" />
 </p>
-<p align="center"><sub>Pick the mission · Wake up in the bedroom · Discover that noise has consequences</sub></p>
 
 <p align="center">
-  <img src="docs/screenshots/08_wardrobe_fumble.png" alt="Wally dressed after a clumsy wardrobe interaction" width="30%" />
-  <img src="docs/screenshots/09_success.png" alt="Successful Pyjamada run with clothes and keys" width="30%" />
-  <img src="docs/screenshots/12_fail_house_awake.png" alt="Failed Pyjamada run after waking the house" width="30%" />
+  <img src="docs/screenshots/08_wardrobe_fumble.png" alt="Wally at the wardrobe" width="30%" />
+  <img src="docs/screenshots/09_success.png" alt="Successful Bedroom escape setup" width="30%" />
+  <img src="docs/screenshots/12_fail_house_awake.png" alt="House Awake failure" width="30%" />
 </p>
-<p align="center"><sub>Get dressed, coordination optional · Find the clean route · Or wake the whole house</sub></p>
 
 ## Useful entry points
 
 ```text
-App.tsx                                  application composition + navigation
-src/app/GameScreen.tsx                   minimal gameplay HUD, feedback and controls
-src/game/systemic/                       deterministic gameplay domain
-src/game/presentation/                   visual events, runtime and semantic animators
-src/game/presentation/atlas/             clip/frame manifests + legacy asset contracts
-src/game/render/GameCanvas.tsx            gameplay-stage composition
-src/game/render/IllustratedWally.tsx      original procedural Wally renderer
-src/game/render/WallyArcadeMotion.ts      anticipation/impact/recovery key poses
-src/game/render/IllustratedObject.tsx     six procedural interactive-object renderers
-src/game/render/IllustratedFx.tsx         semantic modern-arcade FX renderer
-src/game/render/IllustratedBedroomScene.tsx layered bedroom/stage composition
-src/game/render/ArcadeStageLighting.tsx   hero-first light/value hierarchy
-src/game/render/StageViewport.ts          presentation-only projection + camera
-assets/game/                              validated historical atlas assets/contracts
-src/platform/storage/                    gameplay persistence
-maestro/screenshots.yaml                 fourteen-step Android visual journey
-artifacts/android-screenshots/            generated local Android screenshot evidence
-docs/screenshots/                         versioned Android visual checkpoint
-tests/game.test.ts                        gameplay coverage
-tests/presentation.test.ts                presentation/restore/manifest coverage
-docs/workflow/AGENT_WORKFLOW_GUIDE.md     AI task workflow, RRI/HITL and model routing
-scripts/audit-static.sh                   architecture invariants
+App.tsx                                      application lifecycle, save/Continue and navigation
+src/app/MainMenu.tsx                         main menu / completed-run lifecycle
+src/app/HauntedGameScreen.tsx                gameplay HUD and controls
+src/app/EndingScreen.tsx                     terminal ending / credits
+src/app/HauntedScreenshotScenarios.ts        deterministic visual evidence states
+
+src/game/systemic/                           Bedroom systemic gameplay domain
+src/game/adventure/AdventureState.ts         connected-adventure persistent state
+src/game/adventure/RoomRegistry.ts           rooms, entries, exits and interactions
+src/game/adventure/RoomInteractionEffects.ts room-local progression effects
+src/game/adventure/AdventureExplorationRuntime.ts exploration/combat orchestration
+src/game/adventure/AdventureEnding.ts        post-Laboratory ending contract
+
+src/game/render/GameCanvas.tsx                shared gameplay-stage composition
+src/game/render/RoomPresentation.tsx          room presentation router
+src/game/render/LaboratoryPresentation.tsx    final encounter presentation
+src/game/presentation/                       semantic presentation runtime
+
+src/platform/storage/                        AsyncStorage persistence
+maestro/screenshots.yaml                     46-frame Android visual journey
+scripts/android-screenshots.sh               safe Android screenshot runner
+tests/                                       deterministic gameplay/adventure coverage
+
+docs/HAUNTED_HOUSE_ADVENTURE_PLAN.md         complete adventure roadmap and accepted scope
+docs/W6_LABORATORY_TASKS.md                  Laboratory implementation/acceptance record
+docs/W7_ENDING_COHESION_TASKS.md             ending/cohesion implementation record
 ```
 
-## Audit status
+## Current product state
 
-The visual refactor is maintained on `feat/expressive-arcade-visual-refactor` until team audit disposition. Start with:
+The Haunted House Adventure is playable from the initial Bedroom morning through the final credits.
 
-- `docs/AUDIT_READINESS.md`
-- `docs/AUDIT_REVIEW_GUIDE.md`
-- `docs/VISUAL_REFACTOR_INCIDENTS.md`
-- `docs/PERFORMANCE_REVIEW_NOTES.md`
-- `docs/WONDER_BOY_VISUAL_REWORK_PLAN.md`
+The current product boundary includes:
 
-CI success is necessary but not sufficient for merge approval. Android visual quality, the known presentation-cadence question around the React 80 ms ticker, and the human gameplay/fun gate require explicit external disposition.
+- connected progression across all planned rooms;
+- deterministic environmental puzzles;
+- save/Continue across the adventure;
+- Laboratory checkpoint/retry behavior;
+- the complete Vesper/Resonator encounter;
+- persistent post-boss ending lifecycle;
+- automated regression coverage;
+- a 46-frame Android visual acceptance contract.
 
-## Current scope
-
-Pyjamada is intentionally small. The current question is not **“how much content can we add?”** but **“does this tiny room make players curious enough to experiment and retry?”**
-
-The next product-expansion gate remains human playtesting: objective comprehension, understandable cause/effect, at least one unexpected-but-logical consequence, and voluntary retry.
-
-See `docs/GAMEPLAY.md` for the gameplay contract and `docs/ANDROID_SMOKE_TEST.md` for device validation.
+Future work should be driven by playtesting, concrete product value and demonstrated reuse needs rather than by adding generic systems speculatively.

@@ -9,6 +9,7 @@ type WallyProps = {
   x: number;
   y: number;
   scale: number;
+  honorTerminalObjective?: boolean;
 };
 
 type GhostProps = {
@@ -29,9 +30,15 @@ function scaled(scale: number, value: number): number {
  * player disappear. Coordinates intentionally mirror the 32x48 atlas anchor
  * (16, 47) so switching between fallback and atlas does not move the actor.
  */
-export function HauntedWallyFallback({ session, x, y, scale }: WallyProps) {
+export function HauntedWallyFallback({
+  session,
+  x,
+  y,
+  scale,
+  honorTerminalObjective = true,
+}: WallyProps) {
   const p = (value: number) => scaled(scale, value);
-  const pose = selectHauntedWallyPose(session);
+  const pose = selectHauntedWallyPose(session, { honorTerminalObjective });
   const dressed = session.domestic.flags.dressed;
   const facing = session.player.facing === 'left' ? -1 : 1;
   const jumpLift = pose === 'jump' ? p(2) : 0;

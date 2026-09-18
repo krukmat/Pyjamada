@@ -18,6 +18,18 @@ const EXPECTED = [
   '05_ghost_telegraph.png', '06_ghost_active.png', '07_wally_jump.png', '08_dream_spark_attack.png',
   '09_ghost_defeated.png', '10_player_hit.png', '11_dressed_under_pressure.png',
   '12_escape_ready.png', '13_escaped.png', '14_haunted_failure.png',
+  '15_altered_bedroom.png', '16_hallway_arrival.png', '17_hallway_clock.png', '18_living_room_door.png',
+  '19_living_room_arrival.png', '20_living_room_static.png', '21_lab_transmission.png',
+  '22_living_room_source_cue.png', '23_kitchen_arrival.png', '24_kitchen_overload.png',
+  '25_kitchen_power_rerouted.png', '26_bathroom_arrival.png', '27_bathroom_mirror_mismatch.png',
+  '28_bathroom_reflected_route.png', '29_bathroom_route_revealed.png',
+  '30_attic_arrival.png', '31_attic_evidence.png', '32_attic_recording.png',
+  '33_basement_route_revealed.png', '34_basement_arrival.png', '35_basement_power_fault.png',
+  '36_basement_control_reveal.png', '37_laboratory_boundary.png',
+  '38_laboratory_arrival.png', '39_vesper_control.png', '40_resonator_runaway.png',
+  '41_vesper_nightmare.png', '42_resonator_shutdown.png',
+  '43_ending_awakening.png', '44_ending_evidence.png',
+  '45_ending_ghost_sting.png', '46_ending_credits.png',
 ];
 
 function writeExecutable(filePath, script) {

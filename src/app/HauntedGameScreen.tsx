@@ -1,30 +1,81 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useImage } from '@shopify/react-native-skia';
+import {
+  findAdventureInteractionTarget,
+  hasLabTransmissionBeenSeen,
+  isAdventureExplorationActive,
+  isAtticBasementRouteRevealed,
+  isAtticExperimentRevealed,
+  isAtticLogInspected,
+  isAtticRecorderFocused,
+  isAtticSensorsInspected,
+  isBasementControlRevealed,
+  isBasementFaultTraced,
+  isBasementLaboratoryRouteRevealed,
+  isBasementLossOfControlRevealed,
+  isBasementPowerStabilized,
+  isBasementRelayProbed,
+  isBasementTerminalFocused,
+  isBathroomLightOff,
+  isBathroomMirrorAnomalySeen,
+  isBathroomRouteRevealed,
+  isHallwayClockInspected,
+  isKitchenBreakerInspected,
+  isKitchenCircuitOverloaded,
+  isKitchenPowerRerouted,
+  isLaboratoryCombatEnabled,
+  isLivingRoomPathRevealed,
+  isLivingRoomPhotoFocused,
+  isLivingRoomRadioFocused,
+  isLivingRoomSourceCueRevealed,
+  isLivingRoomTvActivated,
+} from '../game/adventure/AdventureExplorationRuntime';
+import {
+  getAdventureEndingPhase,
+  isAdventureEndingActive,
+} from '../game/adventure/AdventureEnding';
+import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
+import { getLaboratoryEncounterPhase, isLaboratoryEncounterActive } from '../game/adventure/LaboratoryEncounter';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
+import { roomInteractionTarget } from '../game/render/RoomPresentation';
 import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
-import { findSystemicObject } from '../game/systemic/SystemicContent';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { PixelMeter } from './RetroUiKit';
+import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
 import { isTestHooksEnabled } from './testHooks';
 
 type Props = {
   session: HauntedSessionState;
+  adventure?: AdventureState;
+  transitionPhase?: RoomTransitionPhase;
   presentationRuntime: PresentationRuntime;
   touchControlLayout: TouchControlLayout;
   onHeldControl: (control: HauntedHeldControl, pressed: boolean) => void;
   onAction: (control: HauntedActionControl) => void;
   onRestart: () => void;
+  onFinishEnding: () => void;
   onExit: () => void;
 };
 
-export function HauntedGameScreen({ session, presentationRuntime, touchControlLayout, onHeldControl, onAction, onRestart, onExit }: Props) {
+export function HauntedGameScreen({
+  session,
+  adventure,
+  transitionPhase = 'idle',
+  presentationRuntime,
+  touchControlLayout,
+  onHeldControl,
+  onAction,
+  onRestart,
+  onFinishEnding,
+  onExit,
+}: Props) {
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -32,12 +83,20 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
   const hauntedAssetsReady = Boolean(hauntedWallyImage && hauntedGhostImage);
   const state = session.domestic;
-  const target = findSystemicObject(state.player.x);
-  const exitTarget = session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
-  const done = session.objective.phase === 'completed' || session.objective.phase === 'failed';
+  const roomId = adventure?.currentRoom ?? 'bedroom';
+  const exploration = adventure ? isAdventureExplorationActive(adventure) : false;
+  const domesticTarget = exploration ? undefined : roomInteractionTarget(roomId, state);
+  const adventureTarget = adventure ? findAdventureInteractionTarget(adventure, session.player.x) : undefined;
+  const exitTarget = !exploration && roomId === 'bedroom' && session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
+  const done = session.objective.phase === 'failed' || (session.objective.phase === 'completed' && !exploration);
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
   const testHooksEnabled = isTestHooksEnabled();
+  const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
+  const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
+  const endingActive = Boolean(adventure && isAdventureEndingActive(adventure));
+  const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
+  const laboratoryRetry = Boolean(adventure && adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure));
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -56,6 +115,8 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
           height={viewport.height}
           activeVisualEvents={activeVisualEvents}
           nowMs={nowMs}
+          roomId={roomId}
+          adventure={adventure}
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
           dreamSparks={session.combat.projectiles}
           hauntedSession={session}
@@ -65,41 +126,58 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
 
         <View pointerEvents="none" style={styles.hud}>
           <View>
-            <Text style={styles.kicker}>HAUNTED MORNING</Text>
-            <Text style={styles.objective}>{session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS'}</Text>
+            <Text style={styles.kicker}>{endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
+            <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           </View>
-          <View style={styles.stats}>
-            <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
-            <Text style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
-            <View style={styles.meter}><Text style={styles.label}>ENERGY</Text><PixelMeter value={state.energy / 100} segments={5} accent={VISUAL_TOKENS.feedback.energy} /></View>
-            <View style={styles.meter}><Text style={styles.label}>NOISE</Text><PixelMeter value={state.noise / 100} segments={5} accent={VISUAL_TOKENS.feedback.noise} /></View>
-          </View>
+          {!exploration && (
+            <View style={styles.stats}>
+              <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
+              <Text style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
+              <View style={styles.meter}><Text style={styles.label}>ENERGY</Text><PixelMeter value={state.energy / 100} segments={5} accent={VISUAL_TOKENS.feedback.energy} /></View>
+              <View style={styles.meter}><Text style={styles.label}>NOISE</Text><PixelMeter value={state.noise / 100} segments={5} accent={VISUAL_TOKENS.feedback.noise} /></View>
+            </View>
+          )}
         </View>
 
-        {!done && (exitTarget || target) && (
+        {!done && prompt && (
           <View pointerEvents="none" style={styles.prompt}>
-            <Text style={styles.promptText}>{exitTarget ? 'INTERACT · EXIT' : `INTERACT · ${target?.label ?? ''}`}</Text>
+            <Text style={styles.promptText}>{prompt}</Text>
           </View>
         )}
         {done && <Outcome session={session} />}
+        <RoomTransitionOverlay phase={transitionPhase} />
       </View>
 
-      <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session)}</Text>
+      <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session, adventure)}</Text>
 
       {!done ? (
-        <>
-          <View style={styles.controls}>
-            {touchControlLayout === 'standard' ? left : right}
-            {touchControlLayout === 'standard' ? right : left}
-            <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
-          </View>
-          <View style={styles.controls}>
-            <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />
-            <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
-          </View>
-        </>
+        endingPhase === 'ghost-sting' ? (
+          <TapControl testID="ending-finish-button" label="END NIGHT" accent onPress={onFinishEnding} />
+        ) : endingActive ? (
+          <>
+            <View style={styles.controls}>
+              {touchControlLayout === 'standard' ? left : right}
+              {touchControlLayout === 'standard' ? right : left}
+            </View>
+            <View style={styles.controls}>
+              <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.controls}>
+              {touchControlLayout === 'standard' ? left : right}
+              {touchControlLayout === 'standard' ? right : left}
+              <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
+            </View>
+            <View style={styles.controls}>
+              {(!exploration || laboratoryCombat) && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
+              <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
+            </View>
+          </>
+        )
       ) : (
-        <TapControl testID="restart-button" label="TRY AGAIN" accent onPress={onRestart} />
+        <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : 'TRY AGAIN'} accent onPress={onRestart} />
       )}
 
       <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
@@ -111,6 +189,83 @@ export function HauntedGameScreen({ session, presentationRuntime, touchControlLa
       )}
     </View>
   );
+}
+
+function kickerFor(roomId: RoomId, exploration: boolean): string {
+  if (!exploration) return 'HAUNTED MORNING';
+  if (roomId === 'hallway') return 'HAUNTED HOUSE · HALLWAY';
+  if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
+  if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
+  if (roomId === 'bathroom') return 'HAUNTED HOUSE · BATHROOM';
+  if (roomId === 'attic') return 'HAUNTED HOUSE · ATTIC';
+  if (roomId === 'basement') return 'HAUNTED HOUSE · BASEMENT';
+  if (roomId === 'laboratory') return 'HAUNTED HOUSE · LABORATORY';
+  return 'HAUNTED HOUSE · BEDROOM';
+}
+
+function objectiveFor(session: HauntedSessionState, adventure?: AdventureState): string {
+  if (adventure) {
+    const ending = getAdventureEndingPhase(adventure);
+    if (ending === 'awakening') return 'CHECK WHAT CAME BACK';
+    if (ending === 'evidence') return 'CHECK THE WINDOW';
+    if (ending === 'ghost-sting') return 'THE HOUSE IS QUIET. PROBABLY.';
+  }
+  if (adventure && isAdventureExplorationActive(adventure)) {
+    if (adventure.currentRoom === 'bedroom') return 'FIND ANOTHER WAY OUT';
+    if (adventure.currentRoom === 'living-room') {
+      if (!isLivingRoomTvActivated(adventure)) return 'CHECK THE LIVING ROOM';
+      if (!hasLabTransmissionBeenSeen(adventure)) return 'CHECK THE SIGNAL';
+      return 'FIND THE SOURCE';
+    }
+    if (adventure.currentRoom === 'kitchen') {
+      if (isKitchenPowerRerouted(adventure)) return 'FOLLOW THE PULSE';
+      if (isKitchenCircuitOverloaded(adventure)) return 'CHECK THE BREAKER';
+      return 'TRACE THE POWER';
+    }
+    if (adventure.currentRoom === 'bathroom') {
+      if (isBathroomRouteRevealed(adventure)) return 'ATTIC ACCESS REVEALED';
+      if (isBathroomLightOff(adventure)) return 'CHECK THE MIRROR';
+      if (isBathroomMirrorAnomalySeen(adventure)) return 'TEST THE REFLECTION';
+      return 'FOLLOW THE PULSE';
+    }
+    if (adventure.currentRoom === 'attic') {
+      if (isAtticExperimentRevealed(adventure)) return 'FIND THE MACHINE';
+      const logSeen = isAtticLogInspected(adventure);
+      const sensorsSeen = isAtticSensorsInspected(adventure);
+      if (logSeen && sensorsSeen) return 'PLAY THE RECORDING';
+      if (logSeen || sensorsSeen) return 'CONNECT THE EVIDENCE';
+      return 'SEARCH THE ATTIC';
+    }
+    if (adventure.currentRoom === 'laboratory') {
+      const phase = getLaboratoryEncounterPhase(adventure);
+      if (phase === 'dormant') return 'APPROACH THE RESONATOR';
+      if (phase === 'vesper-control') return "BREAK VESPER'S CONTROL";
+      if (phase === 'resonator') return 'DESTABILIZE THE RESONATOR';
+      if (phase === 'nightmare') return 'DEFEAT VESPER NIGHTMARE';
+      return 'RESONATOR SHUT DOWN';
+    }
+    if (adventure.currentRoom === 'basement') {
+      if (isBasementLaboratoryRouteRevealed(adventure)) return 'LABORATORY ROUTE IDENTIFIED';
+      if (isBasementLossOfControlRevealed(adventure)) return 'TRACE THE LAB FEED';
+      if (isBasementControlRevealed(adventure)) return 'TRIP THE FAILSAFE';
+      if (isBasementPowerStabilized(adventure)) return 'READ THE CONTROL TERMINAL';
+      if (isBasementFaultTraced(adventure)) return 'ISOLATE THE FAULT';
+      return 'FOLLOW THE POWER';
+    }
+    if (!isHallwayClockInspected(adventure)) return 'CHECK THE HALLWAY';
+    return 'ENTER THE LIVING ROOM';
+  }
+  return session.objective.phase === 'escape-ready' ? 'ESCAPE READY · CLEAR THE DOOR' : 'GET DRESSED + FIND KEYS';
+}
+
+function promptFor(
+  exitTarget: boolean,
+  domesticLabel: string | undefined,
+  adventureTarget: ReturnType<typeof findAdventureInteractionTarget>,
+): string | undefined {
+  if (exitTarget) return 'INTERACT · EXIT';
+  if (adventureTarget) return `INTERACT · ${adventureTarget.displayLabel}`;
+  return domesticLabel ? `INTERACT · ${domesticLabel}` : undefined;
 }
 
 function Outcome({ session }: { session: HauntedSessionState }) {
@@ -135,7 +290,68 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
   );
 }
 
-function reactionFor(session: HauntedSessionState): string {
+function reactionFor(session: HauntedSessionState, adventure?: AdventureState): string {
+  if (adventure) {
+    const ending = getAdventureEndingPhase(adventure);
+    if (ending === 'awakening') return 'Morning again. The room looks normal. Almost.';
+    if (ending === 'evidence') return 'The burned sensor tag is real. So was the Laboratory.';
+    if (ending === 'ghost-sting') return 'A tiny face grins from the glass. Of course.';
+  }
+  if (adventure && isAdventureExplorationActive(adventure)) {
+    if (adventure.currentRoom === 'bedroom') return 'That door did not lead outside. The room is wrong.';
+    if (adventure.currentRoom === 'living-room') {
+      if (isLivingRoomSourceCueRevealed(adventure)) return 'The radio catches the same pulse. Stronger through the wall.';
+      if (isLivingRoomPhotoFocused(adventure)) return 'The glass reflects a room that is not here.';
+      if (isLivingRoomRadioFocused(adventure)) return 'No station. Just a pulse under the static.';
+      if (hasLabTransmissionBeenSeen(adventure)) return 'A voice cuts through: RESONANCE STABLE... SUBJECT... Then static.';
+      if (isLivingRoomTvActivated(adventure)) return 'Static. Not a channel. Something is underneath it.';
+      return 'The television is dark. The room is listening.';
+    }
+    if (adventure.currentRoom === 'kitchen') {
+      if (isKitchenPowerRerouted(adventure)) return 'The circuit settles. The same pulse is moving deeper into the house.';
+      if (isKitchenCircuitOverloaded(adventure)) return 'The microwave killed the lights. The breaker is buzzing now.';
+      if (isKitchenBreakerInspected(adventure)) return 'The breaker hums, but nothing has tripped. It needs a load.';
+      return 'The appliances are dead. Something in the wall is still drawing power.';
+    }
+    if (adventure.currentRoom === 'bathroom') {
+      if (isBathroomRouteRevealed(adventure)) return 'The wall is copying the mirror. A hidden stair climbs behind it.';
+      if (isBathroomLightOff(adventure)) return 'The room went dark. The reflection did not.';
+      if (isBathroomMirrorAnomalySeen(adventure)) return 'The pulse stops here. In the mirror, it keeps going.';
+      return 'The pulse stops at the sink.';
+    }
+    if (adventure.currentRoom === 'attic') {
+      if (isAtticBasementRouteRevealed(adventure)) return 'The recorder output drops through the floor. The machine is below.';
+      if (isAtticExperimentRevealed(adventure)) return 'SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment.';
+      const logSeen = isAtticLogInspected(adventure);
+      const sensorsSeen = isAtticSensorsInspected(adventure);
+      if (logSeen && sensorsSeen) return 'Bedroom. Television. Power. Mirror. The readings all belong to the same experiment.';
+      if (isAtticRecorderFocused(adventure)) return 'The recorder has fragments, but the labels mean nothing yet.';
+      if (logSeen) return 'The log lists resonance spikes beside rooms I have already crossed.';
+      if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
+      return 'Old storage. New cables. Someone turned the attic into an observation post.';
+    }
+    if (adventure.currentRoom === 'laboratory') {
+      const phase = getLaboratoryEncounterPhase(adventure);
+      if (phase === 'dormant') return 'The feed ends here. The Resonator is the source. Someone is still at the controls.';
+      if (phase === 'vesper-control') return 'Vesper seals the controls. Break his hold on the machine.';
+      if (phase === 'resonator') return 'The control link is broken. The Resonator is running away on its own.';
+      if (phase === 'nightmare') return 'The Resonator turned Vesper into the thing it was feeding.';
+      if (phase === 'shutdown') return 'Vesper is down. Shut the Resonator off before it can recover.';
+      return 'The Resonator is silent. Whatever happens next is outside the machine.';
+    }
+    if (adventure.currentRoom === 'basement') {
+      if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
+      if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. Safeguards are bypassed. Control continues beyond the Basement.';
+      if (isBasementControlRevealed(adventure)) return 'Resonance load is above the safe line. The system is still climbing.';
+      if (isBasementTerminalFocused(adventure) && !isBasementPowerStabilized(adventure)) return 'The control terminal is dark. The unstable feed cannot hold a reading.';
+      if (isBasementPowerStabilized(adventure)) return 'The relay holds. The control terminal finally has a readable signal.';
+      if (isBasementFaultTraced(adventure)) return 'The cyan feed is arcing into the old utility line. The relay can isolate it.';
+      if (isBasementRelayProbed(adventure)) return 'The relay has no useful reading yet. Trace the live conduit first.';
+      return 'The Attic cable ends here, grafted into the house utilities.';
+    }
+    if (isLivingRoomPathRevealed(adventure)) return 'The clock runs backward. A door at the far end just clicked.';
+    return 'This hallway feels longer than it should.';
+  }
   if (session.objective.phase === 'completed') return 'Out. Barely.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
@@ -174,7 +390,7 @@ const styles = StyleSheet.create({
   hp: { color: '#ff7b82', fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
   meter: { width: 45 },
   label: { color: '#c9bdba', fontFamily: 'monospace', fontSize: 4, fontWeight: '900' },
-  prompt: { position: 'absolute', bottom: 7, left: '31%', right: '31%', minHeight: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(29,25,40,0.78)' },
+  prompt: { position: 'absolute', bottom: 7, left: '28%', right: '28%', minHeight: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(29,25,40,0.82)' },
   promptText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
   reaction: { minHeight: 18, color: '#f5e9d2', fontFamily: 'monospace', fontSize: 8, fontWeight: '800', textAlign: 'center' },
   controls: { flexDirection: 'row', gap: 7 },

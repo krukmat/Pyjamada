@@ -84,3 +84,38 @@ test('the real maestro flow and runner script agree today', () => {
   const result = diffScreenshotContract(yamlNames, runnerNames);
   assert.deepEqual(describeProblems(result), []);
 });
+
+
+test('the real screenshot contract includes the five Laboratory acceptance frames', () => {
+  const yamlNames = extractYamlScreenshotNames(fs.readFileSync(YAML_PATH, 'utf8'));
+  const runnerNames = extractRunnerScreenshotNames(fs.readFileSync(RUNNER_PATH, 'utf8'));
+  const expectedLaboratoryEvidence = [
+    '38_laboratory_arrival.png',
+    '39_vesper_control.png',
+    '40_resonator_runaway.png',
+    '41_vesper_nightmare.png',
+    '42_resonator_shutdown.png',
+  ];
+
+  assert.equal(yamlNames.length, 46);
+  assert.equal(runnerNames.length, 46);
+  assert.deepEqual(yamlNames.slice(37, 42), expectedLaboratoryEvidence);
+  assert.deepEqual(runnerNames.slice(37, 42), expectedLaboratoryEvidence);
+});
+
+
+test('the real screenshot contract includes the complete ending evidence set', () => {
+  const yamlNames = extractYamlScreenshotNames(fs.readFileSync(YAML_PATH, 'utf8'));
+  const runnerNames = extractRunnerScreenshotNames(fs.readFileSync(RUNNER_PATH, 'utf8'));
+  const expectedEndingEvidence = [
+    '43_ending_awakening.png',
+    '44_ending_evidence.png',
+    '45_ending_ghost_sting.png',
+    '46_ending_credits.png',
+  ];
+
+  assert.equal(yamlNames.length, 46);
+  assert.equal(runnerNames.length, 46);
+  assert.deepEqual(yamlNames.slice(-4), expectedEndingEvidence);
+  assert.deepEqual(runnerNames.slice(-4), expectedEndingEvidence);
+});

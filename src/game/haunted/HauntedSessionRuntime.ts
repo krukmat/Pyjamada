@@ -99,7 +99,9 @@ export function createHauntedSession(runId = 'haunted-run'): HauntedSessionState
 }
 
 export function stepHauntedSession(state: HauntedSessionState, deltaMs: number): HauntedSessionStep {
-  if (state.objective.phase === 'completed' || state.objective.phase === 'failed') return { state, events: [] };
+  if (state.objective.phase === 'completed' || state.objective.phase === 'failed') {
+    return { state, events: [] };
+  }
 
   const dtMs = Math.max(0, deltaMs);
   const dtSeconds = dtMs / 1000;
