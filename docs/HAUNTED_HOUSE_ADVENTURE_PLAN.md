@@ -18,7 +18,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
 | W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
 | W6 — Laboratory | **CLOSED — T0–T9 COMPLETE** | Gameplay and Android visual acceptance complete |
-| W7 — Ending/Cohesion | **ACTIVE — T0–T8 COMPLETE / T9 PENDING** | Ending implemented; Android acceptance pending |
+| W7 — Ending/Cohesion | **CLOSED — T0–T9 COMPLETE** | Ending and Android acceptance complete |
 
 Implementation/task checkpoints:
 - `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`
@@ -343,7 +343,7 @@ Architecture constraints:
 
 Detailed checkpoint: `docs/W6_LABORATORY_TASKS.md`.
 
-### W7 — Ending and Cohesion — ACTIVE
+### W7 — Ending and Cohesion — CLOSED
 
 **Goal:** finish the product after the whole adventure is playable.
 
@@ -513,23 +513,17 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W7 final Android acceptance.**
+**Haunted House Adventure scope complete through W7.**
 
-Automated implementation/hardening is complete and green.
+Final accepted Android evidence set contains **46 screenshots**.
 
-Run locally:
-
-```bash
-npm run screenshots:android
-```
-
-Expected new evidence:
+Ending acceptance:
 
 ```text
-43_ending_awakening.png
-44_ending_evidence.png
-45_ending_ghost_sting.png
-46_ending_credits.png
+43_ending_awakening.png     PASS
+44_ending_evidence.png      PASS
+45_ending_ghost_sting.png   PASS
+46_ending_credits.png       PASS
 ```
 
-W7 closes only after these four frames are reviewed and accepted.
+W6 Laboratory and W7 Ending/Cohesion are both closed.

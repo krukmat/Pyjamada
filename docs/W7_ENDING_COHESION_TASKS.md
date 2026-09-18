@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T8 COMPLETE / T9 ANDROID ACCEPTANCE PENDING**
+**CLOSED — T0–T9 COMPLETE**
 
 W6 is closed at the persisted `laboratory-encounter-complete` boundary.
 
@@ -143,7 +143,7 @@ TypeScript                     PASS
 Static architecture audit      PASS
 ```
 
-### W7-T9 — Final Android acceptance — PREPARED / DEVICE RUN PENDING
+### W7-T9 — Final Android acceptance — COMPLETE
 
 Deterministic evidence is prepared:
 
@@ -154,17 +154,16 @@ Deterministic evidence is prepared:
 46_ending_credits.png
 ```
 
-The full Android screenshot contract now expects exactly **46 PNGs**.
+The full Android screenshot contract expects exactly **46 PNGs**.
 
-Acceptance must confirm:
-- awakening reads as a normal-but-not-quite-normal Bedroom;
-- burned sensor tag is visually discoverable;
-- Ghost sting reads immediately without resembling active combat;
-- credits screen is legible and clearly terminal;
-- frames 1–42 remain visually intact.
+Accepted Android evidence:
+- `43_ending_awakening.png` — PASS: normal-but-not-quite-normal Bedroom, clear morning-after framing;
+- `44_ending_evidence.png` — PASS: burned sensor tag remains visually discoverable and the physical-evidence payoff reads clearly;
+- `45_ending_ghost_sting.png` — PASS: Ghost face is immediate, readable and clearly non-combat;
+- `46_ending_credits.png` — PASS: terminal credits/lifecycle screen is legible with clear Play Again / Back to Menu actions.
+
+The complete 46-frame Android set was produced successfully and frames 1–42 remained present.
 
 ## Current execution boundary
 
-**Run `npm run screenshots:android` locally and review screenshots 43–46.**
-
-W7 is not closed until that device gate passes.
+**W7 CLOSED. Haunted House Adventure ending/cohesion scope is complete.**
