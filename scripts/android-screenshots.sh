@@ -59,6 +59,10 @@ EXPECTED_SCREENSHOTS=(
   "40_resonator_runaway.png"
   "41_vesper_nightmare.png"
   "42_resonator_shutdown.png"
+  "43_ending_awakening.png"
+  "44_ending_evidence.png"
+  "45_ending_ghost_sting.png"
+  "46_ending_credits.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published

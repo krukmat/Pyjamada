@@ -550,3 +550,55 @@ tags:
 - assertVisible: "RESONATOR SHUT DOWN"
 - takeScreenshot:
     path: 42_resonator_shutdown
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-awakening
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "PYJAMADA · MORNING AFTER"
+- assertVisible: "CHECK WHAT CAME BACK"
+- takeScreenshot:
+    path: 43_ending_awakening
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-evidence
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "CHECK THE WINDOW"
+- assertVisible: "The burned sensor tag is real. So was the Laboratory."
+- takeScreenshot:
+    path: 44_ending_evidence
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-ghost-sting
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "THE HOUSE IS QUIET. PROBABLY."
+- assertVisible: "A tiny face grins from the glass. Of course."
+- takeScreenshot:
+    path: 45_ending_ghost_sting
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-ending-credits
+- extendedWaitUntil:
+    visible:
+      id: ending-screen
+    timeout: 5000
+- assertVisible: "GOOD MORNING, WALLY."
+- assertVisible: "PLAY AGAIN"
+- takeScreenshot:
+    path: 46_ending_credits

@@ -102,3 +102,20 @@ test('the real screenshot contract includes the five Laboratory acceptance frame
   assert.deepEqual(yamlNames.slice(-5), expectedLaboratoryEvidence);
   assert.deepEqual(runnerNames.slice(-5), expectedLaboratoryEvidence);
 });
+
+
+test('the real screenshot contract includes the complete ending evidence set', () => {
+  const yamlNames = extractYamlScreenshotNames(fs.readFileSync(YAML_PATH, 'utf8'));
+  const runnerNames = extractRunnerScreenshotNames(fs.readFileSync(RUNNER_PATH, 'utf8'));
+  const expectedEndingEvidence = [
+    '43_ending_awakening.png',
+    '44_ending_evidence.png',
+    '45_ending_ghost_sting.png',
+    '46_ending_credits.png',
+  ];
+
+  assert.equal(yamlNames.length, 46);
+  assert.equal(runnerNames.length, 46);
+  assert.deepEqual(yamlNames.slice(-4), expectedEndingEvidence);
+  assert.deepEqual(runnerNames.slice(-4), expectedEndingEvidence);
+});

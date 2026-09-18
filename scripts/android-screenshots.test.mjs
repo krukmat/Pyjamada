@@ -28,6 +28,8 @@ const EXPECTED = [
   '36_basement_control_reveal.png', '37_laboratory_boundary.png',
   '38_laboratory_arrival.png', '39_vesper_control.png', '40_resonator_runaway.png',
   '41_vesper_nightmare.png', '42_resonator_shutdown.png',
+  '43_ending_awakening.png', '44_ending_evidence.png',
+  '45_ending_ghost_sting.png', '46_ending_credits.png',
 ];
 
 function writeExecutable(filePath, script) {
