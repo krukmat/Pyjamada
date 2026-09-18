@@ -128,9 +128,6 @@ void test('W6 T1 supports production Basement -> Laboratory -> Basement navigati
   equal(basement.state.currentEntry, 'basement-from-laboratory', 'return uses dedicated Basement entry');
 });
 
-console.log('W6 Laboratory foundation tests passed');
-
-
 void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => {
   const base = setupBasement('w6-lab-combat');
   let adventure = setRoomSwitch(base.adventure, 'basement', 'basement-loss-of-control-revealed', true);
@@ -160,6 +157,7 @@ void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => 
   equal(fired.session.combat.projectiles.length, 1, 'Laboratory attack reuses Dream Spark projectile creation');
   equal(fired.session.domestic.noise, noiseBefore, 'Laboratory Dream Spark does not reactivate domestic noise');
   equal(fired.session.threats.ghosts.length, 0, 'Laboratory combat bridge does not reactivate Ghost spawning');
+  equal(fired.session.combat.hp, labSession.combat.hp, 'Basement electrical hazard cannot leak damage into Laboratory');
   equal(fired.session.elapsedMs, elapsedBefore + 33, 'Laboratory advances only the combat clock needed by cooldowns');
 
   const firstX = fired.session.combat.projectiles[0]?.x ?? 0;
@@ -184,3 +182,5 @@ void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => 
   equal(cleared.session.combat.projectiles.length, 0, 'leaving Laboratory clears transient exploration projectiles');
   equal(isLaboratoryCombatEnabled(back.state), false, 'combat bridge is disabled again outside Laboratory');
 });
+
+console.log('W6 Laboratory foundation tests passed');

@@ -269,7 +269,7 @@ export function stepAdventureExploration(
   }
 
   const hazard = resolveBasementElectricalHazard(nextAdventure, elapsedMs);
-  if (hazard.dangerous && isInsideBasementElectricalHazard(player.x) && objective.phase !== 'failed') {
+  if (adventure.currentRoom === 'basement' && hazard.dangerous && isInsideBasementElectricalHazard(player.x) && objective.phase !== 'failed') {
     const hit = applyHauntedPlayerHit(combat, elapsedMs);
     combat = hit.combat;
     if (hit.accepted) {
