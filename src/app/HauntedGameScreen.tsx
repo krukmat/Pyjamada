@@ -173,6 +173,7 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
   if (roomId === 'bathroom') return 'HAUNTED HOUSE · BATHROOM';
   if (roomId === 'attic') return 'HAUNTED HOUSE · ATTIC';
   if (roomId === 'basement') return 'HAUNTED HOUSE · BASEMENT';
+  if (roomId === 'laboratory') return 'HAUNTED HOUSE · LABORATORY';
   return 'HAUNTED HOUSE · BEDROOM';
 }
 
@@ -203,6 +204,7 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (logSeen || sensorsSeen) return 'CONNECT THE EVIDENCE';
       return 'SEARCH THE ATTIC';
     }
+    if (adventure.currentRoom === 'laboratory') return 'APPROACH THE RESONATOR';
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'LABORATORY ROUTE IDENTIFIED';
       if (isBasementLossOfControlRevealed(adventure)) return 'TRACE THE LAB FEED';
@@ -283,6 +285,7 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
+    if (adventure.currentRoom === 'laboratory') return 'The feed ends here. The Resonator is the source. Someone is still at the controls.';
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
       if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. Safeguards are bypassed. Control continues beyond the Basement.';

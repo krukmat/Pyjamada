@@ -24,6 +24,7 @@ import {
 } from './IllustratedBedroomScene';
 import { IllustratedObject } from './IllustratedObject';
 import { KitchenPresentation } from './KitchenPresentation';
+import { LaboratoryPresentation } from './LaboratoryPresentation';
 import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 
@@ -98,6 +99,17 @@ export function RoomPresentation(props: Props) {
     case 'attic':
       return (
         <AtticPresentation
+          adventure={props.adventure}
+          hauntedSession={props.hauntedSession}
+          playerX={props.playerX}
+          playerY={props.playerY}
+          nowMs={props.nowMs}
+          px={props.px}
+        />
+      );
+    case 'laboratory':
+      return (
+        <LaboratoryPresentation
           adventure={props.adventure}
           hauntedSession={props.hauntedSession}
           playerX={props.playerX}
