@@ -18,7 +18,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
 | W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
 | W6 — Laboratory | **CLOSED — T0–T9 COMPLETE** | Gameplay and Android visual acceptance complete |
-| W7 — Ending/Cohesion | Planned | Product hardening |
+| W7 — Ending/Cohesion | **ACTIVE — T0–T8 COMPLETE / T9 PENDING** | Ending implemented; Android acceptance pending |
 
 Implementation/task checkpoints:
 - `docs/W0_ADVENTURE_FOUNDATION_TASKS.md`
@@ -30,6 +30,7 @@ Implementation/task checkpoints:
 - `docs/W4_ATTIC_REVELATION_TASKS.md`
 - `docs/W5_BASEMENT_TASKS.md`
 - `docs/W6_LABORATORY_TASKS.md`
+- `docs/W7_ENDING_COHESION_TASKS.md`
 
 ## Narrative spine
 
@@ -342,19 +343,27 @@ Architecture constraints:
 
 Detailed checkpoint: `docs/W6_LABORATORY_TASKS.md`.
 
-### W7 — Ending and Cohesion — PLANNED
+### W7 — Ending and Cohesion — ACTIVE
 
 **Goal:** finish the product after the whole adventure is playable.
 
-Scope:
-- final awakening sequence;
-- physical evidence events were real;
-- final small Ghost sting;
-- credits/retry/continue;
-- audio/animation polish;
-- visual consistency;
-- accessibility;
-- performance and release hardening.
+Implemented:
+- automatic post-Laboratory fade into the morning-after Bedroom;
+- persistent awakening/evidence/Ghost-sting/complete ending contract;
+- visible burned sensor tag proving the experiment was physical;
+- final non-combat Ghost sting at the Window;
+- terminal credits screen;
+- completed-save lifecycle via `VIEW ENDING`;
+- clean Play Again behavior;
+- deterministic ending evidence and 46-frame Android capture contract;
+- accessibility/readability and save-boundary hardening.
+
+No speculative audio subsystem was introduced because the current repository has no audio runtime/assets to polish.
+
+Remaining gate:
+- local Android capture and visual acceptance for frames 43–46.
+
+Detailed checkpoint: `docs/W7_ENDING_COHESION_TASKS.md`.
 
 ## Cross-cutting architecture
 
@@ -504,27 +513,23 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W7 — Ending / post-Laboratory resolution.**
+**W7 final Android acceptance.**
 
-W6 is closed after Android acceptance of the complete Laboratory arc:
+Automated implementation/hardening is complete and green.
 
-```text
-Laboratory arrival
-        ↓
-Vesper control
-        ↓
-Resonator runaway
-        ↓
-Vesper Nightmare
-        ↓
-Resonator shutdown
+Run locally:
+
+```bash
+npm run screenshots:android
 ```
 
-Accepted Android evidence:
-- `38_laboratory_arrival.png`
-- `39_vesper_control.png`
-- `40_resonator_runaway.png`
-- `41_vesper_nightmare.png`
-- `42_resonator_shutdown.png`
+Expected new evidence:
 
-W7 may now begin from the persisted `laboratory-encounter-complete` boundary.
+```text
+43_ending_awakening.png
+44_ending_evidence.png
+45_ending_ghost_sting.png
+46_ending_credits.png
+```
+
+W7 closes only after these four frames are reviewed and accepted.
