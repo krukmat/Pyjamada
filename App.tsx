@@ -11,6 +11,7 @@ import { MainMenu } from './src/app/MainMenu';
 import type { RoomTransitionPhase } from './src/app/RoomTransitionOverlay';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
+import { EndingScreen } from './src/app/EndingScreen';
 import { isTestHooksEnabled } from './src/app/testHooks';
 import {
   applyFalseEscape,
@@ -19,6 +20,12 @@ import {
   stepAdventureExploration,
   type AdventureExplorationEvent,
 } from './src/game/adventure/AdventureExplorationRuntime';
+import {
+  beginAdventureEnding,
+  completeAdventureEnding,
+  isAdventureEndingComplete,
+  shouldBeginAdventureEnding,
+} from './src/game/adventure/AdventureEnding';
 import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/adventure/AdventureSaveCoordinator';
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
@@ -36,7 +43,7 @@ import { DEFAULT_GAME_SETTINGS, type GameSettings, type GameSettingsPatch } from
 import { LoadGameSettingsUseCase } from './src/settings/usecases/LoadGameSettingsUseCase';
 import { UpdateGameSettingsUseCase } from './src/settings/usecases/UpdateGameSettingsUseCase';
 
-type AppView = 'menu' | 'settings' | 'game';
+type AppView = 'menu' | 'settings' | 'game' | 'ending';
 type SettingsPatchFactory = (current: GameSettings) => GameSettingsPatch;
 type TransitionRequest = Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }>;
 
@@ -48,6 +55,7 @@ export default function App() {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [busy, setBusy] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
+  const [completedRun, setCompletedRun] = useState(false);
 
   const sessionRef = useRef<HauntedSessionState | null>(null);
   const adventureRef = useRef<AdventureState>(createAdventureState());
@@ -74,12 +82,14 @@ export default function App() {
       .then(([saved, settings]) => {
         if (!active) return;
         setCanContinue(saved.status === 'ok');
+        setCompletedRun(saved.status === 'ok' && isAdventureEndingComplete(saved.state.adventure));
         settingsRef.current = settings;
         setGameSettings(settings);
       })
       .catch(() => {
         if (!active) return;
         setCanContinue(false);
+        setCompletedRun(false);
         settingsRef.current = DEFAULT_GAME_SETTINGS;
         setGameSettings(DEFAULT_GAME_SETTINGS);
       });
@@ -131,6 +141,11 @@ export default function App() {
         activateSession(nextSession);
         if (nextAdventure !== currentAdventure) activateAdventure(nextAdventure);
 
+        if (shouldBeginAdventureEnding(nextAdventure)) {
+          beginEndingTransition(nextSession, nextAdventure);
+          return;
+        }
+
         const transition = events.find((event): event is TransitionRequest => event.type === 'ROOM_TRANSITION_REQUESTED');
         if (transition) {
           beginRoomTransition(nextSession, nextAdventure, transition);
@@ -181,7 +196,9 @@ export default function App() {
           || event.type === 'LABORATORY_RESONATOR_DESTABILIZED'
           || event.type === 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'
           || event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED'
-          || event.type === 'LABORATORY_ENCOUNTER_COMPLETED')) {
+          || event.type === 'LABORATORY_ENCOUNTER_COMPLETED'
+          || event.type === 'ENDING_EVIDENCE_CONFIRMED'
+          || event.type === 'ENDING_GHOST_STING_REVEALED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
@@ -267,6 +284,16 @@ export default function App() {
     });
   }
 
+  function beginEndingTransition(currentSession: HauntedSessionState, currentAdventure: AdventureState) {
+    runRoomFade(() => {
+      const started = beginAdventureEnding(currentSession, currentAdventure);
+      resetRuntimeClocks();
+      activateAdventure(started.adventure);
+      activateSession(started.session);
+      void saveCoordinator.persist(gameState(started.session, started.adventure), 'milestone').catch(() => undefined);
+    });
+  }
+
   function beginRoomTransition(currentSession: HauntedSessionState, currentAdventure: AdventureState, request: TransitionRequest) {
     runRoomFade(() => {
       adventureCoordinatorRef.current.restore(currentAdventure);
@@ -313,6 +340,7 @@ export default function App() {
       resetRuntimeClocks();
       activateGameSession(next);
       setCanContinue(true);
+      setCompletedRun(false);
       setView('game');
     } catch {
       Alert.alert('New game unavailable', 'The haunted run could not be initialized.');
@@ -337,16 +365,22 @@ export default function App() {
         Alert.alert('Saved game unavailable', 'The save is incompatible or corrupted. Start a new run to replace it.');
         return;
       }
-      const restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure)
+      let restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure)
         ? gameState(restoreLaboratoryCheckpoint(result.state.haunted, result.state.adventure), result.state.adventure)
         : result.state;
+      if (shouldBeginAdventureEnding(restoredState.adventure)) {
+        const started = beginAdventureEnding(restoredState.haunted, restoredState.adventure);
+        restoredState = gameState(started.session, started.adventure);
+      }
       saveCoordinator.markRestored(restoredState);
       resetRuntimeClocks();
       activateGameSession(restoredState);
       if (restoredState !== result.state) {
         await saveCoordinator.persist(restoredState, 'milestone').catch(() => undefined);
       }
-      setView('game');
+      const endingComplete = isAdventureEndingComplete(restoredState.adventure);
+      setCompletedRun(endingComplete);
+      setView(endingComplete ? 'ending' : 'game');
     } catch {
       Alert.alert('Continue unavailable', 'The saved haunted run could not be read from device storage.');
     } finally {
@@ -370,6 +404,27 @@ export default function App() {
     if (!exploration && current.objective.phase === 'completed') return;
     if (exploration && control === 'attack' && !isLaboratoryCombatEnabled(adventureRef.current)) return;
     activateSession({ ...current, input: pressAction(current.input, control) });
+  }
+
+  async function handleFinishEnding() {
+    leaveScreenshotMode();
+    clearTransitionTimers();
+    const current = sessionRef.current;
+    if (!current) return;
+    const nextAdventure = completeAdventureEnding(adventureRef.current);
+    if (nextAdventure === adventureRef.current) return;
+
+    activateAdventure(nextAdventure);
+    resetRuntimeClocks();
+    const completed = gameState(current, nextAdventure);
+    try {
+      await saveCoordinator.persist(completed, 'terminal');
+      setCanContinue(true);
+      setCompletedRun(true);
+      setView('ending');
+    } catch {
+      Alert.alert('Ending not saved', 'The ending completed, but the final save could not be persisted.');
+    }
   }
 
   async function handleRestart() {
@@ -449,6 +504,7 @@ export default function App() {
         <MainMenu
           busy={busy}
           canContinue={canContinue}
+          completedRun={completedRun}
           onContinue={() => void handleContinue()}
           onNewGame={() => void handleNewGame(false)}
           onSettings={() => setView('settings')}
@@ -464,6 +520,12 @@ export default function App() {
           onToggleControlLayout={() => queueSettingsChange((current) => ({ touchControlLayout: current.touchControlLayout === 'standard' ? 'mirrored' : 'standard' }))}
         />
       )}
+      {view === 'ending' && (
+        <EndingScreen
+          onPlayAgain={() => void handleNewGame(true)}
+          onMenu={() => setView('menu')}
+        />
+      )}
       {view === 'game' && session !== null && (
         <HauntedGameScreen
           session={session}
@@ -474,6 +536,7 @@ export default function App() {
           onHeldControl={handleHeldControl}
           onAction={handleAction}
           onRestart={() => void handleRestart()}
+          onFinishEnding={() => void handleFinishEnding()}
           onExit={() => void handleExit()}
         />
       )}

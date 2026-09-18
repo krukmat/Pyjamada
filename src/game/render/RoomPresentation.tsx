@@ -1,5 +1,6 @@
 import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
+import { getAdventureEndingPhase, isAdventureEndingActive } from '../adventure/AdventureEnding';
 import { getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
 import { findActiveRoom } from '../adventure/RoomRegistry';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
@@ -136,8 +137,10 @@ export function RoomPresentation(props: Props) {
 }
 
 function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEvents, size, playerX, playerY, nowMs, scale, px }: Props) {
-  const altered = adventure?.storyFlags.bedroomEscapeAttempted === true;
-  const target = altered ? undefined : roomInteractionTarget('bedroom', state);
+  const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
+  const endingActive = Boolean(adventure && isAdventureEndingActive(adventure)) || endingPhase === 'complete';
+  const altered = adventure?.storyFlags.bedroomEscapeAttempted === true && !endingActive;
+  const target = altered || endingActive ? undefined : roomInteractionTarget('bedroom', state);
   const objects = SYSTEMIC_OBJECT_IDS.map((objectId) => ({
     objectId,
     visual: resolveObjectVisualFrame(state, objectId, activeVisualEvents, nowMs),
@@ -153,7 +156,7 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
       {hauntedSession && (
         <HauntedExitDoor
           px={px}
-          ready={altered || hauntedSession.objective.phase === 'escape-ready' || hauntedSession.objective.phase === 'completed'}
+          ready={!endingActive && (altered || hauntedSession.objective.phase === 'escape-ready' || hauntedSession.objective.phase === 'completed')}
           pulse={Math.floor(nowMs / 140) % 2}
         />
       )}
@@ -164,6 +167,21 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
           <Rect x={px(105)} y={px(101)} width={px(20)} height={px(2)} color="rgba(91,238,255,0.22)" />
           <Circle cx={px(92)} cy={px(31)} r={px(1.3)} color="rgba(248,218,118,0.72)" />
           <Circle cx={px(38)} cy={px(45)} r={px(1)} color="rgba(91,238,255,0.58)" />
+        </>
+      )}
+      {endingActive && (
+        <>
+          <RoundedRect x={px(51)} y={px(96)} width={px(10)} height={px(5)} r={px(1.5)} color="#2c2727" />
+          <Rect x={px(53)} y={px(97)} width={px(6)} height={px(1)} color="rgba(121,232,255,0.72)" />
+          <Circle cx={px(59)} cy={px(99)} r={px(0.8)} color="#ff5d69" />
+          {(endingPhase === 'ghost-sting' || endingPhase === 'complete') && (
+            <>
+              <Circle cx={px(108)} cy={px(34)} r={px(5.5)} color="rgba(24,20,35,0.86)" />
+              <RoundedRect x={px(103)} y={px(38)} width={px(10)} height={px(8)} r={px(4)} color="rgba(35,27,48,0.82)" />
+              <Circle cx={px(106)} cy={px(33)} r={px(0.9)} color="#fff1a8" />
+              <Circle cx={px(110)} cy={px(33)} r={px(0.9)} color="#79e8ff" />
+            </>
+          )}
         </>
       )}
       {target && (

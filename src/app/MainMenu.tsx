@@ -5,6 +5,7 @@ import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 type Props = {
   busy: boolean;
   canContinue: boolean;
+  completedRun: boolean;
   onContinue: () => void;
   onNewGame: () => void;
   onSettings: () => void;
@@ -12,7 +13,7 @@ type Props = {
 
 type MenuTier = 'primary' | 'secondary';
 
-export function MainMenu({ busy, canContinue, onContinue, onNewGame, onSettings }: Props) {
+export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGame, onSettings }: Props) {
   return (
     <View testID="main-menu-screen" style={styles.container}>
       <View style={styles.backdropStripeA} />
@@ -38,7 +39,7 @@ export function MainMenu({ busy, canContinue, onContinue, onNewGame, onSettings 
         </View>
 
         <Text style={styles.sectionLabel}>SELECT RUN</Text>
-        <MenuButton testID="continue-button" label="CONTINUE" tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
+        <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
         {!canContinue && !busy && <Text style={styles.disabledHint}>NO SAVE YET — START SOMETHING MESSY</Text>}
         <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={onNewGame} />
         <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />

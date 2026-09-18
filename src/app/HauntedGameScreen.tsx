@@ -31,6 +31,10 @@ import {
   isLivingRoomSourceCueRevealed,
   isLivingRoomTvActivated,
 } from '../game/adventure/AdventureExplorationRuntime';
+import {
+  getAdventureEndingPhase,
+  isAdventureEndingActive,
+} from '../game/adventure/AdventureEnding';
 import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
 import { getLaboratoryEncounterPhase, isLaboratoryEncounterActive } from '../game/adventure/LaboratoryEncounter';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
@@ -56,6 +60,7 @@ type Props = {
   onHeldControl: (control: HauntedHeldControl, pressed: boolean) => void;
   onAction: (control: HauntedActionControl) => void;
   onRestart: () => void;
+  onFinishEnding: () => void;
   onExit: () => void;
 };
 
@@ -68,6 +73,7 @@ export function HauntedGameScreen({
   onHeldControl,
   onAction,
   onRestart,
+  onFinishEnding,
   onExit,
 }: Props) {
   const { width } = useWindowDimensions();
@@ -87,6 +93,8 @@ export function HauntedGameScreen({
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
   const testHooksEnabled = isTestHooksEnabled();
   const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
+  const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
+  const endingActive = Boolean(adventure && isAdventureEndingActive(adventure));
   const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
   const laboratoryRetry = Boolean(adventure && adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure));
 
@@ -118,7 +126,7 @@ export function HauntedGameScreen({
 
         <View pointerEvents="none" style={styles.hud}>
           <View>
-            <Text style={styles.kicker}>{kickerFor(roomId, exploration)}</Text>
+            <Text style={styles.kicker}>{endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
             <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           </View>
           {!exploration && (
@@ -143,17 +151,31 @@ export function HauntedGameScreen({
       <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session, adventure)}</Text>
 
       {!done ? (
-        <>
-          <View style={styles.controls}>
-            {touchControlLayout === 'standard' ? left : right}
-            {touchControlLayout === 'standard' ? right : left}
-            <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
-          </View>
-          <View style={styles.controls}>
-            {(!exploration || laboratoryCombat) && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
-            <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
-          </View>
-        </>
+        endingPhase === 'ghost-sting' ? (
+          <TapControl testID="ending-finish-button" label="END NIGHT" accent onPress={onFinishEnding} />
+        ) : endingActive ? (
+          <>
+            <View style={styles.controls}>
+              {touchControlLayout === 'standard' ? left : right}
+              {touchControlLayout === 'standard' ? right : left}
+            </View>
+            <View style={styles.controls}>
+              <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.controls}>
+              {touchControlLayout === 'standard' ? left : right}
+              {touchControlLayout === 'standard' ? right : left}
+              <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
+            </View>
+            <View style={styles.controls}>
+              {(!exploration || laboratoryCombat) && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
+              <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
+            </View>
+          </>
+        )
       ) : (
         <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : 'TRY AGAIN'} accent onPress={onRestart} />
       )}
@@ -182,6 +204,12 @@ function kickerFor(roomId: RoomId, exploration: boolean): string {
 }
 
 function objectiveFor(session: HauntedSessionState, adventure?: AdventureState): string {
+  if (adventure) {
+    const ending = getAdventureEndingPhase(adventure);
+    if (ending === 'awakening') return 'CHECK WHAT CAME BACK';
+    if (ending === 'evidence') return 'CHECK THE WINDOW';
+    if (ending === 'ghost-sting') return 'THE HOUSE IS QUIET. PROBABLY.';
+  }
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'FIND ANOTHER WAY OUT';
     if (adventure.currentRoom === 'living-room') {
@@ -263,6 +291,12 @@ function TapControl({ testID, label, onPress, accent = false }: { testID: string
 }
 
 function reactionFor(session: HauntedSessionState, adventure?: AdventureState): string {
+  if (adventure) {
+    const ending = getAdventureEndingPhase(adventure);
+    if (ending === 'awakening') return 'Morning again. The room looks normal. Almost.';
+    if (ending === 'evidence') return 'The burned sensor tag is real. So was the Laboratory.';
+    if (ending === 'ghost-sting') return 'A tiny face grins from the glass. Of course.';
+  }
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'That door did not lead outside. The room is wrong.';
     if (adventure.currentRoom === 'living-room') {
