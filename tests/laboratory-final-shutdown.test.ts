@@ -127,11 +127,11 @@ function withProjectile(
   };
 }
 
-function completeW6(runId: string): { session: HauntedSessionState; adventure: AdventureState } {
+function completeLaboratoryEncounterFlow(runId: string): { session: HauntedSessionState; adventure: AdventureState } {
   const entered = enterLaboratory(runId);
 
   const started = stepAdventureExploration(at(entered.session, 76), entered.adventure, 33);
-  equal(getLaboratoryEncounterPhase(started.adventure), 'vesper-control', 'W6 integration starts at Vesper control');
+  equal(getLaboratoryEncounterPhase(started.adventure), 'vesper-control', 'integration starts at Vesper control');
 
   const rightControl = stepAdventureExploration(
     withProjectile(started.session, 700, VESPER_CONTROL_DEVICES.right.x, VESPER_CONTROL_DEVICES.right.y, 90),
@@ -143,7 +143,7 @@ function completeW6(runId: string): { session: HauntedSessionState; adventure: A
     rightControl.adventure,
     33,
   );
-  equal(getLaboratoryEncounterPhase(leftControl.adventure), 'resonator', 'T5 hands integration to Resonator');
+  equal(getLaboratoryEncounterPhase(leftControl.adventure), 'resonator', 'Vesper control phase hands integration to Resonator');
 
   const leftNode = stepAdventureExploration(
     withProjectile(leftControl.session, 500, RESONATOR_WEAK_POINTS.left.x, RESONATOR_WEAK_POINTS.left.y, 40),
@@ -155,7 +155,7 @@ function completeW6(runId: string): { session: HauntedSessionState; adventure: A
     leftNode.adventure,
     33,
   );
-  equal(getLaboratoryEncounterPhase(rightNode.adventure), 'nightmare', 'T6 hands integration to Nightmare');
+  equal(getLaboratoryEncounterPhase(rightNode.adventure), 'nightmare', 'Resonator phase hands integration to Nightmare');
 
   const hit1 = stepAdventureExploration(
     withProjectile(rightNode.session, 1_000, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
@@ -172,25 +172,25 @@ function completeW6(runId: string): { session: HauntedSessionState; adventure: A
     hit2.adventure,
     33,
   );
-  equal(getLaboratoryEncounterPhase(hit3.adventure), 'shutdown', 'T7 hands integration to shutdown');
+  equal(getLaboratoryEncounterPhase(hit3.adventure), 'shutdown', 'Nightmare phase hands integration to shutdown');
 
   const shutdownTarget = findAdventureInteractionTarget(hit3.adventure, 76);
   equal(shutdownTarget?.id, 'laboratory-resonator-shutdown', 'shutdown exposes one explicit Resonator action');
   equal(shutdownTarget?.displayLabel, 'SHUT DOWN RESONATOR', 'shutdown action has final player-facing label');
 
   const completed = stepAdventureExploration(at(hit3.session, 76), hit3.adventure, 33);
-  equal(getLaboratoryEncounterPhase(completed.adventure), 'complete', 'final Resonator action completes W6');
+  equal(getLaboratoryEncounterPhase(completed.adventure), 'complete', 'final Resonator action completes ');
   equal(
     completed.events.some(event => event.type === 'LABORATORY_ENCOUNTER_COMPLETED'),
     true,
-    'completion emits the persistent W7 boundary milestone',
+    'completion emits the persistent ending boundary milestone',
   );
 
   return { session: completed.session, adventure: completed.adventure };
 }
 
-void test('W6 T8 shutdown cannot be triggered before Nightmare defeat and is idempotent after completion', () => {
-  const entered = enterLaboratory('w6-t8-gating');
+void test('shutdown cannot be triggered before Nightmare defeat and is idempotent after completion', () => {
+  const entered = enterLaboratory('gating');
   equal(findAdventureInteractionTarget(entered.adventure, 76)?.id, 'laboratory-resonator', 'arrival exposes encounter start, not shutdown');
 
   let shutdown = setRoomSwitch(entered.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
@@ -205,10 +205,10 @@ void test('W6 T8 shutdown cannot be triggered before Nightmare defeat and is ide
   equal(findAdventureInteractionTarget(shutdown, 76)?.id === 'laboratory-resonator-shutdown', false, 'completed encounter hides shutdown action');
 });
 
-void test('W6 T8 integrates Laboratory entry through all three phases to persistent completion', () => {
-  const completed = completeW6('w6-t8-integration');
+void test('integrates Laboratory entry through all three phases to persistent completion', () => {
+  const completed = completeLaboratoryEncounterFlow('integration');
 
-  equal(completed.adventure.currentRoom, 'laboratory', 'W6 closes in Laboratory');
+  equal(completed.adventure.currentRoom, 'laboratory', 'closes in Laboratory');
   equal(completed.adventure.rooms.laboratory?.switches[LABORATORY_ENCOUNTER_SWITCHES.complete], true, 'completion switch persists');
   equal(completed.session.combat.projectiles.length, 0, 'completion clears Dream Sparks');
   equal(completed.session.input.attackPressed, false, 'completion consumes transient attack input');
@@ -218,8 +218,8 @@ void test('W6 T8 integrates Laboratory entry through all three phases to persist
   equal(findAdventureInteractionTarget(completed.adventure, 76)?.id === 'laboratory-resonator-shutdown', false, 'final action cannot repeat');
 });
 
-void test('W6 T8 completed Laboratory cannot reactivate attacks, hazards or transient projectiles', () => {
-  const completed = completeW6('w6-t8-clean');
+void test('completed Laboratory cannot reactivate attacks, hazards or transient projectiles', () => {
+  const completed = completeLaboratoryEncounterFlow('clean');
   const dirty: HauntedSessionState = {
     ...completed.session,
     elapsedMs: 3_300,
@@ -247,8 +247,8 @@ void test('W6 T8 completed Laboratory cannot reactivate attacks, hazards or tran
   );
 });
 
-void test('W6 T8 Save/Continue restores the completed W7 boundary without checkpoint normalization', () => {
-  const completed = completeW6('w6-t8-save');
+void test('Save/Continue restores the completed ending boundary without checkpoint normalization', () => {
+  const completed = completeLaboratoryEncounterFlow('save');
   const encoded = encodeAdventureGameSession({
     schemaVersion: 3,
     haunted: completed.session,
@@ -259,9 +259,9 @@ void test('W6 T8 Save/Continue restores the completed W7 boundary without checkp
   equal(decoded.status, 'ok', 'existing save envelope accepts completed Laboratory encounter');
   if (decoded.status !== 'ok') return;
   equal(getLaboratoryEncounterPhase(decoded.state.adventure), 'complete', 'Continue restores complete encounter phase');
-  equal(decoded.state.adventure.rooms.laboratory?.switches[LABORATORY_ENCOUNTER_SWITCHES.complete], true, 'Continue preserves W7 boundary milestone');
+  equal(decoded.state.adventure.rooms.laboratory?.switches[LABORATORY_ENCOUNTER_SWITCHES.complete], true, 'Continue preserves ending boundary milestone');
   equal(shouldUseLaboratoryCheckpoint(decoded.state.adventure), false, 'Continue does not normalize completed encounter back into a boss phase');
-  equal(decoded.state.haunted.combat.projectiles.length, 0, 'saved W7 boundary contains no transient Dream Sparks');
+  equal(decoded.state.haunted.combat.projectiles.length, 0, 'saved ending boundary contains no transient Dream Sparks');
 });
 
-console.log('W6 final shutdown integration tests passed');
+console.log('final shutdown integration tests passed');

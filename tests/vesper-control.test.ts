@@ -86,8 +86,8 @@ function withProjectile(
   };
 }
 
-void test('W6 T5 starts from a clean combat attempt after Resonator activation', () => {
-  const base = setupLaboratory('w6-t5-clean-start');
+void test('starts from a clean combat attempt after Resonator activation', () => {
+  const base = setupLaboratory('clean-start');
   const dormant = setRoomSwitch(base.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, false);
   const dirty: HauntedSessionState = {
     ...base.session,
@@ -106,8 +106,8 @@ void test('W6 T5 starts from a clean combat attempt after Resonator activation',
   equal(started.session.combat.invulnerableUntilMs > started.session.elapsedMs, true, 'activation grants a short safe-entry window');
 });
 
-void test('W6 T5 exposes alternating deterministic Vesper control windows', () => {
-  const base = setupLaboratory('w6-t5-windows');
+void test('exposes alternating deterministic Vesper control windows', () => {
+  const base = setupLaboratory('windows');
 
   const early = resolveVesperControlState(base.adventure, 200);
   equal(early.devices.right, 'telegraph', 'right control telegraphs first');
@@ -124,8 +124,8 @@ void test('W6 T5 exposes alternating deterministic Vesper control windows', () =
   equal(leftWindow.pressure.lane, 'right', 'second active pressure lane is right');
 });
 
-void test('W6 T5 blocks sealed hits and consumes the Dream Spark', () => {
-  const base = setupLaboratory('w6-t5-blocked');
+void test('blocks sealed hits and consumes the Dream Spark', () => {
+  const base = setupLaboratory('blocked');
   const target = VESPER_CONTROL_DEVICES.right;
   const session = withProjectile(base.session, 1_200, target.x);
   const stepped = stepAdventureExploration(session, base.adventure, 33);
@@ -139,8 +139,8 @@ void test('W6 T5 blocks sealed hits and consumes the Dream Spark', () => {
   );
 });
 
-void test('W6 T5 disables both controls only in valid windows and advances to Resonator phase', () => {
-  const base = setupLaboratory('w6-t5-complete');
+void test('disables both controls only in valid windows and advances to Resonator phase', () => {
+  const base = setupLaboratory('complete');
 
   const rightShot = withProjectile(
     { ...base.session, player: { ...base.session.player, x: 90 }, domestic: { ...base.session.domestic, player: { x: 90, facing: 'right' } } },
@@ -165,13 +165,13 @@ void test('W6 T5 disables both controls only in valid windows and advances to Re
   const left = stepAdventureExploration(leftShot, right.adventure, 33);
 
   equal(isVesperControlDeviceDisabled(left.adventure, 'left'), true, 'left control disables in its vulnerability window');
-  equal(getLaboratoryEncounterPhase(left.adventure), 'resonator', 'two disabled controls persist vesper-control-broken and advance to T6 phase');
+  equal(getLaboratoryEncounterPhase(left.adventure), 'resonator', 'two disabled controls persist vesper-control-broken and advance to Resonator phase');
   equal(left.events.some(event => event.type === 'LABORATORY_VESPER_CONTROL_BROKEN'), true, 'phase transition emits explicit milestone');
   equal(left.session.combat.projectiles.length, 0, 'phase transition clears stale Dream Sparks');
 });
 
-void test('W6 T5 Vesper pressure damages only the active telegraphed lane', () => {
-  const base = setupLaboratory('w6-t5-pressure');
+void test('Vesper pressure damages only the active telegraphed lane', () => {
+  const base = setupLaboratory('pressure');
   const exposed: HauntedSessionState = {
     ...base.session,
     elapsedMs: 700,
@@ -192,8 +192,8 @@ void test('W6 T5 Vesper pressure damages only the active telegraphed lane', () =
   equal(avoided.session.combat.hp, base.session.combat.hp, 'opposite lane remains safe during Vesper pressure');
 });
 
-void test('W6 T5 retry preserves a disabled control milestone', () => {
-  const base = setupLaboratory('w6-t5-retry');
+void test('retry preserves a disabled control milestone', () => {
+  const base = setupLaboratory('retry');
   const adventure = setRoomSwitch(base.adventure, 'laboratory', VESPER_CONTROL_DEVICES.right.switchId, true);
   const failed: HauntedSessionState = {
     ...base.session,
@@ -204,7 +204,7 @@ void test('W6 T5 retry preserves a disabled control milestone', () => {
 
   equal(isVesperControlDeviceDisabled(adventure, 'right'), true, 'retry does not erase already disabled control');
   equal(restored.combat.hp, restored.combat.maxHp, 'retry still restores full HP');
-  equal(getLaboratoryEncounterPhase(adventure), 'vesper-control', 'partial T5 progress remains in phase 1');
+  equal(getLaboratoryEncounterPhase(adventure), 'vesper-control', 'partial control-phase progress remains in phase 1');
 });
 
-console.log('W6 Vesper control tests passed');
+console.log('Vesper control tests passed');

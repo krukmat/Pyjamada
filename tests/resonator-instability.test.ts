@@ -88,8 +88,8 @@ function withProjectile(
   };
 }
 
-void test('W6 T6 exposes deterministic weak-point, distortion and electrical windows', () => {
-  const base = setupResonator('w6-t6-windows');
+void test('exposes deterministic weak-point, distortion and electrical windows', () => {
+  const base = setupResonator('windows');
 
   const leftTelegraph = resolveResonatorInstabilityState(base.adventure, 150);
   equal(leftTelegraph.weakPoints.left, 'telegraph', 'left node telegraphs first');
@@ -112,8 +112,8 @@ void test('W6 T6 exposes deterministic weak-point, distortion and electrical win
   equal(rightSurge.electrical.lane, 'right', 'second electrical surge is on the right');
 });
 
-void test('W6 T6 spatial distortion reverses horizontal control only inside the active central zone', () => {
-  const base = setupResonator('w6-t6-distortion');
+void test('spatial distortion reverses horizontal control only inside the active central zone', () => {
+  const base = setupResonator('distortion');
   const input = { ...createHauntedInputState(), right: true };
 
   const inside: HauntedSessionState = {
@@ -137,8 +137,8 @@ void test('W6 T6 spatial distortion reverses horizontal control only inside the 
   equal(normal.session.player.x > 40, true, 'same input remains normal outside distortion zone');
 });
 
-void test('W6 T6 blocks sealed weak-point hits and consumes the projectile', () => {
-  const base = setupResonator('w6-t6-blocked');
+void test('blocks sealed weak-point hits and consumes the projectile', () => {
+  const base = setupResonator('blocked');
   const shot = withProjectile(base.session, 1_100, RESONATOR_WEAK_POINTS.left.x);
   const stepped = stepAdventureExploration(shot, base.adventure, 33);
 
@@ -151,8 +151,8 @@ void test('W6 T6 blocks sealed weak-point hits and consumes the projectile', () 
   );
 });
 
-void test('W6 T6 disables both nodes in valid windows and advances exactly to Nightmare', () => {
-  const base = setupResonator('w6-t6-complete');
+void test('disables both nodes in valid windows and advances exactly to Nightmare', () => {
+  const base = setupResonator('complete');
 
   const leftShot = withProjectile(base.session, 500, RESONATOR_WEAK_POINTS.left.x);
   const left = stepAdventureExploration(leftShot, base.adventure, 33);
@@ -167,14 +167,14 @@ void test('W6 T6 disables both nodes in valid windows and advances exactly to Ni
   const right = stepAdventureExploration(rightShot, left.adventure, 33);
 
   equal(isResonatorWeakPointDisabled(right.adventure, 'right'), true, 'right node disables during its vulnerability window');
-  equal(getLaboratoryEncounterPhase(right.adventure), 'nightmare', 'two disabled nodes persist resonator-destabilized and hand off to T7');
-  equal(right.events.some(event => event.type === 'LABORATORY_RESONATOR_DESTABILIZED'), true, 'phase transition emits exact T7 boundary milestone');
+  equal(getLaboratoryEncounterPhase(right.adventure), 'nightmare', 'two disabled nodes persist resonator-destabilized and hand off to Nightmare');
+  equal(right.events.some(event => event.type === 'LABORATORY_RESONATOR_DESTABILIZED'), true, 'phase transition emits Nightmare boundary milestone');
   equal(right.session.combat.projectiles.length, 0, 'handoff clears transient Dream Sparks');
   equal(right.session.combat.invulnerableUntilMs > right.session.elapsedMs, true, 'handoff grants a short safe-entry grace period');
 });
 
-void test('W6 T6 electrical surge damages only the active lane', () => {
-  const base = setupResonator('w6-t6-surge');
+void test('electrical surge damages only the active lane', () => {
+  const base = setupResonator('surge');
 
   const exposed: HauntedSessionState = {
     ...base.session,
@@ -196,8 +196,8 @@ void test('W6 T6 electrical surge damages only the active lane', () => {
   equal(avoided.session.combat.hp, base.session.combat.hp, 'opposite lane remains safe during electrical surge');
 });
 
-void test('W6 T6 retry and Save/Continue preserve a disabled Resonator node', () => {
-  const base = setupResonator('w6-t6-persistence');
+void test('retry and Save/Continue preserve a disabled Resonator node', () => {
+  const base = setupResonator('persistence');
   const adventure = setRoomSwitch(base.adventure, 'laboratory', RESONATOR_WEAK_POINTS.left.switchId, true);
 
   const failed: HauntedSessionState = {
@@ -218,4 +218,4 @@ void test('W6 T6 retry and Save/Continue preserve a disabled Resonator node', ()
   equal(getLaboratoryEncounterPhase(decoded.state.adventure), 'resonator', 'Continue restores the same encounter phase');
 });
 
-console.log('W6 Resonator instability tests passed');
+console.log('Resonator instability tests passed');

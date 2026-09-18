@@ -79,14 +79,14 @@ function setupBasement(runId: string) {
   return { session, adventure: basement.state };
 }
 
-void test('W6 T1 keeps Laboratory unavailable until the accepted W5 route is revealed', () => {
-  const base = setupBasement('w6-lab-gate');
+void test('keeps Laboratory unavailable until the accepted Laboratory route is revealed', () => {
+  const base = setupBasement('lab-gate');
   const blocked = transitionAdventure(base.adventure, 'laboratory', 'laboratory-from-basement');
-  equal(blocked.status, 'invalid', 'Laboratory transition is rejected before W5 route reveal');
+  equal(blocked.status, 'invalid', 'Laboratory transition is rejected before Laboratory route reveal');
 
   let adventure = setRoomSwitch(base.adventure, 'basement', 'basement-loss-of-control-revealed', true);
   const traceTarget = findAdventureInteractionTarget(adventure, 116);
-  equal(traceTarget?.id, 'basement-laboratory-feed-hatch', 'W5 hatch remains the trace target before route reveal');
+  equal(traceTarget?.id, 'basement-laboratory-feed-hatch', 'Basement hatch remains the trace target before route reveal');
 
   const traced = applyRoomInteractionEffect(adventure, 'basement', 'trace-basement-laboratory-route');
   adventure = traced.adventure;
@@ -95,8 +95,8 @@ void test('W6 T1 keeps Laboratory unavailable until the accepted W5 route is rev
   equal(entryTarget?.displayLabel, 'LABORATORY', 'entry has concrete player-facing label');
 });
 
-void test('W6 T1 supports production Basement -> Laboratory -> Basement navigation', () => {
-  const base = setupBasement('w6-lab-navigation');
+void test('supports production Basement -> Laboratory -> Basement navigation', () => {
+  const base = setupBasement('lab-navigation');
   let adventure = setRoomSwitch(base.adventure, 'basement', 'basement-loss-of-control-revealed', true);
   adventure = applyRoomInteractionEffect(adventure, 'basement', 'trace-basement-laboratory-route').adventure;
 
@@ -128,8 +128,8 @@ void test('W6 T1 supports production Basement -> Laboratory -> Basement navigati
   equal(basement.state.currentEntry, 'basement-from-laboratory', 'return uses dedicated Basement entry');
 });
 
-void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => {
-  const base = setupBasement('w6-lab-combat');
+void test('enables Dream Spark only inside Laboratory exploration', () => {
+  const base = setupBasement('lab-combat');
   let adventure = setRoomSwitch(base.adventure, 'basement', 'basement-loss-of-control-revealed', true);
   adventure = applyRoomInteractionEffect(adventure, 'basement', 'trace-basement-laboratory-route').adventure;
 
@@ -183,4 +183,4 @@ void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => 
   equal(isLaboratoryCombatEnabled(back.state), false, 'combat bridge is disabled again outside Laboratory');
 });
 
-console.log('W6 Laboratory foundation tests passed');
+console.log('Laboratory foundation tests passed');

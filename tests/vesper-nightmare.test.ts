@@ -76,8 +76,8 @@ function withProjectile(session: HauntedSessionState, elapsedMs: number): Haunte
   };
 }
 
-void test('W6 T7 exposes three deterministic telegraph, attack and recovery patterns', () => {
-  const base = setupNightmare('w6-t7-patterns');
+void test('exposes three deterministic telegraph, attack and recovery patterns', () => {
+  const base = setupNightmare('patterns');
 
   const leftTelegraph = resolveVesperNightmareState(base.adventure, 200);
   equal(leftTelegraph.attack, 'left-slam', 'first pattern is left slam');
@@ -99,8 +99,8 @@ void test('W6 T7 exposes three deterministic telegraph, attack and recovery patt
   equal(right.phase, 'active', 'right slam has an active damage phase');
 });
 
-void test('W6 T7 active Nightmare attack damages only its telegraphed zone', () => {
-  const base = setupNightmare('w6-t7-damage');
+void test('active Nightmare attack damages only its telegraphed zone', () => {
+  const base = setupNightmare('damage');
 
   const exposed: HauntedSessionState = {
     ...base.session,
@@ -122,8 +122,8 @@ void test('W6 T7 active Nightmare attack damages only its telegraphed zone', () 
   equal(avoided.session.combat.hp, base.session.combat.hp, 'same attack leaves the opposite side safe');
 });
 
-void test('W6 T7 blocks Dream Sparks outside the correct recovery window', () => {
-  const base = setupNightmare('w6-t7-blocked');
+void test('blocks Dream Sparks outside the correct recovery window', () => {
+  const base = setupNightmare('blocked');
   const attackShot = withProjectile(base.session, 600);
   const blocked = stepAdventureExploration(attackShot, base.adventure, 33);
 
@@ -132,8 +132,8 @@ void test('W6 T7 blocks Dream Sparks outside the correct recovery window', () =>
   equal(blocked.events.some(event => event.type === 'LABORATORY_NIGHTMARE_HIT_BLOCKED'), true, 'blocked shot emits feedback event');
 });
 
-void test('W6 T7 accepts exactly one meaningful hit per ordered recovery and hands off to shutdown', () => {
-  const base = setupNightmare('w6-t7-complete');
+void test('accepts exactly one meaningful hit per ordered recovery and hands off to shutdown', () => {
+  const base = setupNightmare('complete');
 
   const first = stepAdventureExploration(withProjectile(base.session, 1_000), base.adventure, 33);
   equal(getVesperNightmareHitCount(first.adventure), 1, 'first recovery persists first meaningful hit');
@@ -161,13 +161,13 @@ void test('W6 T7 accepts exactly one meaningful hit per ordered recovery and han
   );
   equal(getVesperNightmareHitCount(third.adventure), 3, 'third recovery persists final meaningful hit');
   equal(getLaboratoryEncounterPhase(third.adventure), 'shutdown', 'third hit advances exactly to shutdown');
-  equal(third.events.some(event => event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED'), true, 'defeat emits T8 boundary event');
+  equal(third.events.some(event => event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED'), true, 'defeat emits shutdown boundary event');
   equal(third.session.combat.projectiles.length, 0, 'defeat clears transient Dream Sparks');
   equal(third.session.combat.invulnerableUntilMs > third.session.elapsedMs, true, 'shutdown handoff receives safe-entry grace period');
 });
 
-void test('W6 T7 retry and Save/Continue preserve Nightmare hit progress', () => {
-  const base = setupNightmare('w6-t7-persistence');
+void test('retry and Save/Continue preserve Nightmare hit progress', () => {
+  const base = setupNightmare('persistence');
   let adventure = setRoomSwitch(base.adventure, 'laboratory', VESPER_NIGHTMARE_HIT_SWITCHES[0], true);
   adventure = setRoomSwitch(adventure, 'laboratory', VESPER_NIGHTMARE_HIT_SWITCHES[1], true);
 
@@ -189,4 +189,4 @@ void test('W6 T7 retry and Save/Continue preserve Nightmare hit progress', () =>
   equal(getLaboratoryEncounterPhase(decoded.state.adventure), 'nightmare', 'Continue resumes Nightmare phase');
 });
 
-console.log('W6 Vesper Nightmare tests passed');
+console.log('Vesper Nightmare tests passed');

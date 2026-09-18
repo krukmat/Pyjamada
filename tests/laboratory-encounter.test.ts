@@ -90,8 +90,8 @@ function setupLaboratory(runId: string): { session: HauntedSessionState; adventu
   return { session, adventure: laboratory.state };
 }
 
-void test('W6 T4 starts the Laboratory encounter from the Resonator exactly once', () => {
-  const base = setupLaboratory('w6-t4-start');
+void test('starts the Laboratory encounter from the Resonator exactly once', () => {
+  const base = setupLaboratory('start');
   equal(getLaboratoryEncounterPhase(base.adventure), 'dormant', 'Laboratory arrival starts dormant');
 
   const target = findAdventureInteractionTarget(base.adventure, 76);
@@ -107,8 +107,8 @@ void test('W6 T4 starts the Laboratory encounter from the Resonator exactly once
   equal(findAdventureInteractionTarget(repeated.adventure, 76)?.id === 'laboratory-resonator', false, 'activation interaction disappears once encounter starts');
 });
 
-void test('W6 T4 derives deterministic checkpoints from persisted milestones', () => {
-  const base = setupLaboratory('w6-t4-phases');
+void test('derives deterministic checkpoints from persisted milestones', () => {
+  const base = setupLaboratory('phases');
   let adventure = setRoomSwitch(base.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
   equal(getLaboratoryEncounterPhase(adventure), 'vesper-control', 'started milestone maps to phase 1');
 
@@ -126,8 +126,8 @@ void test('W6 T4 derives deterministic checkpoints from persisted milestones', (
   equal(shouldUseLaboratoryCheckpoint(adventure), false, 'completed encounter no longer uses retry checkpoint');
 });
 
-void test('W6 T4 retry restores a safe local attempt without erasing phase progress', () => {
-  const base = setupLaboratory('w6-t4-retry');
+void test('retry restores a safe local attempt without erasing phase progress', () => {
+  const base = setupLaboratory('retry');
   let adventure = setRoomSwitch(base.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
   adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.vesperControlBroken, true);
 
@@ -164,8 +164,8 @@ void test('W6 T4 retry restores a safe local attempt without erasing phase progr
   equal(shouldUseLaboratoryCheckpoint(basement.state), false, 'same milestones outside Laboratory do not hijack normal restart semantics');
 });
 
-void test('W6 T4 Save/Continue preserves phase but normalizes transient attempt state', () => {
-  const base = setupLaboratory('w6-t4-continue');
+void test('Save/Continue preserves phase but normalizes transient attempt state', () => {
+  const base = setupLaboratory('continue');
   let adventure = setRoomSwitch(base.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
   adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.vesperControlBroken, true);
 
@@ -194,4 +194,4 @@ void test('W6 T4 Save/Continue preserves phase but normalizes transient attempt 
   equal(normalized.objective.phase, 'completed', 'Continue resumes as playable encounter attempt');
 });
 
-console.log('W6 Laboratory encounter tests passed');
+console.log('Laboratory encounter tests passed');
