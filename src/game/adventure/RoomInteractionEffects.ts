@@ -34,7 +34,8 @@ export type RoomInteractionEffectEvent =
   | { type: 'BASEMENT_TERMINAL_OFFLINE' }
   | { type: 'BASEMENT_CONTROL_REVEALED' }
   | { type: 'BASEMENT_FAILSAFE_REJECTED' }
-  | { type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' };
+  | { type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' }
+  | { type: 'LABORATORY_ENCOUNTER_STARTED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -79,6 +80,8 @@ export function applyRoomInteractionEffect(
       return useBasementTerminal(adventure, roomId);
     case 'trace-basement-laboratory-route':
       return traceBasementLaboratoryRoute(adventure, roomId);
+    case 'start-laboratory-encounter':
+      return startLaboratoryEncounter(adventure, roomId);
   }
 }
 
@@ -396,4 +399,19 @@ function traceBasementLaboratoryRoute(adventure: AdventureState, roomId: RoomId)
   next = setRoomSwitch(next, 'basement', 'terminal-focused', false);
   next = setRoomSwitch(next, 'basement', 'laboratory-route-revealed', true);
   return { adventure: next, events: [{ type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' }] };
+}
+
+
+function startLaboratoryEncounter(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'laboratory') return { adventure, events: [] };
+
+  const laboratory = getRoomState(adventure, 'laboratory');
+  if (laboratory.switches['laboratory-encounter-started'] === true) {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'laboratory', 'resonator-core');
+  next = markRoomInteraction(next, 'laboratory', 'laboratory-encounter-started');
+  next = setRoomSwitch(next, 'laboratory', 'laboratory-encounter-started', true);
+  return { adventure: next, events: [{ type: 'LABORATORY_ENCOUNTER_STARTED' }] };
 }

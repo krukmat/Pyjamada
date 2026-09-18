@@ -39,7 +39,8 @@ export type RoomInteractionEffect =
   | 'inspect-basement-conduit'
   | 'use-basement-relay'
   | 'use-basement-terminal'
-  | 'trace-basement-laboratory-route';
+  | 'trace-basement-laboratory-route'
+  | 'start-laboratory-encounter';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -434,6 +435,14 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 10,
         radius: 8,
         behavior: { type: 'exit', exitId: 'laboratory-to-basement' },
+      },
+      {
+        id: 'laboratory-resonator',
+        label: 'RESONATOR',
+        hiddenWhenRoomSwitch: 'laboratory-encounter-started',
+        x: 76,
+        radius: 11,
+        behavior: { type: 'effect', effect: 'start-laboratory-encounter' },
       },
     ],
   },

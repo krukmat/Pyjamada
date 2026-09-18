@@ -32,6 +32,7 @@ import {
   isLivingRoomTvActivated,
 } from '../game/adventure/AdventureExplorationRuntime';
 import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
+import { getLaboratoryEncounterPhase, isLaboratoryEncounterActive } from '../game/adventure/LaboratoryEncounter';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
@@ -87,6 +88,7 @@ export function HauntedGameScreen({
   const testHooksEnabled = isTestHooksEnabled();
   const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
   const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
+  const laboratoryRetry = Boolean(adventure && adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure));
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -153,7 +155,7 @@ export function HauntedGameScreen({
           </View>
         </>
       ) : (
-        <TapControl testID="restart-button" label="TRY AGAIN" accent onPress={onRestart} />
+        <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : 'TRY AGAIN'} accent onPress={onRestart} />
       )}
 
       <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
@@ -206,7 +208,14 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
       if (logSeen || sensorsSeen) return 'CONNECT THE EVIDENCE';
       return 'SEARCH THE ATTIC';
     }
-    if (adventure.currentRoom === 'laboratory') return 'APPROACH THE RESONATOR';
+    if (adventure.currentRoom === 'laboratory') {
+      const phase = getLaboratoryEncounterPhase(adventure);
+      if (phase === 'dormant') return 'APPROACH THE RESONATOR';
+      if (phase === 'vesper-control') return "BREAK VESPER'S CONTROL";
+      if (phase === 'resonator') return 'DESTABILIZE THE RESONATOR';
+      if (phase === 'nightmare') return 'DEFEAT VESPER NIGHTMARE';
+      return 'RESONATOR SHUT DOWN';
+    }
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'LABORATORY ROUTE IDENTIFIED';
       if (isBasementLossOfControlRevealed(adventure)) return 'TRACE THE LAB FEED';
@@ -287,7 +296,14 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
-    if (adventure.currentRoom === 'laboratory') return 'The feed ends here. The Resonator is the source. Someone is still at the controls.';
+    if (adventure.currentRoom === 'laboratory') {
+      const phase = getLaboratoryEncounterPhase(adventure);
+      if (phase === 'dormant') return 'The feed ends here. The Resonator is the source. Someone is still at the controls.';
+      if (phase === 'vesper-control') return 'Vesper seals the controls. Break his hold on the machine.';
+      if (phase === 'resonator') return 'The control link is broken. The Resonator is running away on its own.';
+      if (phase === 'nightmare') return 'The Resonator turned Vesper into the thing it was feeding.';
+      return 'The Resonator is shutting down.';
+    }
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
       if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. Safeguards are bypassed. Control continues beyond the Basement.';
