@@ -17,7 +17,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
 | W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
-| W6 — Laboratory | **ACTIVE — T0–T4 COMPLETE** | Encounter/checkpoint contract complete; Vesper controlled-technology phase next |
+| W6 — Laboratory | **ACTIVE — T0–T5 COMPLETE** | Vesper control phase complete; Resonator instability next |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
 Implementation/task checkpoints:
@@ -421,7 +421,8 @@ RoomPresentation
    ├── Kitchen
    ├── Bathroom
    ├── Attic
-   └── Basement
+   ├── Basement
+   └── Laboratory
 ```
 
 Shared Wally/camera/control systems remain above room presentation.
@@ -503,22 +504,28 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W6-T5 — Phase 1: Vesper / controlled technology.**
+**W6-T6 — Phase 2: Resonator instability.**
 
-T0–T4 are implemented and green:
+T0–T5 are implemented and green:
 
 ```text
-W5 accepted Laboratory boundary
+W5 Laboratory boundary
         ↓
-production Laboratory navigation
+Laboratory foundation
         ↓
-purpose-built Laboratory presentation
+Dream Spark combat bridge
         ↓
-Laboratory-only Dream Spark bridge
+encounter/checkpoint contract
         ↓
-deterministic encounter + checkpoint/retry contract
+BREAK VESPER'S CONTROL
+        ↓
+two control towers disabled
+        ↓
+vesper-control-broken
+        ↓
+DESTABILIZE THE RESONATOR
 ```
 
-T5 may now implement `BREAK VESPER'S CONTROL` using a small number of concrete devices/defenses, readable telegraphs and Dream Spark windows.
+T6 may now implement the Resonator runaway state using two concrete weak points plus selected spatial/electrical pressure motifs.
 
-Do not implement T6 Resonator instability, T7 Vesper Nightmare, T8 final defeat state or T9 Android evidence as part of T5.
+Do not implement T7 Vesper Nightmare, T8 final defeat state or T9 Android evidence as part of T6.

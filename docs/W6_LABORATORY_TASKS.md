@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T4 COMPLETE / T5 NEXT**
+**ACTIVE — T0–T5 COMPLETE / T6 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -147,11 +147,31 @@ Acceptance:
 - encounter completion disables checkpoint interception;
 - restart semantics outside an active Laboratory encounter remain unchanged.
 
-### W6-T5 — Phase 1: Vesper / controlled technology — PLANNED
+### W6-T5 — Phase 1: Vesper / controlled technology — COMPLETE
 
 Objective: `BREAK VESPER'S CONTROL`.
 
-Use a small number of concrete devices/defenses with readable telegraphs and Dream Spark windows. No secondary enemy roster.
+Delivered:
+- the two existing Laboratory coil towers are the concrete Vesper control devices; no secondary enemy roster or disconnected boss object was introduced;
+- each control has deterministic `sealed -> telegraph -> vulnerable -> disabled` presentation state;
+- vulnerability windows alternate on a 3-second deterministic cycle;
+- Vesper projects an opposite-lane pressure field with a visible telegraph followed by a damaging active window;
+- Dream Sparks hitting a sealed control are consumed and rejected;
+- one valid Dream Spark during the correct vulnerability window disables that control;
+- each disabled control persists immediately as a Laboratory room-local milestone;
+- disabling both persists `vesper-control-broken`, clears transient Dream Sparks and advances the derived encounter phase to `resonator`;
+- pressure damage reuses existing HP, invulnerability and knockback semantics;
+- active pressure hits are persisted like the Basement electrical hazard;
+- partial progress survives retry/Continue through the T4 checkpoint contract;
+- Resonator activation now clears pre-encounter Dream Sparks and gives a short safe-entry grace period.
+
+Acceptance:
+- sealed hits cannot progress the phase;
+- both vulnerability windows are deterministic and readable;
+- pressure only damages the active telegraphed lane;
+- a disabled control remains disabled across retry;
+- both disabled controls transition exactly once to the Resonator phase;
+- T5 does not implement Resonator weak points, Nightmare behavior or final defeat.
 
 ### W6-T6 — Phase 2: Resonator instability — PLANNED
 
@@ -269,4 +289,54 @@ Static architecture audit      PASS
 
 One failed CI attempt exposed an invalid test fixture where Haunted and domestic player positions diverged. The fixture was corrected; no production implementation change was required.
 
-Current execution boundary: **T5 next — implement only Vesper controlled-technology gameplay for `BREAK VESPER'S CONTROL`.**
+## T5 implementation checkpoint
+
+Delivered files:
+- `src/game/adventure/LaboratoryVesperControl.ts`;
+- T5 integration in `AdventureExplorationRuntime.ts`;
+- Laboratory pressure/control-state presentation in `LaboratoryPresentation.tsx`;
+- milestone/hit persistence integration in `App.tsx`;
+- `tests/w6-vesper-control.test.ts`.
+
+Gameplay loop:
+```text
+BREAK VESPER'S CONTROL
+        ↓
+read lane telegraph
+        ↓
+move into safe lane
+        ↓
+opposite control opens
+        ↓
+Dream Spark
+        ↓
+disable control A / B
+        ↓
+both disabled
+        ↓
+vesper-control-broken
+        ↓
+DESTABILIZE THE RESONATOR
+```
+
+Automated coverage confirms:
+- clean encounter activation;
+- alternating deterministic telegraph/vulnerability windows;
+- blocked hits outside valid windows;
+- Dream Spark collision against both controls;
+- Vesper lane-pressure damage and safe-lane avoidance;
+- partial-progress retry persistence;
+- exact phase advancement to `resonator`.
+
+Repository validation:
+```text
+Assets                         PASS
+Game/settings/presentation     PASS
+W6 Vesper control tests        PASS
+TypeScript                     PASS
+Static architecture audit      PASS
+```
+
+One CI attempt failed before tests because the new test fixture inferred `collected` as `string[]`; the fixture was typed explicitly as `HauntedSessionState`. No production behavior changed for that correction.
+
+Current execution boundary: **T6 next — implement only Resonator instability / `DESTABILIZE THE RESONATOR`.**
