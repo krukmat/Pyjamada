@@ -97,10 +97,10 @@ test('the real screenshot contract includes the five Laboratory acceptance frame
     '42_resonator_shutdown.png',
   ];
 
-  assert.equal(yamlNames.length, 42);
-  assert.equal(runnerNames.length, 42);
-  assert.deepEqual(yamlNames.slice(-5), expectedLaboratoryEvidence);
-  assert.deepEqual(runnerNames.slice(-5), expectedLaboratoryEvidence);
+  assert.equal(yamlNames.length, 46);
+  assert.equal(runnerNames.length, 46);
+  assert.deepEqual(yamlNames.slice(37, 42), expectedLaboratoryEvidence);
+  assert.deepEqual(runnerNames.slice(37, 42), expectedLaboratoryEvidence);
 });
 
 
