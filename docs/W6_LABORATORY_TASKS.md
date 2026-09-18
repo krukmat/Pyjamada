@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T6 COMPLETE / T7 NEXT**
+**ACTIVE — T0–T7 COMPLETE / T8 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -199,11 +199,32 @@ Acceptance:
 - partial weak-point progress survives retry and Save/Continue;
 - both disabled nodes transition exactly once to `nightmare`.
 
-### W6-T7 — Phase 3: Vesper Nightmare — PLANNED
+### W6-T7 — Phase 3: Vesper Nightmare — COMPLETE
 
 Objective: `DEFEAT VESPER NIGHTMARE`.
 
-Use deterministic attack patterns, explicit telegraphs and a small number of meaningful vulnerability windows rather than a generic large HP sponge.
+Delivered:
+- dedicated `LaboratoryVesperNightmare` module; no generic boss engine or HP bar;
+- three deterministic attack patterns: `left-slam`, `center-rift`, and `right-slam`;
+- every pattern has explicit telegraph -> active -> recovery timing;
+- active attack zones damage Wally through existing HP, invulnerability and knockback semantics;
+- Vesper is vulnerable only during ordered recovery windows;
+- three meaningful hits are persisted as `vesper-nightmare-hit-1/2/3`;
+- each recovery can award at most its corresponding hit, preventing burst-completion in one opening;
+- Dream Sparks that connect outside the correct recovery are consumed and rejected;
+- retry and Save/Continue preserve completed Nightmare hits through the existing T4 checkpoint/save contract;
+- the third valid hit persists `vesper-nightmare-defeated`, clears transient Dream Sparks and advances exactly to `shutdown`;
+- the Laboratory presentation replaces the normal Vesper silhouette with a transformed Nightmare form, visible attack zones, vulnerability aura and three-hit progress;
+- shutdown presentation shows Vesper defeated but does not yet complete the encounter;
+- T8 remains responsible for `laboratory-encounter-complete`, final Resonator shutdown and W7 boundary.
+
+Acceptance:
+- all three patterns are deterministic and telegraphed;
+- attack zones damage only while active;
+- hits outside the ordered recovery window cannot progress;
+- duplicate shots in one recovery cannot award multiple hits;
+- partial hit progress survives retry and Save/Continue;
+- third valid hit transitions exactly to `shutdown`, not `complete`.
 
 ### W6-T8 — Defeat / integration / W7 boundary — PLANNED
 
@@ -406,4 +427,52 @@ TypeScript                          PASS
 Static architecture audit           PASS
 ```
 
-Current execution boundary: **T7 next — implement only Vesper Nightmare / `DEFEAT VESPER NIGHTMARE`.**
+## T7 implementation checkpoint
+
+Delivered files:
+- `src/game/adventure/LaboratoryVesperNightmare.ts`;
+- T7 integration in `AdventureExplorationRuntime.ts`;
+- transformed Vesper / attack-zone / vulnerability presentation in `LaboratoryPresentation.tsx`;
+- milestone/attack-hit persistence integration in `App.tsx`;
+- `tests/w6-vesper-nightmare.test.ts`.
+
+Gameplay loop:
+```text
+DEFEAT VESPER NIGHTMARE
+        ↓
+read attack telegraph
+        ↓
+dodge active zone
+        ↓
+recovery window
+        ↓
+Dream Spark
+        ↓
+hit 1 / 2 / 3
+        ↓
+vesper-nightmare-defeated
+        ↓
+shutdown
+```
+
+Automated coverage confirms:
+- deterministic left / center / right attack sequence;
+- telegraph, active and recovery states;
+- active-zone damage and safe-space avoidance;
+- blocked Dream Sparks outside valid recovery;
+- one meaningful hit per ordered recovery;
+- duplicate-shot rejection in the same recovery;
+- retry persistence with partial hit progress;
+- Save/Continue under existing envelope v3;
+- exact handoff to `shutdown`.
+
+Repository validation:
+```text
+Assets                         PASS
+Game/settings/presentation     PASS
+W6 Vesper Nightmare tests      PASS
+TypeScript                     PASS
+Static architecture audit      PASS
+```
+
+Current execution boundary: **T8 next — final shutdown / integration / W7 boundary.**
