@@ -251,14 +251,23 @@ Integration:
 - executes final shutdown;
 - validates persistence and clean post-completion behavior under the existing save envelope.
 
-### W6-T9 — Android visual gate — PLANNED
+### W6-T9 — Android visual gate — PREPARED / DEVICE CAPTURE PENDING
 
-Target evidence after W6 gameplay stabilizes:
-- Laboratory arrival;
-- Vesper controlled-technology phase;
-- Resonator runaway;
-- Vesper Nightmare;
-- boss defeated / Resonator shut down.
+Deterministic visual presets are ready:
+- `laboratory-arrival`;
+- `vesper-control`;
+- `resonator-runaway`;
+- `vesper-nightmare`;
+- `resonator-shutdown`.
+
+Each preset is covered by the screenshot-scenario contract and freezes a representative world state:
+- arrival before encounter activation;
+- vulnerable Vesper control with opposite pressure lane active;
+- Resonator runaway with a visible weak point and active distortion;
+- transformed Vesper during an active Nightmare attack;
+- stable completed Laboratory with defeated Vesper and powered-down Resonator.
+
+Android capture, Maestro flow changes, screenshot filenames and device visual acceptance remain pending.
 
 Visual acceptance must be based primarily on world state, not captions.
 

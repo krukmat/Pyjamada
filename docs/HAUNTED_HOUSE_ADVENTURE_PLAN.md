@@ -504,7 +504,7 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W6-T9 — Android visual acceptance.**
+**W6-T9 — Android visual acceptance (presets prepared; device capture pending).**
 
 T0–T8 are implemented and green. The complete gameplay path now reaches a persistent:
 
