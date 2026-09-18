@@ -204,7 +204,7 @@ The existing v3 adventure save envelope persists:
 
 Save/load coverage is in:
 - `tests/adventure-runtime.test.ts`
-- `tests/w1-house-opens-playthrough.test.ts`
+- `tests/house-opens-playthrough.test.ts`
 
 ### W1-T9 — Deterministic review scenarios
 
@@ -238,7 +238,7 @@ npm run screenshots:android
 
 **Status:** AUTOMATED PASS; DEVICE REVIEW PENDING
 
-`tests/w1-house-opens-playthrough.test.ts` proves one continuous deterministic path:
+`tests/house-opens-playthrough.test.ts` proves one continuous deterministic path:
 
 ```text
 escape-ready Bedroom
