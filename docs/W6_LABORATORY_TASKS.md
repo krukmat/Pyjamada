@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T3 COMPLETE / T4 NEXT**
+**ACTIVE — T0–T4 COMPLETE / T5 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -127,19 +127,25 @@ Acceptance:
 - cooldown/cap rules are reused;
 - no Ghosts spawn and no domestic noise is added.
 
-### W6-T4 — Encounter state / checkpoint / retry — PLANNED
+### W6-T4 — Encounter state / checkpoint / retry — COMPLETE
 
-Create a Laboratory-specific encounter state machine with deterministic persisted milestones.
+Delivered:
+- Laboratory-specific `LaboratoryEncounter` module with deterministic derived phases:
+  `dormant -> vesper-control -> resonator -> nightmare -> shutdown -> complete`;
+- explicit `RESONATOR` interaction starts the encounter exactly once;
+- phase progress is represented by room-local boolean milestones, not a duplicated persisted enum;
+- local retry checkpoint restores full HP, clean input/projectiles, safe player position and short invulnerability while preserving phase milestones;
+- `RETRY PHASE` replaces full-game restart only for an active Laboratory encounter;
+- Continue from an active encounter normalizes to the current clean checkpoint instead of restoring a frame-level projectile/damage state;
+- existing AdventureState v1, AdventureGameSession v3 and HauntedSession v2 schemas remain unchanged;
+- future T5–T8 milestones are reserved by the encounter contract but are not implemented as gameplay yet.
 
-Must define:
-- encounter activation;
-- phase;
-- discrete phase health/weak-point state;
-- local retry checkpoint;
-- death/retry semantics;
-- save/continue behavior.
-
-Prefer room-local switches/interactions where practical. Do not change save schema unless impossible under the validated generic room-local format.
+Acceptance:
+- Resonator activation is idempotent and emits one persisted milestone;
+- Save/Continue preserves phase while clearing transient attempt state;
+- retry never erases completed phase milestones;
+- encounter completion disables checkpoint interception;
+- restart semantics outside an active Laboratory encounter remain unchanged.
 
 ### W6-T5 — Phase 1: Vesper / controlled technology — PLANNED
 
@@ -233,4 +239,34 @@ RRI checkpoint:
 - local developer: ineligible for the aggregate architecture/gameplay block;
 - required independent model reviewers were unavailable in this tool surface; no independent PASS is claimed.
 
-Current execution boundary: **T4 next. Do not begin T5–T9 until T4 encounter/checkpoint semantics are defined and verified.**
+## T4 implementation checkpoint
+
+Delivered files:
+- `src/game/adventure/LaboratoryEncounter.ts`;
+- Laboratory Resonator activation in `RoomRegistry` / `RoomInteractionEffects`;
+- retry/Continue orchestration in `App.tsx`;
+- phase-aware HUD/retry copy in `HauntedGameScreen.tsx`;
+- `tests/w6-laboratory-encounter.test.ts`.
+
+Automated coverage confirms:
+- dormant -> encounter activation;
+- idempotent start;
+- deterministic phase derivation;
+- local retry at an intermediate phase;
+- HP/input/projectile normalization;
+- Save/Continue under existing save envelope;
+- no checkpoint hijack outside Laboratory;
+- completed encounter no longer uses local retry semantics.
+
+Repository validation:
+```text
+Assets                         PASS
+Game/settings/presentation     PASS
+W6 encounter tests             PASS
+TypeScript                     PASS
+Static architecture audit      PASS
+```
+
+One failed CI attempt exposed an invalid test fixture where Haunted and domestic player positions diverged. The fixture was corrected; no production implementation change was required.
+
+Current execution boundary: **T5 next — implement only Vesper controlled-technology gameplay for `BREAK VESPER'S CONTROL`.**
