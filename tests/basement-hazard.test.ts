@@ -66,18 +66,18 @@ function moveTo(session: HauntedSessionState, x: number): HauntedSessionState {
   };
 }
 
-void test('W5-T5 remains inactive before the resonance control reveal', () => {
-  const setup = basementSetup('w5-hazard-inactive', false);
+void test('remains inactive before the resonance control reveal', () => {
+  const setup = basementSetup('hazard-inactive', false);
   const stepped = stepAdventureExploration(setup.session, setup.adventure, 5_000);
 
-  equal(isBasementElectricalHazardArmed(stepped.adventure), false, 'hazard does not arm before T4 control reveal');
+  equal(isBasementElectricalHazardArmed(stepped.adventure), false, 'hazard does not arm before control reveal');
   equal(stepped.session.elapsedMs, setup.session.elapsedMs, 'exploration clock stays frozen before hazard activation');
   equal(stepped.session.combat.hp, setup.session.combat.hp, 'inactive hazard cannot damage Wally');
   equal(resolveBasementElectricalHazard(stepped.adventure, stepped.session.elapsedMs).phase, 'inactive', 'hazard reports inactive');
 });
 
-void test('W5-T5 arms on a safe boundary and exposes a full telegraph window', () => {
-  const setup = basementSetup('w5-hazard-telegraph', true);
+void test('arms on a safe boundary and exposes a full telegraph window', () => {
+  const setup = basementSetup('hazard-telegraph', true);
   const withOffset = { ...setup.session, elapsedMs: 1_234 };
   const armed = stepAdventureExploration(withOffset, setup.adventure, 16);
 
@@ -92,8 +92,8 @@ void test('W5-T5 arms on a safe boundary and exposes a full telegraph window', (
   equal(telegraph.session.combat.hp, 3, 'telegraph itself is non-damaging');
 });
 
-void test('W5-T5 lets the player clear the unsafe control-feed lane before discharge', () => {
-  const setup = basementSetup('w5-hazard-avoid', true);
+void test('lets the player clear the unsafe control-feed lane before discharge', () => {
+  const setup = basementSetup('hazard-avoid', true);
   const armed = stepAdventureExploration(setup.session, setup.adventure, 16);
   const telegraph = stepAdventureExploration(armed.session, armed.adventure, 500);
   const safeSession = moveTo(telegraph.session, BASEMENT_ELECTRICAL_HAZARD.zoneMinX - 5);
@@ -104,8 +104,8 @@ void test('W5-T5 lets the player clear the unsafe control-feed lane before disch
   equal(discharge.events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT'), false, 'safe response produces no hit event');
 });
 
-void test('W5-T5 discharge damages and knocks Wally away without repeated same-window hits', () => {
-  const setup = basementSetup('w5-hazard-hit', true);
+void test('discharge damages and knocks Wally away without repeated same-window hits', () => {
+  const setup = basementSetup('hazard-hit', true);
   const armed = stepAdventureExploration(setup.session, setup.adventure, 16);
   const discharge = stepAdventureExploration(moveTo(armed.session, 110), armed.adventure, 1_600);
 
@@ -119,8 +119,8 @@ void test('W5-T5 discharge damages and knocks Wally away without repeated same-w
   equal(repeated.events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT'), false, 'invulnerable overlap emits no duplicate hit event');
 });
 
-void test('W5-T5 can fail the run if the player repeatedly ignores the unsafe lane', () => {
-  const setup = basementSetup('w5-hazard-fatal', true);
+void test('can fail the run if the player repeatedly ignores the unsafe lane', () => {
+  const setup = basementSetup('hazard-fatal', true);
   const oneHp = { ...setup.session, combat: { ...setup.session.combat, hp: 1 } };
   const armed = stepAdventureExploration(oneHp, setup.adventure, 16);
   const discharge = stepAdventureExploration(moveTo(armed.session, 110), armed.adventure, 1_600);
@@ -130,4 +130,4 @@ void test('W5-T5 can fail the run if the player repeatedly ignores the unsafe la
   equal(discharge.session.objective.reason, 'haunted', 'hazard failure reuses the existing haunted failure reason');
 });
 
-console.log('W5 Basement hazard tests passed');
+console.log('Basement hazard tests passed');

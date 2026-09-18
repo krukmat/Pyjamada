@@ -98,13 +98,13 @@ function solveBathroom(runId: string) {
   return { session: confirm.session, adventure: confirm.adventure };
 }
 
-void test('W4 keeps Attic locked until Bathroom reflection route is revealed', () => {
-  const bathroom = setupBathroom('w4-attic-gate');
+void test('keeps Attic locked until Bathroom reflection route is revealed', () => {
+  const bathroom = setupBathroom('attic-gate');
 
   const premature = transitionAdventure(bathroom.adventure, 'attic', 'attic-from-bathroom');
   equal(premature.status, 'invalid', 'Attic direct transition remains locked before Bathroom reveal');
 
-  const solved = solveBathroom('w4-attic-open');
+  const solved = solveBathroom('attic-open');
   const atticDoor = stepAdventureExploration(at(solved.session, 116), solved.adventure, 33);
   const request = transitionRequest(atticDoor.events);
   equal(request?.targetRoom, 'attic', 'revealed Bathroom seam points to Attic');
@@ -119,8 +119,8 @@ void test('W4 keeps Attic locked until Bathroom reflection route is revealed', (
   equal(attic.state.visitedRooms.includes('attic'), true, 'Attic is tracked as visited');
 });
 
-void test('W4 reconstructs evidence before revealing the experiment and Basement boundary', () => {
-  const solved = solveBathroom('w4-evidence-loop');
+void test('reconstructs evidence before revealing the experiment and Basement boundary', () => {
+  const solved = solveBathroom('evidence-loop');
   const attic = transitionAdventure(solved.adventure, 'attic', 'attic-from-bathroom');
   if (attic.status !== 'ok') throw new Error(attic.reason);
 
@@ -173,4 +173,4 @@ void test('W4 reconstructs evidence before revealing the experiment and Basement
   equal(returnRequest?.targetRoom, 'bathroom', 'Attic retains a production return path');
 });
 
-console.log('W4 Attic Gate A tests passed');
+console.log('Attic Gate A tests passed');

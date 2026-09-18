@@ -75,8 +75,8 @@ function setupAttic(runId: string) {
   return { session, adventure: attic.state };
 }
 
-void test('W5 keeps Basement locked until the accepted Attic route is revealed', () => {
-  const attic = setupAttic('w5-basement-lock');
+void test('keeps Basement locked until the accepted Attic route is revealed', () => {
+  const attic = setupAttic('basement-lock');
   const premature = transitionAdventure(attic.adventure, 'basement', 'basement-from-attic');
   equal(premature.status, 'invalid', 'Basement remains locked before Attic route reveal');
 
@@ -99,8 +99,8 @@ void test('W5 keeps Basement locked until the accepted Attic route is revealed',
   equal(returnRequest?.targetRoom, 'attic', 'Basement keeps a production return route to Attic');
 });
 
-void test('W5 requires tracing the conduit before the isolation relay can stabilize power', () => {
-  const attic = setupAttic('w5-basement-power');
+void test('requires tracing the conduit before the isolation relay can stabilize power', () => {
+  const attic = setupAttic('basement-power');
   const revealed = setRoomSwitch(attic.adventure, 'attic', 'basement-route-revealed', true);
   const basement = transitionAdventure(revealed, 'basement', 'basement-from-attic');
   if (basement.status !== 'ok') throw new Error(basement.reason);
@@ -137,8 +137,8 @@ void test('W5 requires tracing the conduit before the isolation relay can stabil
   equal(isBasementPowerStabilized(restored.state.adventure), true, 'stabilized feed survives Continue');
 });
 
-void test('W5 control terminal stays unreadable before stable power and reveals overload afterward', () => {
-  const attic = setupAttic('w5-basement-terminal');
+void test('control terminal stays unreadable before stable power and reveals overload afterward', () => {
+  const attic = setupAttic('basement-terminal');
   const revealed = setRoomSwitch(attic.adventure, 'attic', 'basement-route-revealed', true);
   const basement = transitionAdventure(revealed, 'basement', 'basement-from-attic');
   if (basement.status !== 'ok') throw new Error(basement.reason);
@@ -171,4 +171,4 @@ void test('W5 control terminal stays unreadable before stable power and reveals 
   equal(isBasementControlRevealed(restored.state.adventure), true, 'resonance overload reveal survives Continue');
 });
 
-console.log('W5 Basement foundation tests passed');
+console.log('Basement foundation tests passed');

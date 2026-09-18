@@ -91,9 +91,9 @@ function reachControlReveal(runId: string) {
   return reveal;
 }
 
-void test('W5 T6 turns the existing control terminal into a rejected local failsafe', () => {
-  const reveal = reachControlReveal('w5-loss-control');
-  equal(isBasementLossOfControlRevealed(reveal.adventure), false, 'T4 reveal does not skip the T6 failsafe attempt');
+void test('turns the existing control terminal into a rejected local failsafe', () => {
+  const reveal = reachControlReveal('loss-control');
+  equal(isBasementLossOfControlRevealed(reveal.adventure), false, 'reveal does not skip the failsafe attempt');
 
   const failsafe = stepAdventureExploration(at(reveal.session, 116), reveal.adventure, 33);
   equal(isBasementLossOfControlRevealed(failsafe.adventure), true, 'second terminal use persists loss of local control');
@@ -103,10 +103,10 @@ void test('W5 T6 turns the existing control terminal into a rejected local fails
   equal(repeated.events.some(event => event.type === 'BASEMENT_FAILSAFE_REJECTED'), false, 'failsafe rejection is idempotent');
 });
 
-void test('W5 T7 exposes a Laboratory feed boundary only after the failsafe is rejected', () => {
-  const reveal = reachControlReveal('w5-lab-boundary');
+void test('exposes a Laboratory feed boundary only after the failsafe is rejected', () => {
+  const reveal = reachControlReveal('lab-boundary');
   const before = findAdventureInteractionTarget(reveal.adventure, 116);
-  equal(before?.id, 'basement-control-terminal', 'Laboratory hatch does not compete with the terminal before T6');
+  equal(before?.id, 'basement-control-terminal', 'Laboratory hatch does not compete with the terminal before ');
 
   const premature = applyRoomInteractionEffect(reveal.adventure, 'basement', 'trace-basement-laboratory-route');
   equal(isBasementLaboratoryRouteRevealed(premature.adventure), false, 'Laboratory route cannot be traced before loss of control');
@@ -120,14 +120,14 @@ void test('W5 T7 exposes a Laboratory feed boundary only after the failsafe is r
   const route = stepAdventureExploration(at(failsafe.session, 116), failsafe.adventure, 33);
   equal(isBasementLaboratoryRouteRevealed(route.adventure), true, 'hatch inspection persists the Laboratory boundary');
   equal(route.events.some(event => event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED'), true, 'route reveal emits one deterministic milestone');
-  equal(route.adventure.currentRoom, 'basement', 'T7 stops at the Laboratory boundary instead of implementing the room');
+  equal(route.adventure.currentRoom, 'basement', 'stops at the Laboratory boundary instead of implementing the room');
 
   const repeated = stepAdventureExploration(at(route.session, 116), route.adventure, 33);
   equal(repeated.events.some(event => event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED'), false, 'Laboratory boundary reveal is idempotent');
 });
 
-void test('W5 T8 preserves T6/T7 progression, hazard pressure and the Attic return path across save/load', () => {
-  const reveal = reachControlReveal('w5-persistence');
+void test('preserves /progression, hazard pressure and the Attic return path across save/load', () => {
+  const reveal = reachControlReveal('persistence');
   const failsafe = stepAdventureExploration(at(reveal.session, 116), reveal.adventure, 33);
   const route = stepAdventureExploration(at(failsafe.session, 116), failsafe.adventure, 33);
 
@@ -136,7 +136,7 @@ void test('W5 T8 preserves T6/T7 progression, hazard pressure and the Attic retu
 
   const encoded = encodeAdventureGameSession({ schemaVersion: 3, haunted: route.session, adventure: route.adventure });
   const restored = decodeAdventureGameSession(encoded);
-  equal(restored.status, 'ok', 'W5 closeout state survives save/load');
+  equal(restored.status, 'ok', 'closeout state survives save/load');
   if (restored.status !== 'ok') return;
 
   equal(restored.state.adventure.currentRoom, 'basement', 'Continue resumes in Basement');
@@ -146,7 +146,7 @@ void test('W5 T8 preserves T6/T7 progression, hazard pressure and the Attic retu
 
   const returnStep = stepAdventureExploration(at(restored.state.haunted, 10), restored.state.adventure, 33);
   const request = transitionRequest(returnStep.events);
-  equal(request?.targetRoom, 'attic', 'Basement retains the return route after T7');
+  equal(request?.targetRoom, 'attic', 'Basement retains the return route after ');
   if (!request) return;
 
   const attic = transitionAdventure(returnStep.adventure, request.targetRoom, request.targetEntry);
@@ -155,4 +155,4 @@ void test('W5 T8 preserves T6/T7 progression, hazard pressure and the Attic retu
   equal(isBasementLaboratoryRouteRevealed(attic.state), true, 'room transition does not erase Basement closeout state');
 });
 
-console.log('W5 Basement closeout tests passed');
+console.log('Basement closeout tests passed');

@@ -79,8 +79,8 @@ function setupKitchen(runId: string) {
   };
 }
 
-void test('W3B keeps Bathroom locked until Kitchen power is rerouted', () => {
-  const kitchen = setupKitchen('w3b-route-gate');
+void test('keeps Bathroom locked until Kitchen power is rerouted', () => {
+  const kitchen = setupKitchen('route-gate');
 
   const prematureDirect = transitionAdventure(kitchen.adventure, 'bathroom', 'bathroom-from-kitchen');
   equal(prematureDirect.status, 'invalid', 'Bathroom direct transition stays locked before Kitchen solution');
@@ -106,8 +106,8 @@ void test('W3B keeps Bathroom locked until Kitchen power is rerouted', () => {
   equal(bathroom.state.visitedRooms.includes('bathroom'), true, 'Bathroom is tracked as visited');
 });
 
-void test('W3B requires observing the mirror, testing the light, then confirming the route', () => {
-  const kitchen = setupKitchen('w3b-reflection-loop');
+void test('requires observing the mirror, testing the light, then confirming the route', () => {
+  const kitchen = setupKitchen('reflection-loop');
   const overload = stepAdventureExploration(at(kitchen.session, 64), kitchen.adventure, 33);
   const reroute = stepAdventureExploration(at(overload.session, 108), overload.adventure, 33);
   const bathroom = transitionAdventure(reroute.adventure, 'bathroom', 'bathroom-from-kitchen');
@@ -162,4 +162,4 @@ void test('W3B requires observing the mirror, testing the light, then confirming
   equal(returnRequest?.targetRoom, 'kitchen', 'Bathroom retains a production return path');
 });
 
-console.log('W3B Bathroom Gate A tests passed');
+console.log('Bathroom Gate A tests passed');
