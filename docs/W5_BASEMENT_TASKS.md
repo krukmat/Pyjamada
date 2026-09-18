@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACTIVE — T0–T8 COMPLETE / T9 ANDROID REVIEW NEXT**
+**ACCEPTED — T0–T9 COMPLETE**
 
-W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence and automated closeout coverage are implemented on `feat/haunted-house-adventure`. The remaining acceptance work is the Android visual gate for screenshots 34–37.
+W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence, automated closeout coverage and Android visual review are complete on `feat/haunted-house-adventure`.
 
 ## Product goal
 
@@ -96,7 +96,7 @@ Implemented:
 - Laboratory travel remains inactive;
 - existing save envelope and room-local persistence retained.
 
-### W5-T2 — Basement visual identity — COMPLETE CODE / ANDROID REVIEW IN T9
+### W5-T2 — Basement visual identity — COMPLETE
 
 Added `BasementPresentation` through the existing `RoomPresentation` seam.
 
@@ -285,9 +285,11 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T9 — Android visual gate — READY FOR CAPTURE
+### W5-T9 — Android visual gate — COMPLETE / ACCEPTED
 
-Deterministic presets and Maestro assertions are wired for:
+The final Android run produced the complete 37-screenshot contract. Screenshots 34–37 were visually reviewed after one evidence-only preset correction that froze the control-reveal preset inside the telegraph phase and the Laboratory-boundary preset inside the discharge phase. No gameplay timing, collision, damage, persistence or interaction radius changed.
+
+Accepted W5 evidence:
 
 ```text
 34_basement_arrival.png
@@ -296,13 +298,21 @@ Deterministic presets and Maestro assertions are wired for:
 37_laboratory_boundary.png
 ```
 
-The Android screenshot runner now expects exactly screenshots 1–37 and retains the previous published evidence if the new run is incomplete or fails.
+Review result:
+- Basement reads immediately as experiment infrastructure invading domestic utilities;
+- unstable fault state is distinct from the stabilized/control state;
+- control reveal exposes the overload visually and not only through text;
+- screenshot 36 shows the pre-discharge warning state around the downstream control feed;
+- screenshot 37 shows the active electrical discharge while the downstream Laboratory feed/hatch is visible and actionable;
+- the Laboratory boundary remains inside Basement and does not prematurely implement W6;
+- the Android runner published exactly 37 screenshots;
+- screenshots 1–33 remain the regression baseline with no material W5-induced regression observed.
 
-T9 remains open until screenshots 34–37 are captured and visually reviewed. Screenshots 1–33 remain regression evidence and must stay materially stable.
+The W5 visual gate is accepted. No additional screenshot round is required.
 
 ## Acceptance gate
 
-W5 is accepted only when Android review confirms primarily from play/world state:
+W5 Android review confirms primarily from play/world state:
 
 > The experiment's infrastructure runs through the Basement, it is becoming unstable, local safeguards cannot stop it, and the source/control path continues into the Laboratory.
 
@@ -346,7 +356,7 @@ The conduit/relay/terminal/hazard relationship remains Basement-specific until a
 
 ## Current implementation slice
 
-**T0–T8 complete. T9 Android visual review is next.**
+**T0–T9 complete. W5 is accepted.**
 
 ```text
 W4 accepted Basement hatch
@@ -378,4 +388,4 @@ LAB FEED HATCH
 LABORATORY ROUTE IDENTIFIED
 ```
 
-No further gameplay implementation is required before T9. The next required evidence is the Android screenshot run.
+No further W5 implementation or evidence is required. The next product increment is W6 Laboratory.
