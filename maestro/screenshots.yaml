@@ -456,7 +456,7 @@ tags:
       text: "The cyan feed is arcing into the old utility line. The relay can isolate it."
     timeout: 5000
 - assertVisible: "ISOLATE THE FAULT"
-- assertVisible: "INTERACT · POWER CONDUIT"
+- assertVisible: "INTERACT · ISOLATION RELAY"
 - takeScreenshot:
     path: 35_basement_power_fault
 
