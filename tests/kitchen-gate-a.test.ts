@@ -65,8 +65,8 @@ function setupLivingRoom(runId: string) {
   };
 }
 
-void test('W3 Gate A unlocks Kitchen only after tracing the Living Room source cue', () => {
-  const living = setupLivingRoom('w3-kitchen-route');
+void test('Gate A unlocks Kitchen only after tracing the Living Room source cue', () => {
+  const living = setupLivingRoom('kitchen-route');
 
   const tvStatic = stepAdventureExploration(at(living.session, 109), living.adventure, 33);
   const transmission = stepAdventureExploration(at(tvStatic.session, 109), tvStatic.adventure, 33);
@@ -94,8 +94,8 @@ void test('W3 Gate A unlocks Kitchen only after tracing the Living Room source c
   equal(kitchen.state.visitedRooms.includes('kitchen'), true, 'Kitchen is tracked as visited');
 });
 
-void test('W3 Gate A uses microwave load to expose the breaker and reroute the power', () => {
-  const living = setupLivingRoom('w3-kitchen-power');
+void test('Gate A uses microwave load to expose the breaker and reroute the power', () => {
+  const living = setupLivingRoom('kitchen-power');
   const tvStatic = stepAdventureExploration(at(living.session, 109), living.adventure, 33);
   const transmission = stepAdventureExploration(at(tvStatic.session, 109), tvStatic.adventure, 33);
   const source = stepAdventureExploration(at(transmission.session, 84), transmission.adventure, 33);
@@ -146,4 +146,4 @@ void test('W3 Gate A uses microwave load to expose the breaker and reroute the p
   equal(returnRequest?.targetRoom, 'living-room', 'Kitchen retains a production return path');
 });
 
-console.log('W3 Kitchen Gate A tests passed');
+console.log('Kitchen Gate A tests passed');

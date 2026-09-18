@@ -39,8 +39,8 @@ function transitionRequest(events: readonly AdventureExplorationEvent[]) {
   return events.find((event): event is Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }> => event.type === 'ROOM_TRANSITION_REQUESTED');
 }
 
-void test('W2 Gate A navigates Hallway to Living Room and back with persistence', () => {
-  const falseEscape = applyFalseEscape(preparedCompletedSession('w2-gate-a'), createAdventureState());
+void test('Gate A navigates Hallway to Living Room and back with persistence', () => {
+  const falseEscape = applyFalseEscape(preparedCompletedSession('gate-a'), createAdventureState());
   const hallway = transitionAdventure(falseEscape.adventure, 'hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
@@ -96,4 +96,4 @@ void test('W2 Gate A navigates Hallway to Living Room and back with persistence'
   equal(back.spawn.facing, 'left', 'Hallway return spawn faces inward');
 });
 
-console.log('W2 Living Room Gate A tests passed');
+console.log('Living Room Gate A tests passed');

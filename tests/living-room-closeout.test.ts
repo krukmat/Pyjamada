@@ -67,8 +67,8 @@ function setupLivingRoom(runId: string) {
   };
 }
 
-void test('W2 closeout keeps environmental clues optional and traces the source only after the lab transmission', () => {
-  const living = setupLivingRoom('w2-closeout');
+void test('closeout keeps environmental clues optional and traces the source only after the lab transmission', () => {
+  const living = setupLivingRoom('closeout');
 
   const photo = stepAdventureExploration(at(living.session, 55), living.adventure, 33);
   equal(isLivingRoomPhotoInspected(photo.adventure), true, 'photo anomaly persists after inspection');
@@ -95,12 +95,12 @@ void test('W2 closeout keeps environmental clues optional and traces the source 
 
   const encoded = encodeAdventureGameSession({ schemaVersion: 3, haunted: repeated.session, adventure: repeated.adventure });
   const restored = decodeAdventureGameSession(encoded);
-  equal(restored.status, 'ok', 'W2 closeout state survives save/load');
+  equal(restored.status, 'ok', 'closeout state survives save/load');
   if (restored.status !== 'ok') return;
   equal(isLivingRoomPhotoInspected(restored.state.adventure), true, 'photo clue restores');
   equal(isLivingRoomRadioInspected(restored.state.adventure), true, 'radio clue restores');
   equal(isLivingRoomSourceCueRevealed(restored.state.adventure), true, 'directional source cue restores');
-  equal(restored.state.adventure.currentRoom, 'living-room', 'closeout does not open or enter W3');
+  equal(restored.state.adventure.currentRoom, 'living-room', 'closeout does not open or enter ');
 });
 
-console.log('W2 Living Room closeout tests passed');
+console.log('Living Room closeout tests passed');

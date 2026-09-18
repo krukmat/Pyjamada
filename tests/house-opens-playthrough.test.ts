@@ -47,8 +47,8 @@ function transitionRequest(events: readonly AdventureExplorationEvent[]) {
   return events.find((event): event is Extract<AdventureExplorationEvent, { type: 'ROOM_TRANSITION_REQUESTED' }> => event.type === 'ROOM_TRANSITION_REQUESTED');
 }
 
-void test('W1 end-to-end opens the house and exposes the Living Room boundary', () => {
-  const runId = 'w1-house-opens';
+void test('end-to-end opens the house and exposes the Living Room boundary', () => {
+  const runId = 'house-opens';
   const initialAdventure = createAdventureState();
 
   const escaped = stepHauntedSession(preparedAtExit(runId), 33);
@@ -99,8 +99,8 @@ void test('W1 end-to-end opens the house and exposes the Living Room boundary', 
 
   const livingDoor = findAdventureInteractionTarget(clock.adventure, 114);
   equal(livingDoor?.id, 'living-room-door', 'Living Room boundary is discoverable');
-  equal(livingDoor?.available, true, 'Living Room boundary is unlocked by W1');
-  equal(livingDoor?.displayLabel, 'LIVING ROOM', 'W1 ends with a clear Living Room hook');
+  equal(livingDoor?.available, true, 'Living Room boundary is unlocked by ');
+  equal(livingDoor?.displayLabel, 'LIVING ROOM', 'ends with a clear Living Room hook');
 
   const encoded = encodeAdventureGameSession({
     schemaVersion: 3,
@@ -108,7 +108,7 @@ void test('W1 end-to-end opens the house and exposes the Living Room boundary', 
     adventure: clock.adventure,
   });
   const restored = decodeAdventureGameSession(encoded);
-  equal(restored.status, 'ok', 'W1 state round-trips through save codec');
+  equal(restored.status, 'ok', 'state round-trips through save codec');
   if (restored.status !== 'ok') return;
   equal(restored.state.haunted.objective.phase, 'completed', 'Haunted completion remains stable across save/load');
   equal(restored.state.adventure.currentRoom, 'hallway', 'Hallway restored');
@@ -118,4 +118,4 @@ void test('W1 end-to-end opens the house and exposes the Living Room boundary', 
   equal(getRoomState(restored.state.adventure, 'hallway').switches['living-room-unlocked'], true, 'Living Room reveal restored');
 });
 
-console.log('W1 house-opens playthrough passed');
+console.log('house-opens playthrough passed');

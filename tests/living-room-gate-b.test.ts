@@ -65,8 +65,8 @@ function setupLivingRoom(runId: string) {
   };
 }
 
-void test('W2 Gate B turns on the TV, reveals the lab transmission and persists the discovery', () => {
-  const living = setupLivingRoom('w2-gate-b');
+void test('Gate B turns on the TV, reveals the lab transmission and persists the discovery', () => {
+  const living = setupLivingRoom('gate-b');
   equal(isLivingRoomTvActivated(living.adventure), false, 'TV starts off');
   equal(hasLabTransmissionBeenSeen(living.adventure), false, 'lab transmission starts unseen');
 
@@ -96,7 +96,7 @@ void test('W2 Gate B turns on the TV, reveals the lab transmission and persists 
 });
 
 void test('pre-Gate-B v3 saves migrate labTransmissionSeen to false', () => {
-  const living = setupLivingRoom('w2-save-migration');
+  const living = setupLivingRoom('save-migration');
   const encoded = encodeAdventureGameSession({ schemaVersion: 3, haunted: living.session, adventure: living.adventure });
   const payload = JSON.parse(encoded) as { adventure: { storyFlags: Record<string, boolean> } };
   delete payload.adventure.storyFlags.labTransmissionSeen;
@@ -104,7 +104,7 @@ void test('pre-Gate-B v3 saves migrate labTransmissionSeen to false', () => {
   const decoded = decodeAdventureGameSession(JSON.stringify(payload));
   equal(decoded.status, 'ok', 'pre-Gate-B save remains readable');
   if (decoded.status !== 'ok') return;
-  equal(decoded.state.adventure.storyFlags.labTransmissionSeen, false, 'missing W2 flag defaults to false');
+  equal(decoded.state.adventure.storyFlags.labTransmissionSeen, false, 'missing flag defaults to false');
 });
 
-console.log('W2 Living Room Gate B tests passed');
+console.log('Living Room Gate B tests passed');
