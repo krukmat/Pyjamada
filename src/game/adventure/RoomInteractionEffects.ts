@@ -7,6 +7,7 @@ import {
   type AdventureState,
   type RoomId,
 } from './AdventureState';
+import { ADVENTURE_ENDING_SWITCHES, getAdventureEndingPhase } from './AdventureEnding';
 import type { RoomInteractionEffect } from './RoomRegistry';
 
 export type RoomInteractionEffectEvent =
@@ -36,7 +37,9 @@ export type RoomInteractionEffectEvent =
   | { type: 'BASEMENT_FAILSAFE_REJECTED' }
   | { type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' }
   | { type: 'LABORATORY_ENCOUNTER_STARTED' }
-  | { type: 'LABORATORY_ENCOUNTER_COMPLETED' };
+  | { type: 'LABORATORY_ENCOUNTER_COMPLETED' }
+  | { type: 'ENDING_EVIDENCE_CONFIRMED' }
+  | { type: 'ENDING_GHOST_STING_REVEALED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -85,6 +88,10 @@ export function applyRoomInteractionEffect(
       return startLaboratoryEncounter(adventure, roomId);
     case 'complete-laboratory-encounter':
       return completeLaboratoryEncounter(adventure, roomId);
+    case 'inspect-ending-evidence':
+      return inspectEndingEvidence(adventure, roomId);
+    case 'reveal-ending-ghost-sting':
+      return revealEndingGhostSting(adventure, roomId);
   }
 }
 
@@ -435,4 +442,27 @@ function completeLaboratoryEncounter(adventure: AdventureState, roomId: RoomId):
   next = markRoomInteraction(next, 'laboratory', 'laboratory-encounter-complete');
   next = setRoomSwitch(next, 'laboratory', 'laboratory-encounter-complete', true);
   return { adventure: next, events: [{ type: 'LABORATORY_ENCOUNTER_COMPLETED' }] };
+}
+
+
+function inspectEndingEvidence(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'bedroom' || getAdventureEndingPhase(adventure) !== 'awakening') {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'bedroom', 'burned-sensor-tag');
+  next = markRoomInteraction(next, 'bedroom', 'ending-evidence-confirmed');
+  next = setRoomSwitch(next, 'bedroom', ADVENTURE_ENDING_SWITCHES.evidenceSeen, true);
+  return { adventure: next, events: [{ type: 'ENDING_EVIDENCE_CONFIRMED' }] };
+}
+
+function revealEndingGhostSting(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'bedroom' || getAdventureEndingPhase(adventure) !== 'evidence') {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'bedroom', 'window-ghost-sting');
+  next = markRoomInteraction(next, 'bedroom', 'ending-ghost-sting');
+  next = setRoomSwitch(next, 'bedroom', ADVENTURE_ENDING_SWITCHES.ghostStingSeen, true);
+  return { adventure: next, events: [{ type: 'ENDING_GHOST_STING_REVEALED' }] };
 }

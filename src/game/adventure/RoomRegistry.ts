@@ -41,7 +41,9 @@ export type RoomInteractionEffect =
   | 'use-basement-terminal'
   | 'trace-basement-laboratory-route'
   | 'start-laboratory-encounter'
-  | 'complete-laboratory-encounter';
+  | 'complete-laboratory-encounter'
+  | 'inspect-ending-evidence'
+  | 'reveal-ending-ghost-sting';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -94,9 +96,30 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
       {
         id: 'bedroom-hallway-door',
         label: 'HALLWAY',
+        hiddenWhenRoomSwitch: 'ending-started',
         x: 112,
         radius: 8,
         behavior: { type: 'exit', exitId: 'bedroom-to-hallway' },
+      },
+      {
+        id: 'ending-burned-sensor-tag',
+        label: 'BURNED SENSOR TAG',
+        requiresRoomSwitch: 'ending-started',
+        hiddenWhenUnavailable: true,
+        hiddenWhenRoomSwitch: 'ending-evidence-seen',
+        x: 56,
+        radius: 10,
+        behavior: { type: 'effect', effect: 'inspect-ending-evidence' },
+      },
+      {
+        id: 'ending-window',
+        label: 'WINDOW',
+        requiresRoomSwitch: 'ending-evidence-seen',
+        hiddenWhenUnavailable: true,
+        hiddenWhenRoomSwitch: 'ending-ghost-sting-seen',
+        x: 108,
+        radius: 12,
+        behavior: { type: 'effect', effect: 'reveal-ending-ghost-sting' },
       },
     ],
   },
