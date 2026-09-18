@@ -172,6 +172,7 @@ void test('W6 T4 Save/Continue preserves phase but normalizes transient attempt 
   const dirty: HauntedSessionState = {
     ...base.session,
     player: { ...base.session.player, x: 94, y: 96, vx: 18, vy: -5, grounded: false, facing: 'left' },
+    domestic: { ...base.session.domestic, player: { x: 94, facing: 'left' } },
     combat: {
       ...base.session.combat,
       hp: 1,
