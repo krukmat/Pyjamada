@@ -16,8 +16,8 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W3A — Kitchen | **ACCEPTED** | Domestic electrical manipulation: overload → reroute → Bathroom boundary |
 | W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
-| W5 — Basement | **ACTIVE — T0–T3 COMPLETE** | Basement foundation + local power stabilization; terminal/hazard/Lab boundary next |
-| W6 — Laboratory | Planned | Final boss |
+| W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
+| W6 — Laboratory | **ACTIVE — T0 CONTRACT** | Laboratory foundation + combat bridge + three-phase final encounter |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
 Implementation/task checkpoints:
@@ -29,6 +29,7 @@ Implementation/task checkpoints:
 - `docs/W3_BATHROOM_TASKS.md`
 - `docs/W4_ATTIC_REVELATION_TASKS.md`
 - `docs/W5_BASEMENT_TASKS.md`
+- `docs/W6_LABORATORY_TASKS.md`
 
 ## Narrative spine
 
@@ -262,60 +263,84 @@ Android closeout:
 
 Detailed closeout: `docs/W4_ATTIC_REVELATION_TASKS.md`.
 
-### W5 — Basement / Mad Science — ACTIVE — T0–T3 COMPLETE
+### W5 — Basement / Mad Science — ACCEPTED
 
 **Goal:** transition the tone from haunted-house investigation to direct interaction with unstable experiment infrastructure.
 
-Current implemented sequence:
+Accepted sequence:
 
 ```text
 Attic hatch
  -> Basement
  -> FOLLOW THE POWER
- -> inspect unstable Power Conduit
+ -> trace unstable Power Conduit
  -> ISOLATE THE FAULT
- -> operate Isolation Relay
- -> POWER FEED STABLE
+ -> stabilize via Isolation Relay
+ -> READ THE CONTROL TERMINAL
+ -> RESONANCE LOAD CRITICAL
+ -> telegraphed electrical pressure
+ -> TRIP THE FAILSAFE
+ -> LOCAL CUTOFF REJECTED
+ -> TRACE THE LAB FEED
+ -> LABORATORY ROUTE IDENTIFIED
 ```
 
-Delivered T0–T3:
-- W4 1–33 screenshot baseline preserved;
-- production Attic ↔ Basement navigation gated by Attic `basement-route-revealed`;
-- dedicated `BasementPresentation`;
-- masonry/old-utility visual identity crossed by newer cyan resonance infrastructure;
-- Power Conduit fault trace;
-- Isolation Relay cannot solve before trace and stabilizes feed afterward;
-- room-local `basement-fault-traced` / `basement-power-stabilized` state;
-- unstable/stabilized presentation states;
-- deterministic events, idempotence and save/load coverage in `tests/w5-basement-foundation.test.ts`;
-- no generic power engine or Laboratory interior.
+Delivered:
+- production Attic ↔ Basement navigation;
+- distinct Basement infrastructure presentation;
+- conduit → relay → terminal causal loop;
+- periodic telegraphed electrical hazard with existing HP/invulnerability semantics;
+- rejected local failsafe establishing loss of control;
+- concrete Laboratory feed hatch / route boundary;
+- persistence, idempotence and save/load coverage;
+- Android evidence 34–37 accepted.
 
-The next increment is T4: use the stabilized feed to make one local control terminal readable and establish that Resonance load is exceeding normal operating parameters.
+**Accepted gate:** the player reaches a concrete Laboratory boundary and understands that the experiment is no longer under local control.
 
-Remaining W5 scope:
-- T4 control-terminal reveal;
-- T5 environmental hazard tied to the unstable experiment;
-- T6 out-of-control reveal;
-- T7 concrete Laboratory boundary;
-- T8 complete persistence/idempotence coverage;
-- T9 Android screenshots planned after the room stabilizes.
+Detailed closeout: `docs/W5_BASEMENT_TASKS.md`.
 
-**Gate:** player reaches the Laboratory entrance and understands the experiment is no longer under control.
+### W6 — Laboratory / Final Boss — ACTIVE
 
-Detailed checkpoint: `docs/W5_BASEMENT_TASKS.md`.
+**Goal:** resolve the central gameplay conflict while preserving W7 for ending/cohesion work.
 
-### W6 — Laboratory / Final Boss — PLANNED
+Confirmed encounter spine:
 
-**Goal:** resolve the central story and gameplay arc.
+```text
+LABORATORY ROUTE IDENTIFIED
+ -> ENTER THE LABORATORY
+ -> identify the Resonator / operator
+ -> BREAK VESPER'S CONTROL
+ -> Resonator runaway
+ -> DESTABILIZE THE RESONATOR
+ -> Vesper transforms
+ -> DEFEAT VESPER NIGHTMARE
+ -> RESONATOR SHUT DOWN
+ -> W7 ending boundary
+```
 
-Boss structure:
-1. **Vesper** — traps, devices and controlled technology.
-2. **The Resonator** — room geometry and earlier objects become distorted.
-3. **Vesper Nightmare** — Vesper is transformed by the experiment.
+Implementation is deliberately decomposed:
+- T0 contract / W5 roadmap sync;
+- T1 Laboratory room foundation and W5-gated navigation;
+- T2 purpose-built Laboratory presentation;
+- T3 Laboratory-only Dream Spark combat bridge;
+- T4 encounter state, checkpoint/retry and persistence contract;
+- T5 Vesper controlled-technology phase;
+- T6 Resonator instability phase;
+- T7 Vesper Nightmare phase;
+- T8 defeat/integration/W7 boundary;
+- T9 Android visual acceptance.
 
-Reuse motifs from Bedroom, Living Room, Bathroom, Attic and Basement.
+Architecture constraints:
+- no generic boss engine before a second concrete reuse case;
+- no reactivation of Bedroom Ghost spawning, noise pressure or deadline in Laboratory;
+- Dream Spark/HP/knockback are reused rather than duplicated;
+- encounter progression stays Laboratory-specific;
+- save envelope v3 remains unchanged unless a later task proves a schema change necessary;
+- W7 owns awakening, credits, final Ghost sting and product hardening.
 
-**Gate:** complete end-to-end adventure from Bedroom to boss defeat.
+**Gate:** from an accepted W5 state, the player can enter the Laboratory, complete the three-phase encounter, survive/save/retry under the W6 contract, and reach a persistent `RESONATOR SHUT DOWN` boundary.
+
+Detailed checkpoint: `docs/W6_LABORATORY_TASKS.md`.
 
 ### W7 — Ending and Cohesion — PLANNED
 
@@ -478,18 +503,20 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W5-T4 — Basement control reveal.**
+**W6-T0 → T3 — Laboratory foundation block.**
 
-T0–T3 are code complete with green repository validation. Build on the stabilized local power feed rather than creating another subsystem:
+The first executable W6 block is intentionally bounded:
 
 ```text
-POWER FEED STABLE
+W5 accepted boundary
         ↓
-local CRT/control terminal becomes readable
+T0 contract sync
         ↓
-RESONANCE LOAD exceeds safe/expected parameters
+T1 Laboratory navigation
         ↓
-prepare T5/T6 environmental pressure + loss-of-control reveal
+T2 Laboratory visual identity
+        ↓
+T3 Laboratory-only Dream Spark bridge
 ```
 
-Keep the terminal Basement-specific, preserve W4/W5 information budget, and do not activate the Laboratory transition until the W5 progression earns it.
+Do not implement Vesper damage phases, Resonator weak points, boss checkpoint/retry, Nightmare behavior or W7 ending content until T0–T3 are green and reviewed.
