@@ -12,6 +12,11 @@ import {
   type ResonatorWeakPointId,
 } from './LaboratoryResonatorInstability';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import {
+  isPlayerInsideVesperNightmareAttack,
+  resolveVesperNightmareProjectileHits,
+  resolveVesperNightmareState,
+} from './LaboratoryVesperNightmare';
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import {
   getRoomState,
@@ -55,6 +60,10 @@ export type AdventureExplorationEvent =
   | { type: 'LABORATORY_RESONATOR_NODE_DISABLED'; nodeId: ResonatorWeakPointId }
   | { type: 'LABORATORY_RESONATOR_DESTABILIZED' }
   | { type: 'LABORATORY_RESONATOR_SURGE_HIT' }
+  | { type: 'LABORATORY_NIGHTMARE_HIT_BLOCKED' }
+  | { type: 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'; hit: 1 | 2 | 3 }
+  | { type: 'LABORATORY_VESPER_NIGHTMARE_DEFEATED' }
+  | { type: 'LABORATORY_NIGHTMARE_ATTACK_HIT' }
   | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
@@ -303,6 +312,19 @@ export function stepAdventureExploration(
     };
   }
 
+  const nightmareHits = resolveVesperNightmareProjectileHits(nextAdventure, combat, elapsedMs);
+  nextAdventure = nightmareHits.adventure;
+  combat = nightmareHits.combat;
+  events.push(...nightmareHits.events);
+  if (nightmareHits.events.some(event => event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED')) {
+    combat = {
+      ...combat,
+      projectiles: [],
+      nextAttackAllowedMs: elapsedMs,
+      invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
+    };
+  }
+
   if (session.input.interactPressed) {
     const target = findAdventureInteractionTarget(adventure, player.x);
     if (target?.available && target.behavior.type === 'exit') {
@@ -326,6 +348,18 @@ export function stepAdventureExploration(
           invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
         };
       }
+    }
+  }
+
+  const nightmare = resolveVesperNightmareState(nextAdventure, elapsedMs);
+  if (isPlayerInsideVesperNightmareAttack(player.x, nightmare) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      const attackCenter = ((nightmare.minX ?? player.x) + (nightmare.maxX ?? player.x)) / 2;
+      player = applyHauntedKnockback(player, player.x <= attackCenter ? 1 : -1);
+      events.push({ type: 'LABORATORY_NIGHTMARE_ATTACK_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }
 
