@@ -18,7 +18,7 @@ import { createHauntedSession, type HauntedSessionState } from '../src/game/haun
 
 function setupLaboratory(runId: string): { session: HauntedSessionState; adventure: AdventureState } {
   const base = createHauntedSession(runId);
-  const prepared = {
+  const prepared: HauntedSessionState = {
     ...base,
     domestic: {
       ...base.domestic,
