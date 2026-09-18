@@ -84,3 +84,21 @@ test('the real maestro flow and runner script agree today', () => {
   const result = diffScreenshotContract(yamlNames, runnerNames);
   assert.deepEqual(describeProblems(result), []);
 });
+
+
+test('the real screenshot contract includes the five Laboratory acceptance frames', () => {
+  const yamlNames = extractYamlScreenshotNames(fs.readFileSync(YAML_PATH, 'utf8'));
+  const runnerNames = extractRunnerScreenshotNames(fs.readFileSync(RUNNER_PATH, 'utf8'));
+  const expectedLaboratoryEvidence = [
+    '38_laboratory_arrival.png',
+    '39_vesper_control.png',
+    '40_resonator_runaway.png',
+    '41_vesper_nightmare.png',
+    '42_resonator_shutdown.png',
+  ];
+
+  assert.equal(yamlNames.length, 42);
+  assert.equal(runnerNames.length, 42);
+  assert.deepEqual(yamlNames.slice(-5), expectedLaboratoryEvidence);
+  assert.deepEqual(runnerNames.slice(-5), expectedLaboratoryEvidence);
+});

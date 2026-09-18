@@ -54,6 +54,11 @@ EXPECTED_SCREENSHOTS=(
   "35_basement_power_fault.png"
   "36_basement_control_reveal.png"
   "37_laboratory_boundary.png"
+  "38_laboratory_arrival.png"
+  "39_vesper_control.png"
+  "40_resonator_runaway.png"
+  "41_vesper_nightmare.png"
+  "42_resonator_shutdown.png"
 )
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published

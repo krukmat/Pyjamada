@@ -485,3 +485,68 @@ tags:
 - assertVisible: "INTERACT · LABORATORY"
 - takeScreenshot:
     path: 37_laboratory_boundary
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-laboratory-arrival
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "APPROACH THE RESONATOR"
+- takeScreenshot:
+    path: 38_laboratory_arrival
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-vesper-control
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "BREAK VESPER'S CONTROL"
+- takeScreenshot:
+    path: 39_vesper_control
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-resonator-runaway
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "DESTABILIZE THE RESONATOR"
+- takeScreenshot:
+    path: 40_resonator_runaway
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-vesper-nightmare
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "DEFEAT VESPER NIGHTMARE"
+- takeScreenshot:
+    path: 41_vesper_nightmare
+
+- tapOn:
+    id: screenshot-scenario-menu
+- tapOn:
+    id: screenshot-scenario-resonator-shutdown
+- extendedWaitUntil:
+    visible:
+      id: game-screen
+    timeout: 5000
+- assertVisible: "HAUNTED HOUSE · LABORATORY"
+- assertVisible: "RESONATOR SHUT DOWN"
+- takeScreenshot:
+    path: 42_resonator_shutdown

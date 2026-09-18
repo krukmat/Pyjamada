@@ -267,7 +267,13 @@ Each preset is covered by the screenshot-scenario contract and freezes a represe
 - transformed Vesper during an active Nightmare attack;
 - stable completed Laboratory with defeated Vesper and powered-down Resonator.
 
-Android capture, Maestro flow changes, screenshot filenames and device visual acceptance remain pending.
+Capture harness is prepared:
+- Maestro selects all five Laboratory presets through their domain test IDs;
+- screenshot contract now expects exactly 42 PNGs;
+- Laboratory evidence filenames are `38_laboratory_arrival.png` through `42_resonator_shutdown.png`;
+- the runner preserves the previous accepted evidence set if the local run fails.
+
+Local Android execution and visual acceptance remain pending.
 
 Visual acceptance must be based primarily on world state, not captions.
 
