@@ -18,6 +18,7 @@ import {
   resolveVesperNightmareState,
 } from './LaboratoryVesperNightmare';
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
+import { getLaboratoryEncounterPhase } from './LaboratoryEncounter';
 import {
   getRoomState,
   markRoomInteraction,
@@ -235,7 +236,9 @@ export function isBasementTerminalFocused(adventure: AdventureState): boolean {
 }
 
 export function isLaboratoryCombatEnabled(adventure: AdventureState): boolean {
-  return isAdventureExplorationActive(adventure) && adventure.currentRoom === 'laboratory';
+  return isAdventureExplorationActive(adventure)
+    && adventure.currentRoom === 'laboratory'
+    && getLaboratoryEncounterPhase(adventure) !== 'complete';
 }
 
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
@@ -346,6 +349,14 @@ export function stepAdventureExploration(
           projectiles: [],
           nextAttackAllowedMs: elapsedMs,
           invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
+        };
+      }
+      if (effect.events.some(event => event.type === 'LABORATORY_ENCOUNTER_COMPLETED')) {
+        combat = {
+          ...combat,
+          projectiles: [],
+          nextAttackAllowedMs: elapsedMs,
+          invulnerableUntilMs: 0,
         };
       }
     }

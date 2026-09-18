@@ -35,7 +35,8 @@ export type RoomInteractionEffectEvent =
   | { type: 'BASEMENT_CONTROL_REVEALED' }
   | { type: 'BASEMENT_FAILSAFE_REJECTED' }
   | { type: 'BASEMENT_LABORATORY_ROUTE_REVEALED' }
-  | { type: 'LABORATORY_ENCOUNTER_STARTED' };
+  | { type: 'LABORATORY_ENCOUNTER_STARTED' }
+  | { type: 'LABORATORY_ENCOUNTER_COMPLETED' };
 
 export type RoomInteractionEffectResult = {
   adventure: AdventureState;
@@ -82,6 +83,8 @@ export function applyRoomInteractionEffect(
       return traceBasementLaboratoryRoute(adventure, roomId);
     case 'start-laboratory-encounter':
       return startLaboratoryEncounter(adventure, roomId);
+    case 'complete-laboratory-encounter':
+      return completeLaboratoryEncounter(adventure, roomId);
   }
 }
 
@@ -414,4 +417,22 @@ function startLaboratoryEncounter(adventure: AdventureState, roomId: RoomId): Ro
   next = markRoomInteraction(next, 'laboratory', 'laboratory-encounter-started');
   next = setRoomSwitch(next, 'laboratory', 'laboratory-encounter-started', true);
   return { adventure: next, events: [{ type: 'LABORATORY_ENCOUNTER_STARTED' }] };
+}
+
+
+function completeLaboratoryEncounter(adventure: AdventureState, roomId: RoomId): RoomInteractionEffectResult {
+  if (roomId !== 'laboratory') return { adventure, events: [] };
+
+  const laboratory = getRoomState(adventure, 'laboratory');
+  if (
+    laboratory.switches['vesper-nightmare-defeated'] !== true
+    || laboratory.switches['laboratory-encounter-complete'] === true
+  ) {
+    return { adventure, events: [] };
+  }
+
+  let next = markRoomInspected(adventure, 'laboratory', 'resonator-shutdown');
+  next = markRoomInteraction(next, 'laboratory', 'laboratory-encounter-complete');
+  next = setRoomSwitch(next, 'laboratory', 'laboratory-encounter-complete', true);
+  return { adventure: next, events: [{ type: 'LABORATORY_ENCOUNTER_COMPLETED' }] };
 }

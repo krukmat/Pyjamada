@@ -180,7 +180,8 @@ export default function App() {
           || event.type === 'LABORATORY_RESONATOR_NODE_DISABLED'
           || event.type === 'LABORATORY_RESONATOR_DESTABILIZED'
           || event.type === 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'
-          || event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED')) {
+          || event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED'
+          || event.type === 'LABORATORY_ENCOUNTER_COMPLETED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;

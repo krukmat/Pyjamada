@@ -153,11 +153,26 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       <Line p1={vec(px(61), px(42))} p2={vec(px(91), px(42))} color="#536c7c" strokeWidth={px(1.2)} />
       <Line p1={vec(px(61), px(90))} p2={vec(px(91), px(90))} color="#536c7c" strokeWidth={px(1.2)} />
 
-      <Circle cx={px(76)} cy={px(65)} r={px(encounterPhase === 'resonator' ? 24 + fastPulse : 22)} color={encounterPhase === 'resonator' ? 'rgba(211,107,255,0.075)' : 'rgba(121,232,255,0.045)'} />
-      <Circle cx={px(76)} cy={px(65)} r={px(encounterPhase === 'resonator' ? 18 + pulse * 0.4 : 16)} color="rgba(211,107,255,0.07)" />
-      <Circle cx={px(76)} cy={px(65)} r={px(coreRadius + (encounterPhase === 'resonator' ? 2.5 + fastPulse : 0))} color={encounterPhase === 'resonator' ? 'rgba(255,93,105,0.16)' : 'rgba(121,232,255,0.14)'} />
-      <Circle cx={px(76)} cy={px(65)} r={px(5)} color={encounterPhase === 'resonator' ? '#fff1a8' : '#d7fbff'} />
-      <Circle cx={px(76)} cy={px(65)} r={px(2.2)} color={fastPulse === 0 ? '#79e8ff' : '#d36bff'} />
+      <Circle
+        cx={px(76)}
+        cy={px(65)}
+        r={px(encounterPhase === 'resonator' ? 24 + fastPulse : 22)}
+        color={encounterPhase === 'complete' ? 'rgba(74,88,96,0.035)' : encounterPhase === 'resonator' ? 'rgba(211,107,255,0.075)' : 'rgba(121,232,255,0.045)'}
+      />
+      <Circle
+        cx={px(76)}
+        cy={px(65)}
+        r={px(encounterPhase === 'resonator' ? 18 + pulse * 0.4 : 16)}
+        color={encounterPhase === 'complete' ? 'rgba(74,88,96,0.045)' : 'rgba(211,107,255,0.07)'}
+      />
+      <Circle
+        cx={px(76)}
+        cy={px(65)}
+        r={px(encounterPhase === 'complete' ? 7 : coreRadius + (encounterPhase === 'resonator' ? 2.5 + fastPulse : 0))}
+        color={encounterPhase === 'complete' ? 'rgba(90,105,112,0.10)' : encounterPhase === 'resonator' ? 'rgba(255,93,105,0.16)' : 'rgba(121,232,255,0.14)'}
+      />
+      <Circle cx={px(76)} cy={px(65)} r={px(5)} color={encounterPhase === 'complete' ? '#303b42' : encounterPhase === 'resonator' ? '#fff1a8' : '#d7fbff'} />
+      <Circle cx={px(76)} cy={px(65)} r={px(2.2)} color={encounterPhase === 'complete' ? '#1a2228' : fastPulse === 0 ? '#79e8ff' : '#d36bff'} />
       <Line p1={vec(px(76), px(42))} p2={vec(px(76), px(55))} color="#d36bff" strokeWidth={px(1.1)} />
       <Line p1={vec(px(76), px(75))} p2={vec(px(76), px(91))} color="#79e8ff" strokeWidth={px(1.1)} />
       <Line p1={vec(px(55), px(94))} p2={vec(px(68), px(79))} color="#79e8ff" strokeWidth={px(1.4)} />
@@ -235,7 +250,7 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       <Line p1={vec(px(108), px(78))} p2={vec(px(121), px(78))} color="#79e8ff" strokeWidth={px(0.8)} />
       <Line p1={vec(px(108), px(81))} p2={vec(px(117), px(81))} color="#d36bff" strokeWidth={px(0.8)} />
 
-      {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && (
+      {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && encounterPhase !== 'complete' && (
         <>
           <Circle cx={px(114)} cy={px(57)} r={px(5)} color="#151722" />
           <RoundedRect x={px(109)} y={px(61)} width={px(10)} height={px(17)} r={px(3)} color="#d8dde6" />
@@ -285,7 +300,7 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
         </>
       )}
 
-      {encounterPhase === 'shutdown' && (
+      {(encounterPhase === 'shutdown' || encounterPhase === 'complete') && (
         <>
           <Circle cx={px(110)} cy={px(82)} r={px(5)} color="#191923" />
           <RoundedRect x={px(101)} y={px(86)} width={px(17)} height={px(8)} r={px(3)} color="#352b3b" />
@@ -295,9 +310,14 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       )}
 
       {/* Floor conduits connect operator, Resonator and incoming feed. */}
-      <Line p1={vec(px(76), px(94))} p2={vec(px(114), px(94))} color="rgba(211,107,255,0.58)" strokeWidth={px(1.1)} />
-      <Circle cx={px(76)} cy={px(94)} r={px(2)} color="#79e8ff" />
-      <Circle cx={px(114)} cy={px(94)} r={px(2)} color="#d36bff" />
+      <Line
+        p1={vec(px(76), px(94))}
+        p2={vec(px(114), px(94))}
+        color={encounterPhase === 'complete' ? 'rgba(72,83,92,0.34)' : 'rgba(211,107,255,0.58)'}
+        strokeWidth={px(1.1)}
+      />
+      <Circle cx={px(76)} cy={px(94)} r={px(2)} color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'} />
+      <Circle cx={px(114)} cy={px(94)} r={px(2)} color={encounterPhase === 'complete' ? '#344049' : '#d36bff'} />
 
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
     </>

@@ -40,7 +40,8 @@ export type RoomInteractionEffect =
   | 'use-basement-relay'
   | 'use-basement-terminal'
   | 'trace-basement-laboratory-route'
-  | 'start-laboratory-encounter';
+  | 'start-laboratory-encounter'
+  | 'complete-laboratory-encounter';
 
 export type RoomInteractionBehavior =
   | { type: 'exit'; exitId: string }
@@ -443,6 +444,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         x: 76,
         radius: 11,
         behavior: { type: 'effect', effect: 'start-laboratory-encounter' },
+      },
+      {
+        id: 'laboratory-resonator-shutdown',
+        label: 'SHUT DOWN RESONATOR',
+        requiresRoomSwitch: 'vesper-nightmare-defeated',
+        hiddenWhenUnavailable: true,
+        hiddenWhenRoomSwitch: 'laboratory-encounter-complete',
+        x: 76,
+        radius: 11,
+        behavior: { type: 'effect', effect: 'complete-laboratory-encounter' },
       },
     ],
   },

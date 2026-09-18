@@ -302,7 +302,8 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (phase === 'vesper-control') return 'Vesper seals the controls. Break his hold on the machine.';
       if (phase === 'resonator') return 'The control link is broken. The Resonator is running away on its own.';
       if (phase === 'nightmare') return 'The Resonator turned Vesper into the thing it was feeding.';
-      return 'The Resonator is shutting down.';
+      if (phase === 'shutdown') return 'Vesper is down. Shut the Resonator off before it can recover.';
+      return 'The Resonator is silent. Whatever happens next is outside the machine.';
     }
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
