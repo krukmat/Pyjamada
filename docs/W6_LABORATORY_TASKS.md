@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T8 COMPLETE / T9 NEXT**
+**CLOSED — T0–T9 COMPLETE**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -251,7 +251,7 @@ Integration:
 - executes final shutdown;
 - validates persistence and clean post-completion behavior under the existing save envelope.
 
-### W6-T9 — Android visual gate — PREPARED / DEVICE CAPTURE PENDING
+### W6-T9 — Android visual gate — COMPLETE
 
 Deterministic visual presets are ready:
 - `laboratory-arrival`;
@@ -273,9 +273,20 @@ Capture harness is prepared:
 - Laboratory evidence filenames are `38_laboratory_arrival.png` through `42_resonator_shutdown.png`;
 - the runner preserves the previous accepted evidence set if the local run fails.
 
-Local Android execution and visual acceptance remain pending.
+Local Android execution completed successfully with the full 42-frame capture set.
 
-Visual acceptance must be based primarily on world state, not captions.
+Accepted Laboratory evidence:
+- `38_laboratory_arrival.png` — Laboratory establishing state;
+- `39_vesper_control.png` — Vesper control vulnerability + opposite pressure lane;
+- `40_resonator_runaway.png` — active Resonator instability / weak point;
+- `41_vesper_nightmare.png` — transformed Vesper with active Nightmare attack;
+- `42_resonator_shutdown.png` — defeated Vesper and visibly powered-down Resonator.
+
+The first shutdown capture exposed residual energized red/cyan/magenta lines. Presentation was corrected in `LaboratoryPresentation` so the completed state now reads clearly as de-energized without changing gameplay.
+
+Visual acceptance is based primarily on world state, not captions.
+
+Acceptance result: PASS.
 
 ## Foundation-block non-goals
 
@@ -552,4 +563,4 @@ TypeScript                     PASS
 Static architecture audit      PASS
 ```
 
-Current execution boundary: **T9 next — Android visual acceptance only. Do not begin W7 until W6 visual evidence is reviewed.**
+Current execution boundary: **W6 CLOSED. W7 is next.**
