@@ -17,7 +17,7 @@ The Bedroom gameplay is Act I and remains the mechanical/narrative regression ba
 | W3B — Bathroom | **ACCEPTED** | Mirror mismatch + light-state reveal + concrete Attic boundary |
 | W4 — Attic | **ACCEPTED** | Connected evidence + W-01 revelation + concrete Basement boundary |
 | W5 — Basement | **ACCEPTED** | Unstable infrastructure + rejected failsafe + concrete Laboratory boundary |
-| W6 — Laboratory | **ACTIVE — T0–T5 COMPLETE** | Vesper control phase complete; Resonator instability next |
+| W6 — Laboratory | **ACTIVE — T0–T6 COMPLETE** | Resonator instability complete; Vesper Nightmare next |
 | W7 — Ending/Cohesion | Planned | Product hardening |
 
 Implementation/task checkpoints:
@@ -504,28 +504,26 @@ The Android flow validates real UI state/text rather than a synthetic renderer-r
 
 ## Current priority
 
-**W6-T6 — Phase 2: Resonator instability.**
+**W6-T7 — Phase 3: Vesper Nightmare.**
 
-T0–T5 are implemented and green:
+T0–T6 are implemented and green:
 
 ```text
-W5 Laboratory boundary
-        ↓
-Laboratory foundation
-        ↓
-Dream Spark combat bridge
-        ↓
-encounter/checkpoint contract
+Laboratory entry
         ↓
 BREAK VESPER'S CONTROL
         ↓
 two control towers disabled
         ↓
-vesper-control-broken
-        ↓
 DESTABILIZE THE RESONATOR
+        ↓
+two Resonator nodes disabled
+        ↓
+resonator-destabilized
+        ↓
+DEFEAT VESPER NIGHTMARE
 ```
 
-T6 may now implement the Resonator runaway state using two concrete weak points plus selected spatial/electrical pressure motifs.
+T7 may now implement Vesper's transformed combat phase with deterministic attack telegraphs and a small number of meaningful vulnerability windows.
 
-Do not implement T7 Vesper Nightmare, T8 final defeat state or T9 Android evidence as part of T6.
+Do not implement T8 final shutdown/ending boundary or T9 Android evidence as part of T7.

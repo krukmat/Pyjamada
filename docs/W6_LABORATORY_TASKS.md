@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T5 COMPLETE / T6 NEXT**
+**ACTIVE — T0–T6 COMPLETE / T7 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -173,14 +173,31 @@ Acceptance:
 - both disabled controls transition exactly once to the Resonator phase;
 - T5 does not implement Resonator weak points, Nightmare behavior or final defeat.
 
-### W6-T6 — Phase 2: Resonator instability — PLANNED
+### W6-T6 — Phase 2: Resonator instability — COMPLETE
 
 Objective: `DESTABILIZE THE RESONATOR`.
 
-Reuse selected motifs, not every prior mechanic:
-- spatial distortion inspired by Bathroom;
-- electrical pressure inspired by Basement;
-- two concrete Resonator weak points.
+Delivered:
+- two concrete Resonator nodes at the machine core; no generic HP bar or boss-health abstraction;
+- deterministic `sealed -> telegraph -> vulnerable -> disabled` windows for each node;
+- a Bathroom-inspired central distortion zone that visibly telegraphs and reverses horizontal input only while Wally is inside the active zone;
+- Basement-inspired electrical surge lanes with separate telegraph and damage windows;
+- electrical damage reuses existing HP, invulnerability and knockback semantics;
+- Dream Sparks hitting sealed nodes are consumed and rejected;
+- one valid Dream Spark during each node's vulnerability window disables that node;
+- each disabled node persists independently as Laboratory room-local state;
+- retry and Save/Continue preserve partial node progress through the existing T4 checkpoint/save contract;
+- disabling both nodes persists `resonator-destabilized`, clears transient Dream Sparks and advances the derived encounter phase exactly to `nightmare`;
+- transition into T6 and handoff into T7 both receive a short safe-entry grace window;
+- no Vesper Nightmare attack behavior, transformation gameplay or final defeat logic is implemented in T6.
+
+Acceptance:
+- distortion affects controls only inside its active central zone;
+- electrical pressure damages only its active lane;
+- sealed weak-point hits cannot progress the phase;
+- both vulnerability windows are deterministic and readable;
+- partial weak-point progress survives retry and Save/Continue;
+- both disabled nodes transition exactly once to `nightmare`.
 
 ### W6-T7 — Phase 3: Vesper Nightmare — PLANNED
 
@@ -339,4 +356,54 @@ Static architecture audit      PASS
 
 One CI attempt failed before tests because the new test fixture inferred `collected` as `string[]`; the fixture was typed explicitly as `HauntedSessionState`. No production behavior changed for that correction.
 
-Current execution boundary: **T6 next — implement only Resonator instability / `DESTABILIZE THE RESONATOR`.**
+## T6 implementation checkpoint
+
+Delivered files:
+- `src/game/adventure/LaboratoryResonatorInstability.ts`;
+- T6 integration in `AdventureExplorationRuntime.ts`;
+- Resonator runaway / distortion / surge / weak-point presentation in `LaboratoryPresentation.tsx`;
+- milestone/surge persistence integration in `App.tsx`;
+- `tests/w6-resonator-instability.test.ts`.
+
+Gameplay loop:
+```text
+DESTABILIZE THE RESONATOR
+        ↓
+read distortion / surge telegraph
+        ↓
+move through changing safe space
+        ↓
+weak point opens
+        ↓
+Dream Spark
+        ↓
+disable node A / B
+        ↓
+both disabled
+        ↓
+resonator-destabilized
+        ↓
+DEFEAT VESPER NIGHTMARE
+```
+
+Automated coverage confirms:
+- deterministic weak-point windows;
+- central distortion telegraph and horizontal-control inversion;
+- unaffected controls outside the distortion zone;
+- electrical surge damage and opposite-lane safety;
+- blocked hits against sealed nodes;
+- valid Dream Spark collision against both nodes;
+- partial-progress retry persistence;
+- Save/Continue under existing envelope v3;
+- exact phase handoff to `nightmare`.
+
+Repository validation:
+```text
+Assets                              PASS
+Game/settings/presentation          PASS
+W6 Resonator instability tests      PASS
+TypeScript                          PASS
+Static architecture audit           PASS
+```
+
+Current execution boundary: **T7 next — implement only Vesper Nightmare / `DEFEAT VESPER NIGHTMARE`.**
