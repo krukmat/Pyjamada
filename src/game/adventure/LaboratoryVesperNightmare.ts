@@ -72,17 +72,17 @@ export function resolveVesperNightmareState(
     };
   }
 
-  if (cycleMs < 400) return attackState('left-slam', 'telegraph', 1, hits);
-  if (cycleMs < 900) return attackState('left-slam', 'active', 1, hits);
-  if (cycleMs < 1_400) return attackState('left-slam', 'recovery', 1, hits);
+  if (cycleMs < 400) return attackState(cycleMs, 'left-slam', 'telegraph', 1, hits);
+  if (cycleMs < 900) return attackState(cycleMs, 'left-slam', 'active', 1, hits);
+  if (cycleMs < 1_400) return attackState(cycleMs, 'left-slam', 'recovery', 1, hits);
 
-  if (cycleMs < 1_800) return attackState('center-rift', 'telegraph', 2, hits);
-  if (cycleMs < 2_300) return attackState('center-rift', 'active', 2, hits);
-  if (cycleMs < 2_800) return attackState('center-rift', 'recovery', 2, hits);
+  if (cycleMs < 1_800) return attackState(cycleMs, 'center-rift', 'telegraph', 2, hits);
+  if (cycleMs < 2_300) return attackState(cycleMs, 'center-rift', 'active', 2, hits);
+  if (cycleMs < 2_800) return attackState(cycleMs, 'center-rift', 'recovery', 2, hits);
 
-  if (cycleMs < 3_200) return attackState('right-slam', 'telegraph', 3, hits);
-  if (cycleMs < 3_700) return attackState('right-slam', 'active', 3, hits);
-  if (cycleMs < 4_200) return attackState('right-slam', 'recovery', 3, hits);
+  if (cycleMs < 3_200) return attackState(cycleMs, 'right-slam', 'telegraph', 3, hits);
+  if (cycleMs < 3_700) return attackState(cycleMs, 'right-slam', 'active', 3, hits);
+  if (cycleMs < 4_200) return attackState(cycleMs, 'right-slam', 'recovery', 3, hits);
 
   return {
     active: true,
@@ -162,6 +162,7 @@ export function resolveVesperNightmareProjectileHits(
 }
 
 function attackState(
+  cycleMs: number,
   attack: VesperNightmareAttackId,
   phase: Exclude<VesperNightmareAttackPhase, 'idle'>,
   vulnerabilitySlot: 1 | 2 | 3,
@@ -171,7 +172,7 @@ function attackState(
   const vulnerable = phase === 'recovery' && hits + 1 === vulnerabilitySlot;
   return {
     active: true,
-    cycleMs: 0,
+    cycleMs,
     attack,
     phase,
     ...bounds,

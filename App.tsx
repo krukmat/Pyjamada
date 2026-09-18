@@ -143,7 +143,7 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT')) {
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }
@@ -178,7 +178,9 @@ export default function App() {
           || event.type === 'LABORATORY_CONTROL_DEVICE_DISABLED'
           || event.type === 'LABORATORY_VESPER_CONTROL_BROKEN'
           || event.type === 'LABORATORY_RESONATOR_NODE_DISABLED'
-          || event.type === 'LABORATORY_RESONATOR_DESTABILIZED')) {
+          || event.type === 'LABORATORY_RESONATOR_DESTABILIZED'
+          || event.type === 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'
+          || event.type === 'LABORATORY_VESPER_NIGHTMARE_DEFEATED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;

@@ -7,6 +7,10 @@ import {
   type ResonatorWeakPointId,
 } from '../adventure/LaboratoryResonatorInstability';
 import { resolveVesperControlState, type VesperControlDeviceId } from '../adventure/LaboratoryVesperControl';
+import {
+  resolveVesperNightmareState,
+  VESPER_NIGHTMARE_TARGET,
+} from '../adventure/LaboratoryVesperNightmare';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 
@@ -35,6 +39,9 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
     : undefined;
   const distortion = resonatorState?.distortion;
   const resonatorElectrical = resonatorState?.electrical;
+  const nightmareState = adventure && hauntedSession
+    ? resolveVesperNightmareState(adventure, hauntedSession.elapsedMs)
+    : undefined;
 
   return (
     <>
@@ -101,6 +108,24 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
             p2={vec(px(distortion.minX), px(94))}
             color={distortion.phase === 'active' ? '#79e8ff' : 'rgba(121,232,255,0.38)'}
             strokeWidth={px(distortion.phase === 'active' ? 1.2 : 0.7)}
+          />
+        </>
+      )}
+
+      {nightmareState?.attack && nightmareState.minX !== undefined && nightmareState.maxX !== undefined && nightmareState.phase !== 'recovery' && (
+        <>
+          <Rect
+            x={px(nightmareState.minX)}
+            y={px(nightmareState.attack === 'center-rift' ? 25 : 86)}
+            width={px(nightmareState.maxX - nightmareState.minX)}
+            height={px(nightmareState.attack === 'center-rift' ? 76 : 17)}
+            color={nightmareState.phase === 'active' ? 'rgba(255,93,105,0.23)' : 'rgba(211,107,255,0.10)'}
+          />
+          <Line
+            p1={vec(px(nightmareState.minX), px(89))}
+            p2={vec(px(nightmareState.maxX), px(89))}
+            color={nightmareState.phase === 'active' ? '#ff5d69' : '#d36bff'}
+            strokeWidth={px(nightmareState.phase === 'active' ? 2 : 0.9)}
           />
         </>
       )}
@@ -204,22 +229,68 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
         );
       })}
 
-      {/* Operator station / Vesper silhouette: visible but not yet an active boss state. */}
+      {/* Operator station remains; Vesper mutates only during the Nightmare phase. */}
       <RoundedRect x={px(102)} y={px(70)} width={px(25)} height={px(29)} r={px(2)} color="#243142" />
       <Rect x={px(105)} y={px(74)} width={px(19)} height={px(10)} color="#0b1219" />
       <Line p1={vec(px(108), px(78))} p2={vec(px(121), px(78))} color="#79e8ff" strokeWidth={px(0.8)} />
       <Line p1={vec(px(108), px(81))} p2={vec(px(117), px(81))} color="#d36bff" strokeWidth={px(0.8)} />
-      <Circle cx={px(114)} cy={px(57)} r={px(5)} color="#151722" />
-      <RoundedRect x={px(109)} y={px(61)} width={px(10)} height={px(17)} r={px(3)} color="#d8dde6" />
-      <Rect x={px(111)} y={px(64)} width={px(6)} height={px(14)} color="#6d7890" />
-      <Line p1={vec(px(108), px(66))} p2={vec(px(103), px(75))} color="#d8dde6" strokeWidth={px(2)} />
-      <Line p1={vec(px(120), px(66))} p2={vec(px(124), px(74))} color="#d8dde6" strokeWidth={px(2)} />
-      <Circle cx={px(112.5)} cy={px(56)} r={px(0.8)} color="#d36bff" />
-      <Circle cx={px(115.8)} cy={px(56)} r={px(0.8)} color="#79e8ff" />
+
+      {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && (
+        <>
+          <Circle cx={px(114)} cy={px(57)} r={px(5)} color="#151722" />
+          <RoundedRect x={px(109)} y={px(61)} width={px(10)} height={px(17)} r={px(3)} color="#d8dde6" />
+          <Rect x={px(111)} y={px(64)} width={px(6)} height={px(14)} color="#6d7890" />
+          <Line p1={vec(px(108), px(66))} p2={vec(px(103), px(75))} color="#d8dde6" strokeWidth={px(2)} />
+          <Line p1={vec(px(120), px(66))} p2={vec(px(124), px(74))} color="#d8dde6" strokeWidth={px(2)} />
+          <Circle cx={px(112.5)} cy={px(56)} r={px(0.8)} color="#d36bff" />
+          <Circle cx={px(115.8)} cy={px(56)} r={px(0.8)} color="#79e8ff" />
+        </>
+      )}
+
       {encounterPhase === 'vesper-control' && (
         <>
           <Line p1={vec(px(109), px(67))} p2={vec(px(52), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
           <Line p1={vec(px(119), px(67))} p2={vec(px(108), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
+        </>
+      )}
+
+      {encounterPhase === 'nightmare' && (
+        <>
+          {nightmareState?.vulnerable && (
+            <Circle
+              cx={px(VESPER_NIGHTMARE_TARGET.x)}
+              cy={px(65)}
+              r={px(17 + fastPulse)}
+              color="rgba(255,241,168,0.14)"
+            />
+          )}
+          <Circle cx={px(108)} cy={px(48)} r={px(8 + fastPulse * 0.5)} color="#1b1425" />
+          <RoundedRect x={px(98)} y={px(55)} width={px(20)} height={px(31)} r={px(6)} color="#3a2148" />
+          <RoundedRect x={px(102)} y={px(59)} width={px(13)} height={px(24)} r={px(5)} color="#1b1724" />
+          <Line p1={vec(px(101), px(61))} p2={vec(px(89), px(73))} color="#d36bff" strokeWidth={px(3)} />
+          <Line p1={vec(px(116), px(61))} p2={vec(px(125), px(73))} color="#79e8ff" strokeWidth={px(3)} />
+          <Line p1={vec(px(104), px(84))} p2={vec(px(99), px(96))} color="#6e446f" strokeWidth={px(3)} />
+          <Line p1={vec(px(113), px(84))} p2={vec(px(117), px(96))} color="#6e446f" strokeWidth={px(3)} />
+          <Circle cx={px(105)} cy={px(47)} r={px(1.4)} color="#ff5d69" />
+          <Circle cx={px(111)} cy={px(47)} r={px(1.4)} color="#fff1a8" />
+          {[0, 1, 2].map(index => (
+            <Circle
+              key={`nightmare-hit-${index}`}
+              cx={px(99 + index * 7)}
+              cy={px(38)}
+              r={px(1.8)}
+              color={(nightmareState?.hits ?? 0) > index ? '#ff5d69' : '#394354'}
+            />
+          ))}
+        </>
+      )}
+
+      {encounterPhase === 'shutdown' && (
+        <>
+          <Circle cx={px(110)} cy={px(82)} r={px(5)} color="#191923" />
+          <RoundedRect x={px(101)} y={px(86)} width={px(17)} height={px(8)} r={px(3)} color="#352b3b" />
+          <Line p1={vec(px(101), px(91))} p2={vec(px(93), px(96))} color="#5a4a60" strokeWidth={px(2)} />
+          <Line p1={vec(px(117), px(91))} p2={vec(px(123), px(96))} color="#5a4a60" strokeWidth={px(2)} />
         </>
       )}
 
