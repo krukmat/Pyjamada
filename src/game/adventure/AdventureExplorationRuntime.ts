@@ -1,4 +1,8 @@
-import { applyHauntedPlayerHit } from '../haunted/HauntedCombat';
+import {
+  applyHauntedPlayerHit,
+  stepDreamSparks,
+  tryFireDreamSpark,
+} from '../haunted/HauntedCombat';
 import { consumeTransientActions, createHauntedInputState } from '../haunted/HauntedInput';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
@@ -200,6 +204,10 @@ export function isBasementTerminalFocused(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'basement').switches['terminal-focused'] === true;
 }
 
+export function isLaboratoryCombatEnabled(adventure: AdventureState): boolean {
+  return isAdventureExplorationActive(adventure) && adventure.currentRoom === 'laboratory';
+}
+
 /** Legacy W1 review marker retained for save/screenshot compatibility. */
 export function isLivingRoomDoorReached(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').interactions.includes('living-room-door');
@@ -216,19 +224,31 @@ export function stepAdventureExploration(
   let elapsedMs = session.elapsedMs;
   let nextAdventure = adventure;
 
-  // Exploration otherwise keeps the bedroom deadline frozen. T5 advances the
-  // existing clock only while the revealed Basement overload is actively in play.
+  // Exploration otherwise keeps the bedroom deadline frozen. Basement advances
+  // only for its electrical cycle; Laboratory advances the combat clock required
+  // by Dream Spark cooldowns without reactivating domestic deadline/noise rules.
+  const laboratoryCombat = isLaboratoryCombatEnabled(adventure);
   if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
     elapsedMs += dtMs;
     const armed = armBasementElectricalHazard(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
+  } else if (laboratoryCombat) {
+    elapsedMs += dtMs;
   }
 
   let player = stepHauntedPlayerPhysics(session.player, session.input, dtMs / 1000);
-  let combat = session.combat;
+  let combat = laboratoryCombat
+    ? stepDreamSparks(session.combat, dtMs / 1000)
+    : session.combat.projectiles.length > 0
+      ? { ...session.combat, projectiles: [] }
+      : session.combat;
   let objective = session.objective;
   const events: AdventureExplorationEvent[] = [];
+
+  if (laboratoryCombat && session.input.attackPressed) {
+    combat = tryFireDreamSpark(combat, player, elapsedMs).combat;
+  }
 
   if (session.input.interactPressed) {
     const target = findAdventureInteractionTarget(adventure, player.x);

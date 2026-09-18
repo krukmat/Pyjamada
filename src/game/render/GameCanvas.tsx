@@ -61,7 +61,7 @@ export function GameCanvas({
   const playerInvulnerable = Boolean(
     hauntedSession
     && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs
-    && (!exploration || roomId === 'basement'),
+    && (!exploration || roomId === 'basement' || roomId === 'laboratory'),
   );
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
 
@@ -115,7 +115,7 @@ export function GameCanvas({
           />
         ) : null}
 
-        {!exploration && dreamSparks.map((projectile) => (
+        {(!exploration || roomId === 'laboratory') && dreamSparks.map((projectile) => (
           <PixelDreamSpark
             key={projectile.id}
             projectile={projectile}

@@ -15,6 +15,7 @@ import { isTestHooksEnabled } from './src/app/testHooks';
 import {
   applyFalseEscape,
   isAdventureExplorationActive,
+  isLaboratoryCombatEnabled,
   stepAdventureExploration,
   type AdventureExplorationEvent,
 } from './src/game/adventure/AdventureExplorationRuntime';
@@ -352,7 +353,7 @@ export default function App() {
     if (!current || current.objective.phase === 'failed') return;
     const exploration = isAdventureExplorationActive(adventureRef.current);
     if (!exploration && current.objective.phase === 'completed') return;
-    if (exploration && control === 'attack') return;
+    if (exploration && control === 'attack' && !isLaboratoryCombatEnabled(adventureRef.current)) return;
     activateSession({ ...current, input: pressAction(current.input, control) });
   }
 

@@ -2,6 +2,7 @@ import { equal, test } from './assert';
 import {
   applyFalseEscape,
   findAdventureInteractionTarget,
+  isLaboratoryCombatEnabled,
   stepAdventureExploration,
   type AdventureExplorationEvent,
 } from '../src/game/adventure/AdventureExplorationRuntime';
@@ -128,3 +129,58 @@ void test('W6 T1 supports production Basement -> Laboratory -> Basement navigati
 });
 
 console.log('W6 Laboratory foundation tests passed');
+
+
+void test('W6 T3 enables Dream Spark only inside Laboratory exploration', () => {
+  const base = setupBasement('w6-lab-combat');
+  let adventure = setRoomSwitch(base.adventure, 'basement', 'basement-loss-of-control-revealed', true);
+  adventure = applyRoomInteractionEffect(adventure, 'basement', 'trace-basement-laboratory-route').adventure;
+
+  const blockedAttack = {
+    ...base.session,
+    input: pressAction(createHauntedInputState(), 'attack'),
+  };
+  const blockedStep = stepAdventureExploration(blockedAttack, adventure, 33);
+  equal(blockedStep.session.combat.projectiles.length, 0, 'attack remains disabled in non-Laboratory exploration');
+
+  const laboratory = transitionAdventure(adventure, 'laboratory', 'laboratory-from-basement');
+  equal(laboratory.status, 'ok', 'combat test enters Laboratory through production transition');
+  if (laboratory.status !== 'ok') return;
+  equal(isLaboratoryCombatEnabled(laboratory.state), true, 'Laboratory explicitly enables exploration combat');
+
+  const labSession: HauntedSessionState = {
+    ...base.session,
+    player: { ...base.session.player, x: 36, y: 104, vx: 0, vy: 0, grounded: true, facing: 'right' },
+    domestic: { ...base.session.domestic, player: { x: 36, facing: 'right' } },
+    input: pressAction(createHauntedInputState(), 'attack'),
+  };
+  const noiseBefore = labSession.domestic.noise;
+  const elapsedBefore = labSession.elapsedMs;
+  const fired = stepAdventureExploration(labSession, laboratory.state, 33);
+  equal(fired.session.combat.projectiles.length, 1, 'Laboratory attack reuses Dream Spark projectile creation');
+  equal(fired.session.domestic.noise, noiseBefore, 'Laboratory Dream Spark does not reactivate domestic noise');
+  equal(fired.session.threats.ghosts.length, 0, 'Laboratory combat bridge does not reactivate Ghost spawning');
+  equal(fired.session.elapsedMs, elapsedBefore + 33, 'Laboratory advances only the combat clock needed by cooldowns');
+
+  const firstX = fired.session.combat.projectiles[0]?.x ?? 0;
+  const advanced = stepAdventureExploration(fired.session, laboratory.state, 33);
+  equal((advanced.session.combat.projectiles[0]?.x ?? 0) > firstX, true, 'Laboratory Dream Spark advances using existing projectile physics');
+
+  const immediateRetry: HauntedSessionState = {
+    ...advanced.session,
+    input: pressAction(createHauntedInputState(), 'attack'),
+  };
+  const cooldown = stepAdventureExploration(immediateRetry, laboratory.state, 33);
+  equal(cooldown.session.combat.projectiles.length, 1, 'existing Dream Spark cooldown rejects immediate second shot');
+
+  const back = transitionAdventure(laboratory.state, 'basement', 'basement-from-laboratory');
+  equal(back.status, 'ok', 'combat test can return to Basement');
+  if (back.status !== 'ok') return;
+  const cleared = stepAdventureExploration(
+    { ...cooldown.session, input: createHauntedInputState() },
+    back.state,
+    33,
+  );
+  equal(cleared.session.combat.projectiles.length, 0, 'leaving Laboratory clears transient exploration projectiles');
+  equal(isLaboratoryCombatEnabled(back.state), false, 'combat bridge is disabled again outside Laboratory');
+});

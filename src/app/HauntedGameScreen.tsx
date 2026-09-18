@@ -24,6 +24,7 @@ import {
   isKitchenBreakerInspected,
   isKitchenCircuitOverloaded,
   isKitchenPowerRerouted,
+  isLaboratoryCombatEnabled,
   isLivingRoomPathRevealed,
   isLivingRoomPhotoFocused,
   isLivingRoomRadioFocused,
@@ -85,6 +86,7 @@ export function HauntedGameScreen({
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
   const testHooksEnabled = isTestHooksEnabled();
   const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
+  const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -146,7 +148,7 @@ export function HauntedGameScreen({
             <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
           </View>
           <View style={styles.controls}>
-            {!exploration && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
+            {(!exploration || laboratoryCombat) && <TapControl testID="attack-button" label="ATTACK" accent onPress={() => onAction('attack')} />}
             <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
           </View>
         </>
