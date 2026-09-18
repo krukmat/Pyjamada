@@ -141,9 +141,24 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       {/* Basement feed enters at the left and terminates at the Resonator. */}
       <RoundedRect x={px(4)} y={px(55)} width={px(22)} height={px(47)} r={px(2)} color="#1f2d39" />
       <Rect x={px(8)} y={px(59)} width={px(14)} height={px(32)} color="#0c131c" />
-      <Line p1={vec(px(14), px(27))} p2={vec(px(14), px(94))} color="#79e8ff" strokeWidth={px(1.4)} />
-      <Line p1={vec(px(14), px(94))} p2={vec(px(55), px(94))} color="#79e8ff" strokeWidth={px(1.4)} />
-      <Circle cx={px(14)} cy={px(72)} r={px(4 + fastPulse)} color="rgba(121,232,255,0.09)" />
+      <Line
+        p1={vec(px(14), px(27))}
+        p2={vec(px(14), px(94))}
+        color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'}
+        strokeWidth={px(encounterPhase === 'complete' ? 0.8 : 1.4)}
+      />
+      <Line
+        p1={vec(px(14), px(94))}
+        p2={vec(px(55), px(94))}
+        color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'}
+        strokeWidth={px(encounterPhase === 'complete' ? 0.8 : 1.4)}
+      />
+      <Circle
+        cx={px(14)}
+        cy={px(72)}
+        r={px(encounterPhase === 'complete' ? 4 : 4 + fastPulse)}
+        color={encounterPhase === 'complete' ? 'rgba(72,83,92,0.06)' : 'rgba(121,232,255,0.09)'}
+      />
 
       {/* Resonator containment frame and central core. */}
       <RoundedRect x={px(52)} y={px(31)} width={px(48)} height={px(70)} r={px(4)} color="#223044" />
@@ -173,9 +188,24 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       />
       <Circle cx={px(76)} cy={px(65)} r={px(5)} color={encounterPhase === 'complete' ? '#303b42' : encounterPhase === 'resonator' ? '#fff1a8' : '#d7fbff'} />
       <Circle cx={px(76)} cy={px(65)} r={px(2.2)} color={encounterPhase === 'complete' ? '#1a2228' : fastPulse === 0 ? '#79e8ff' : '#d36bff'} />
-      <Line p1={vec(px(76), px(42))} p2={vec(px(76), px(55))} color="#d36bff" strokeWidth={px(1.1)} />
-      <Line p1={vec(px(76), px(75))} p2={vec(px(76), px(91))} color="#79e8ff" strokeWidth={px(1.1)} />
-      <Line p1={vec(px(55), px(94))} p2={vec(px(68), px(79))} color="#79e8ff" strokeWidth={px(1.4)} />
+      <Line
+        p1={vec(px(76), px(42))}
+        p2={vec(px(76), px(55))}
+        color={encounterPhase === 'complete' ? '#344049' : '#d36bff'}
+        strokeWidth={px(encounterPhase === 'complete' ? 0.7 : 1.1)}
+      />
+      <Line
+        p1={vec(px(76), px(75))}
+        p2={vec(px(76), px(91))}
+        color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'}
+        strokeWidth={px(encounterPhase === 'complete' ? 0.7 : 1.1)}
+      />
+      <Line
+        p1={vec(px(55), px(94))}
+        p2={vec(px(68), px(79))}
+        color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'}
+        strokeWidth={px(encounterPhase === 'complete' ? 0.8 : 1.4)}
+      />
 
       {encounterPhase === 'resonator' && ([
         { id: 'left' as ResonatorWeakPointId, x: 66 },
@@ -238,7 +268,12 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
               <Circle cx={px(x + 4)} cy={px(69)} r={px(7)} color="rgba(121,232,255,0.06)" />
             )}
             {state === 'disabled' && (
-              <Line p1={vec(px(x), px(49))} p2={vec(px(x + 8), px(85))} color="#ff5d69" strokeWidth={px(1)} />
+              <Line
+                p1={vec(px(x), px(49))}
+                p2={vec(px(x + 8), px(85))}
+                color={encounterPhase === 'complete' ? 'rgba(72,83,92,0.45)' : '#ff5d69'}
+                strokeWidth={px(encounterPhase === 'complete' ? 0.7 : 1)}
+              />
             )}
           </React.Fragment>
         );
@@ -247,8 +282,18 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       {/* Operator station remains; Vesper mutates only during the Nightmare phase. */}
       <RoundedRect x={px(102)} y={px(70)} width={px(25)} height={px(29)} r={px(2)} color="#243142" />
       <Rect x={px(105)} y={px(74)} width={px(19)} height={px(10)} color="#0b1219" />
-      <Line p1={vec(px(108), px(78))} p2={vec(px(121), px(78))} color="#79e8ff" strokeWidth={px(0.8)} />
-      <Line p1={vec(px(108), px(81))} p2={vec(px(117), px(81))} color="#d36bff" strokeWidth={px(0.8)} />
+      <Line
+        p1={vec(px(108), px(78))}
+        p2={vec(px(121), px(78))}
+        color={encounterPhase === 'complete' ? '#344049' : '#79e8ff'}
+        strokeWidth={px(0.8)}
+      />
+      <Line
+        p1={vec(px(108), px(81))}
+        p2={vec(px(117), px(81))}
+        color={encounterPhase === 'complete' ? '#344049' : '#d36bff'}
+        strokeWidth={px(0.8)}
+      />
 
       {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && encounterPhase !== 'complete' && (
         <>
