@@ -23,6 +23,7 @@ import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/a
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
 import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
+import { restoreLaboratoryCheckpoint, shouldUseLaboratoryCheckpoint } from './src/game/adventure/LaboratoryEncounter';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
 import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
@@ -172,7 +173,8 @@ export default function App() {
           || event.type === 'BASEMENT_TERMINAL_OFFLINE'
           || event.type === 'BASEMENT_CONTROL_REVEALED'
           || event.type === 'BASEMENT_FAILSAFE_REJECTED'
-          || event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED')) {
+          || event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED'
+          || event.type === 'LABORATORY_ENCOUNTER_STARTED')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
@@ -328,9 +330,15 @@ export default function App() {
         Alert.alert('Saved game unavailable', 'The save is incompatible or corrupted. Start a new run to replace it.');
         return;
       }
-      saveCoordinator.markRestored(result.state);
+      const restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure)
+        ? gameState(restoreLaboratoryCheckpoint(result.state.haunted, result.state.adventure), result.state.adventure)
+        : result.state;
+      saveCoordinator.markRestored(restoredState);
       resetRuntimeClocks();
-      activateGameSession(result.state);
+      activateGameSession(restoredState);
+      if (restoredState !== result.state) {
+        await saveCoordinator.persist(restoredState, 'milestone').catch(() => undefined);
+      }
       setView('game');
     } catch {
       Alert.alert('Continue unavailable', 'The saved haunted run could not be read from device storage.');
@@ -362,6 +370,20 @@ export default function App() {
     clearTransitionTimers();
     const current = sessionRef.current;
     if (!current) return;
+    const currentAdventure = adventureRef.current;
+
+    if (shouldUseLaboratoryCheckpoint(currentAdventure)) {
+      const restored = gameState(restoreLaboratoryCheckpoint(current, currentAdventure), currentAdventure);
+      resetRuntimeClocks();
+      activateGameSession(restored);
+      try {
+        await saveCoordinator.persist(restored, 'milestone');
+      } catch {
+        Alert.alert('Retry not saved', 'The Laboratory phase restarted, but the checkpoint state was not persisted.');
+      }
+      return;
+    }
+
     const next = createAdventureGameSession(current.runId);
     resetRuntimeClocks();
     activateGameSession(next);
