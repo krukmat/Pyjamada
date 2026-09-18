@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACTIVE — T0–T8 COMPLETE / T9 FINAL RECAPTURE**
+**ACCEPTED — T0–T9 COMPLETE**
 
-W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence and automated closeout coverage are complete on `feat/haunted-house-adventure`. T9 has a final evidence-only polish patch pending Android recapture.
+W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence, automated closeout coverage and the final Android visual gate are complete on `feat/haunted-house-adventure`.
 
 ## Product goal
 
@@ -285,7 +285,7 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T9 — Android visual gate — FINAL RECAPTURE
+### W5-T9 — Android visual gate — COMPLETE / ACCEPTED
 
 The 37-screenshot Android contract is stable. A final evidence-only polish patch now improves screenshots 35–37 without changing gameplay timing, collision, damage, persistence or interaction radii:
 
@@ -293,7 +293,7 @@ The 37-screenshot Android contract is stable. A final evidence-only polish patch
 - screenshot 36 keeps the deterministic telegraph phase but positions Wally outside the unsafe lane so the warning remains visually readable;
 - screenshot 37 keeps the active discharge phase while widening the service hatch presentation so the Laboratory boundary remains legible around Wally.
 
-One Android recapture is required before T9 is marked accepted.
+The final Android recapture completed successfully with the full 37-screenshot contract.
 
 Accepted W5 evidence:
 
@@ -314,7 +314,7 @@ Review result:
 - the Android runner published exactly 37 screenshots;
 - screenshots 1–33 remain the regression baseline with no material W5-induced regression observed.
 
-The W5 visual gate is functionally complete but requires one final Android recapture of the 37-image contract after this evidence-only polish.
+The W5 visual gate is accepted. Screenshot 35 now demonstrates the isolation relay as the next actionable step; screenshot 36 keeps Wally outside the unsafe lane while the telegraph remains clearly visible; screenshot 37 keeps the discharge active while the widened Laboratory feed hatch remains visible and actionable around Wally. No additional W5 screenshot round is required.
 
 ## Acceptance gate
 
@@ -362,7 +362,7 @@ The conduit/relay/terminal/hazard relationship remains Basement-specific until a
 
 ## Current implementation slice
 
-**T0–T8 complete. T9 awaits final Android recapture; no gameplay work remains.**
+**T0–T9 complete. W5 is accepted and closed.**
 
 ```text
 W4 accepted Basement hatch
@@ -394,4 +394,4 @@ LAB FEED HATCH
 LABORATORY ROUTE IDENTIFIED
 ```
 
-No further W5 gameplay implementation is required. After the final Android recapture confirms screenshots 35–37, mark T9 accepted and W5 closed; only then proceed to W6 Laboratory.
+No further W5 gameplay or evidence work is required. The next product increment may proceed to W6 Laboratory.
