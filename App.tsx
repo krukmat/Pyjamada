@@ -143,7 +143,7 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT')) {
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }
@@ -174,7 +174,9 @@ export default function App() {
           || event.type === 'BASEMENT_CONTROL_REVEALED'
           || event.type === 'BASEMENT_FAILSAFE_REJECTED'
           || event.type === 'BASEMENT_LABORATORY_ROUTE_REVEALED'
-          || event.type === 'LABORATORY_ENCOUNTER_STARTED')) {
+          || event.type === 'LABORATORY_ENCOUNTER_STARTED'
+          || event.type === 'LABORATORY_CONTROL_DEVICE_DISABLED'
+          || event.type === 'LABORATORY_VESPER_CONTROL_BROKEN')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
