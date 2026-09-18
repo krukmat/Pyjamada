@@ -280,6 +280,14 @@ export function stepAdventureExploration(
       const effect = applyRoomInteractionEffect(nextAdventure, adventure.currentRoom, target.behavior.effect);
       nextAdventure = effect.adventure;
       events.push(...effect.events);
+      if (effect.events.some(event => event.type === 'LABORATORY_ENCOUNTER_STARTED')) {
+        combat = {
+          ...combat,
+          projectiles: [],
+          nextAttackAllowedMs: elapsedMs,
+          invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
+        };
+      }
     }
   }
 

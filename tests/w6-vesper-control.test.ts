@@ -13,7 +13,7 @@ import {
 } from '../src/game/adventure/LaboratoryVesperControl';
 import { transitionAdventure } from '../src/game/adventure/RoomRegistry';
 import { applyFalseEscape } from '../src/game/adventure/AdventureExplorationRuntime';
-import { createHauntedInputState } from '../src/game/haunted/HauntedInput';
+import { createHauntedInputState, pressAction } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
 
 function setupLaboratory(runId: string): { session: HauntedSessionState; adventure: AdventureState } {
@@ -85,6 +85,26 @@ function withProjectile(
     },
   };
 }
+
+void test('W6 T5 starts from a clean combat attempt after Resonator activation', () => {
+  const base = setupLaboratory('w6-t5-clean-start');
+  const dormant = setRoomSwitch(base.adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, false);
+  const dirty: HauntedSessionState = {
+    ...base.session,
+    player: { ...base.session.player, x: 76, facing: 'right' },
+    domestic: { ...base.session.domestic, player: { x: 76, facing: 'right' } },
+    input: pressAction(createHauntedInputState(), 'interact'),
+    combat: {
+      ...base.session.combat,
+      projectiles: [{ id: 44, x: 104, y: 84, vx: 76, damage: 1 }],
+    },
+  };
+
+  const started = stepAdventureExploration(dirty, dormant, 33);
+  equal(getLaboratoryEncounterPhase(started.adventure), 'vesper-control', 'Resonator interaction starts phase 1');
+  equal(started.session.combat.projectiles.length, 0, 'pre-encounter Dream Sparks are cleared at activation');
+  equal(started.session.combat.invulnerableUntilMs > started.session.elapsedMs, true, 'activation grants a short safe-entry window');
+});
 
 void test('W6 T5 exposes alternating deterministic Vesper control windows', () => {
   const base = setupLaboratory('w6-t5-windows');
