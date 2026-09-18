@@ -2,6 +2,10 @@ import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import type { AdventureState } from '../adventure/AdventureState';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
+import {
+  resolveResonatorInstabilityState,
+  type ResonatorWeakPointId,
+} from '../adventure/LaboratoryResonatorInstability';
 import { resolveVesperControlState, type VesperControlDeviceId } from '../adventure/LaboratoryVesperControl';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
@@ -26,6 +30,11 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
     ? resolveVesperControlState(adventure, hauntedSession.elapsedMs)
     : undefined;
   const pressure = controlState?.pressure;
+  const resonatorState = adventure && hauntedSession
+    ? resolveResonatorInstabilityState(adventure, hauntedSession.elapsedMs)
+    : undefined;
+  const distortion = resonatorState?.distortion;
+  const resonatorElectrical = resonatorState?.electrical;
 
   return (
     <>
@@ -54,6 +63,48 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
         </>
       )}
 
+      {resonatorElectrical?.lane && resonatorElectrical.minX !== undefined && resonatorElectrical.maxX !== undefined && (
+        <>
+          <Rect
+            x={px(resonatorElectrical.minX)}
+            y={px(88)}
+            width={px(resonatorElectrical.maxX - resonatorElectrical.minX)}
+            height={px(15)}
+            color={resonatorElectrical.phase === 'active' ? 'rgba(121,232,255,0.24)' : 'rgba(121,232,255,0.09)'}
+          />
+          <Line
+            p1={vec(px(resonatorElectrical.minX), px(90))}
+            p2={vec(px(resonatorElectrical.maxX), px(90))}
+            color={resonatorElectrical.phase === 'active' ? '#d7fbff' : '#79e8ff'}
+            strokeWidth={px(resonatorElectrical.phase === 'active' ? 1.8 : 0.9)}
+          />
+        </>
+      )}
+
+      {distortion?.minX !== undefined && distortion.maxX !== undefined && distortion.phase !== 'idle' && (
+        <>
+          <Rect
+            x={px(distortion.minX)}
+            y={px(24)}
+            width={px(distortion.maxX - distortion.minX)}
+            height={px(76)}
+            color={distortion.phase === 'active' ? 'rgba(211,107,255,0.10)' : 'rgba(211,107,255,0.045)'}
+          />
+          <Line
+            p1={vec(px(distortion.minX), px(31))}
+            p2={vec(px(distortion.maxX), px(94))}
+            color={distortion.phase === 'active' ? '#d36bff' : 'rgba(211,107,255,0.45)'}
+            strokeWidth={px(distortion.phase === 'active' ? 1.2 : 0.7)}
+          />
+          <Line
+            p1={vec(px(distortion.maxX), px(31))}
+            p2={vec(px(distortion.minX), px(94))}
+            color={distortion.phase === 'active' ? '#79e8ff' : 'rgba(121,232,255,0.38)'}
+            strokeWidth={px(distortion.phase === 'active' ? 1.2 : 0.7)}
+          />
+        </>
+      )}
+
       {/* Structural ribs / containment wall. */}
       {[2, 24, 46, 68, 90, 112].map((x) => (
         <React.Fragment key={`lab-rib-${x}`}>
@@ -77,14 +128,43 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       <Line p1={vec(px(61), px(42))} p2={vec(px(91), px(42))} color="#536c7c" strokeWidth={px(1.2)} />
       <Line p1={vec(px(61), px(90))} p2={vec(px(91), px(90))} color="#536c7c" strokeWidth={px(1.2)} />
 
-      <Circle cx={px(76)} cy={px(65)} r={px(22)} color="rgba(121,232,255,0.045)" />
-      <Circle cx={px(76)} cy={px(65)} r={px(16)} color="rgba(211,107,255,0.07)" />
-      <Circle cx={px(76)} cy={px(65)} r={px(coreRadius)} color="rgba(121,232,255,0.14)" />
-      <Circle cx={px(76)} cy={px(65)} r={px(5)} color="#d7fbff" />
+      <Circle cx={px(76)} cy={px(65)} r={px(encounterPhase === 'resonator' ? 24 + fastPulse : 22)} color={encounterPhase === 'resonator' ? 'rgba(211,107,255,0.075)' : 'rgba(121,232,255,0.045)'} />
+      <Circle cx={px(76)} cy={px(65)} r={px(encounterPhase === 'resonator' ? 18 + pulse * 0.4 : 16)} color="rgba(211,107,255,0.07)" />
+      <Circle cx={px(76)} cy={px(65)} r={px(coreRadius + (encounterPhase === 'resonator' ? 2.5 + fastPulse : 0))} color={encounterPhase === 'resonator' ? 'rgba(255,93,105,0.16)' : 'rgba(121,232,255,0.14)'} />
+      <Circle cx={px(76)} cy={px(65)} r={px(5)} color={encounterPhase === 'resonator' ? '#fff1a8' : '#d7fbff'} />
       <Circle cx={px(76)} cy={px(65)} r={px(2.2)} color={fastPulse === 0 ? '#79e8ff' : '#d36bff'} />
       <Line p1={vec(px(76), px(42))} p2={vec(px(76), px(55))} color="#d36bff" strokeWidth={px(1.1)} />
       <Line p1={vec(px(76), px(75))} p2={vec(px(76), px(91))} color="#79e8ff" strokeWidth={px(1.1)} />
       <Line p1={vec(px(55), px(94))} p2={vec(px(68), px(79))} color="#79e8ff" strokeWidth={px(1.4)} />
+
+      {encounterPhase === 'resonator' && ([
+        { id: 'left' as ResonatorWeakPointId, x: 66 },
+        { id: 'right' as ResonatorWeakPointId, x: 86 },
+      ]).map(({ id, x }) => {
+        const state = resonatorState?.weakPoints[id] ?? 'sealed';
+        const nodeColor = state === 'disabled'
+          ? '#26313a'
+          : state === 'vulnerable'
+            ? '#fff1a8'
+            : state === 'telegraph'
+              ? '#d36bff'
+              : '#79e8ff';
+        return (
+          <React.Fragment key={`resonator-node-${id}`}>
+            {state === 'vulnerable' && (
+              <Circle cx={px(x)} cy={px(84)} r={px(7 + fastPulse)} color="rgba(255,241,168,0.14)" />
+            )}
+            <Circle cx={px(x)} cy={px(84)} r={px(4.2)} color={state === 'disabled' ? '#151c24' : '#1d2a38'} />
+            <Circle cx={px(x)} cy={px(84)} r={px(2.3)} color={nodeColor} />
+            {state === 'disabled' && (
+              <>
+                <Line p1={vec(px(x - 4), px(80))} p2={vec(px(x + 4), px(88))} color="#ff5d69" strokeWidth={px(1)} />
+                <Line p1={vec(px(x + 4), px(80))} p2={vec(px(x - 4), px(88))} color="#ff5d69" strokeWidth={px(1)} />
+              </>
+            )}
+          </React.Fragment>
+        );
+      })}
 
       {/* Vesper control towers: sealed -> telegraph -> vulnerable -> disabled. */}
       {([
