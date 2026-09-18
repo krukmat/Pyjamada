@@ -14,6 +14,12 @@ import {
   type RoomId,
 } from './AdventureState';
 import {
+  isPlayerInsideVesperPressure,
+  resolveVesperControlProjectileHits,
+  resolveVesperControlState,
+  type VesperControlDeviceId,
+} from './LaboratoryVesperControl';
+import {
   armBasementElectricalHazard,
   isInsideBasementElectricalHazard,
   resolveBasementElectricalHazard,
@@ -34,6 +40,10 @@ export type AdventureExplorationEvent =
   | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: RoomId; targetEntry: string }
   | { type: 'LIVING_ROOM_DOOR_REACHED' }
   | { type: 'BASEMENT_DISCHARGE_HIT' }
+  | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
+  | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
+  | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
+  | { type: 'LABORATORY_VESPER_PULSE_HIT' }
   | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
@@ -250,6 +260,11 @@ export function stepAdventureExploration(
     combat = tryFireDreamSpark(combat, player, elapsedMs).combat;
   }
 
+  const controlHits = resolveVesperControlProjectileHits(nextAdventure, combat, elapsedMs);
+  nextAdventure = controlHits.adventure;
+  combat = controlHits.combat;
+  events.push(...controlHits.events);
+
   if (session.input.interactPressed) {
     const target = findAdventureInteractionTarget(adventure, player.x);
     if (target?.available && target.behavior.type === 'exit') {
@@ -265,6 +280,18 @@ export function stepAdventureExploration(
       const effect = applyRoomInteractionEffect(nextAdventure, adventure.currentRoom, target.behavior.effect);
       nextAdventure = effect.adventure;
       events.push(...effect.events);
+    }
+  }
+
+  const vesperPressure = resolveVesperControlState(nextAdventure, elapsedMs).pressure;
+  if (isPlayerInsideVesperPressure(player.x, vesperPressure) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      const laneCenter = ((vesperPressure.minX ?? player.x) + (vesperPressure.maxX ?? player.x)) / 2;
+      player = applyHauntedKnockback(player, player.x <= laneCenter ? 1 : -1);
+      events.push({ type: 'LABORATORY_VESPER_PULSE_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }
 
