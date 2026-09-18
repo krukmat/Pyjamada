@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — T0–T7 COMPLETE / T8 NEXT**
+**ACTIVE — T0–T8 COMPLETE / T9 NEXT**
 
 W5 is accepted and closed. W6 begins at the persisted Basement `laboratory-route-revealed` boundary.
 
@@ -226,11 +226,30 @@ Acceptance:
 - partial hit progress survives retry and Save/Continue;
 - third valid hit transitions exactly to `shutdown`, not `complete`.
 
-### W6-T8 — Defeat / integration / W7 boundary — PLANNED
+### W6-T8 — Defeat / integration / W7 boundary — COMPLETE
 
-Persist `laboratory-encounter-complete`, stop encounter hazards, clean transient combat state and expose `RESONATOR SHUT DOWN`.
+Delivered:
+- explicit `SHUT DOWN RESONATOR` interaction appears only after `vesper-nightmare-defeated`;
+- shutdown action is hidden before Nightmare defeat and disappears permanently after completion;
+- completion persists `laboratory-encounter-complete` and advances the derived encounter phase to `complete`;
+- completion emits `LABORATORY_ENCOUNTER_COMPLETED` for immediate milestone persistence;
+- Dream Sparks, attack cooldown and transient invulnerability are cleaned at completion;
+- Laboratory combat is disabled after `complete`, so ATTACK no longer creates projectiles;
+- all T5/T6/T7 hazards naturally resolve inactive under the completed phase;
+- completed Laboratory freezes the combat clock and cannot emit Vesper/Resonator/Nightmare hazard damage;
+- Continue restores the completed W7 boundary without phase-checkpoint normalization;
+- final Laboratory presentation dims the Resonator, preserves defeated Vesper and removes active-machine visual energy;
+- HUD continues to expose `RESONATOR SHUT DOWN` as the stable W7 boundary;
+- no W7 awakening, credits, Ghost sting or ending sequence was added.
 
-Integration must cover Bedroom → Laboratory → defeat while preserving prior-wave regression.
+Integration:
+- automated W6 integration enters Laboratory from the Adventure room chain;
+- starts the encounter through the production Resonator interaction;
+- completes T5 control towers using valid Dream Spark windows;
+- completes T6 Resonator nodes using valid weak-point windows;
+- completes all three ordered T7 Nightmare recovery hits;
+- executes final shutdown;
+- validates persistence and clean post-completion behavior under the existing save envelope.
 
 ### W6-T9 — Android visual gate — PLANNED
 
@@ -475,4 +494,47 @@ TypeScript                     PASS
 Static architecture audit      PASS
 ```
 
-Current execution boundary: **T8 next — final shutdown / integration / W7 boundary.**
+## T8 implementation checkpoint
+
+Delivered files:
+- final shutdown interaction/effect in `RoomRegistry.ts` and `RoomInteractionEffects.ts`;
+- completed-phase combat cleanup in `AdventureExplorationRuntime.ts`;
+- completion milestone persistence in `App.tsx`;
+- final-state HUD/reaction in `HauntedGameScreen.tsx`;
+- powered-down Resonator / defeated Vesper presentation in `LaboratoryPresentation.tsx`;
+- `tests/w6-final-shutdown.test.ts`.
+
+Final W6 gameplay boundary:
+```text
+vesper-nightmare-defeated
+        ↓
+INTERACT · SHUT DOWN RESONATOR
+        ↓
+laboratory-encounter-complete
+        ↓
+complete
+        ↓
+RESONATOR SHUT DOWN
+        ↓
+W7 boundary
+```
+
+Automated coverage confirms:
+- premature shutdown is impossible;
+- final shutdown interaction is idempotent;
+- T5 → T6 → T7 → T8 production mechanics integrate;
+- completion clears transient combat state;
+- completed Laboratory cannot reactivate attacks or encounter hazards;
+- Save/Continue restores the persistent completed boundary;
+- existing AdventureState v1 / AdventureGameSession v3 save contract remains unchanged.
+
+Repository validation:
+```text
+Assets                         PASS
+Game/settings/presentation     PASS
+W6 final shutdown integration  PASS
+TypeScript                     PASS
+Static architecture audit      PASS
+```
+
+Current execution boundary: **T9 next — Android visual acceptance only. Do not begin W7 until W6 visual evidence is reviewed.**
