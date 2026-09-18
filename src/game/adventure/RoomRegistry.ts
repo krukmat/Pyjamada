@@ -6,7 +6,7 @@ import {
   type StoryFlag,
 } from './AdventureState';
 
-export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom' | 'attic' | 'basement';
+export type RoomPresentationId = 'bedroom' | 'hallway' | 'living-room' | 'kitchen' | 'bathroom' | 'attic' | 'basement' | 'laboratory';
 
 export type RoomEntryPoint = {
   id: string;
@@ -51,6 +51,7 @@ export type RoomInteractionDefinition = {
   unavailableLabel?: string;
   requiresRoomSwitch?: string;
   hiddenWhenUnavailable?: boolean;
+  hiddenWhenRoomSwitch?: string;
   x: number;
   radius: number;
   behavior: RoomInteractionBehavior;
@@ -69,7 +70,7 @@ export type RoomDefinition = {
   interactions: readonly RoomInteractionDefinition[];
 };
 
-export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom', 'attic', 'basement'] as const satisfies readonly RoomId[];
+export const ACTIVE_ROOM_IDS = ['bedroom', 'hallway', 'living-room', 'kitchen', 'bathroom', 'attic', 'basement', 'laboratory'] as const satisfies readonly RoomId[];
 
 export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], RoomDefinition>> = {
   bedroom: {
@@ -356,9 +357,16 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
     presentationId: 'basement',
     entries: [
       { id: 'basement-from-attic', x: 14, y: 104, facing: 'right' },
+      { id: 'basement-from-laboratory', x: 110, y: 104, facing: 'left' },
     ],
     exits: [
       { id: 'basement-to-attic', targetRoom: 'attic', targetEntry: 'attic-from-basement' },
+      {
+        id: 'basement-to-laboratory',
+        targetRoom: 'laboratory',
+        targetEntry: 'laboratory-from-basement',
+        requiresRoomSwitch: 'laboratory-route-revealed',
+      },
     ],
     interactions: [
       {
@@ -394,9 +402,38 @@ export const ROOM_REGISTRY: Readonly<Record<(typeof ACTIVE_ROOM_IDS)[number], Ro
         label: 'LAB FEED HATCH',
         requiresRoomSwitch: 'basement-loss-of-control-revealed',
         hiddenWhenUnavailable: true,
+        hiddenWhenRoomSwitch: 'laboratory-route-revealed',
         x: 116,
         radius: 7,
         behavior: { type: 'effect', effect: 'trace-basement-laboratory-route' },
+      },
+      {
+        id: 'basement-laboratory-entry',
+        label: 'LABORATORY',
+        requiresRoomSwitch: 'laboratory-route-revealed',
+        hiddenWhenUnavailable: true,
+        x: 116,
+        radius: 7,
+        behavior: { type: 'exit', exitId: 'basement-to-laboratory' },
+      },
+    ],
+  },
+  laboratory: {
+    id: 'laboratory',
+    presentationId: 'laboratory',
+    entries: [
+      { id: 'laboratory-from-basement', x: 14, y: 104, facing: 'right' },
+    ],
+    exits: [
+      { id: 'laboratory-to-basement', targetRoom: 'basement', targetEntry: 'basement-from-laboratory' },
+    ],
+    interactions: [
+      {
+        id: 'laboratory-basement-hatch',
+        label: 'BASEMENT',
+        x: 10,
+        radius: 8,
+        behavior: { type: 'exit', exitId: 'laboratory-to-basement' },
       },
     ],
   },
@@ -461,6 +498,7 @@ export function resolveRoomInteractionTarget(
       };
     })
     .filter(target => target.distance <= target.radius)
+    .filter(target => !target.hiddenWhenRoomSwitch || getRoomState(state, room.id).switches[target.hiddenWhenRoomSwitch] !== true)
     .filter(target => target.available || !target.hiddenWhenUnavailable)
     .sort((a, b) => a.distance - b.distance || a.x - b.x)
     .map(({ distance: _distance, ...target }) => target)[0];
