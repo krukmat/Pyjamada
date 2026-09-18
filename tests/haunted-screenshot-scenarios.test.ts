@@ -181,18 +181,27 @@ equal(getRoomState(basementArrival, 'basement').switches['basement-fault-traced'
 const basementFault = createScreenshotAdventureState('basement-power-fault');
 equal(getRoomState(basementFault, 'basement').switches['basement-fault-traced'], true, 'fault screenshot captures traced conduit');
 equal(getRoomState(basementFault, 'basement').switches['basement-power-stabilized'], undefined, 'fault screenshot precedes relay stabilization');
-equal(getRoomState(basementFault, 'basement').switches['conduit-focused'], true, 'fault screenshot focuses the failing conduit');
+equal(getRoomState(basementFault, 'basement').switches['conduit-focused'], false, 'fault screenshot releases the traced conduit');
+equal(getRoomState(basementFault, 'basement').switches['relay-focused'], true, 'fault screenshot focuses the next actionable isolation relay');
+const basementFaultSession = createHauntedScreenshotScenario('basement-power-fault');
+equal(basementFaultSession.player.x, 92, 'fault evidence positions Wally at the isolation relay');
 
 const basementControl = createScreenshotAdventureState('basement-control-reveal');
 equal(getRoomState(basementControl, 'basement').switches['basement-power-stabilized'], true, 'control screenshot follows relay stabilization');
 equal(getRoomState(basementControl, 'basement').switches['basement-control-revealed'], true, 'control screenshot exposes critical resonance load');
 equal(getRoomState(basementControl, 'basement').interactions.includes('basement-electrical-hazard-armed'), true, 'control screenshot includes the armed T5 hazard state');
 equal(getRoomState(basementControl, 'basement').switches['basement-loss-of-control-revealed'], undefined, 'control screenshot precedes rejected failsafe');
+const basementControlSession = createHauntedScreenshotScenario('basement-control-reveal');
+equal(basementControlSession.player.x, 120, 'control evidence keeps Wally outside the electrical hazard lane');
+equal(basementControlSession.elapsedMs, 1000, 'control evidence freezes inside the telegraph phase');
 
 const labBoundary = createScreenshotAdventureState('laboratory-boundary');
 equal(labBoundary.currentRoom, 'basement', 'Laboratory boundary intentionally remains inside W5 Basement');
 equal(getRoomState(labBoundary, 'basement').switches['basement-loss-of-control-revealed'], true, 'boundary screenshot follows rejected local failsafe');
 equal(getRoomState(labBoundary, 'basement').switches['laboratory-route-revealed'], true, 'boundary screenshot exposes the downstream Laboratory route');
 equal(getRoomState(labBoundary, 'basement').inspected.includes('laboratory-feed-hatch'), true, 'boundary screenshot persists the physical feed hatch discovery');
+const labBoundarySession = createHauntedScreenshotScenario('laboratory-boundary');
+equal(labBoundarySession.player.x, 109, 'boundary evidence keeps the LAB FEED HATCH as the nearest interaction');
+equal(labBoundarySession.elapsedMs, 1720, 'boundary evidence freezes inside the active discharge phase');
 
 console.log('haunted screenshot scenario tests passed');

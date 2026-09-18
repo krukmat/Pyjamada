@@ -325,7 +325,8 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = markRoomInspected(adventure, 'basement', 'unstable-power-conduit');
     adventure = markRoomInteraction(adventure, 'basement', 'basement-fault-traced');
     adventure = setRoomSwitch(adventure, 'basement', 'basement-fault-traced', true);
-    adventure = setRoomSwitch(adventure, 'basement', 'conduit-focused', scenario === 'basement-power-fault');
+    adventure = setRoomSwitch(adventure, 'basement', 'conduit-focused', false);
+    adventure = setRoomSwitch(adventure, 'basement', 'relay-focused', scenario === 'basement-power-fault');
   }
   if (scenario === 'basement-control-reveal' || scenario === 'laboratory-boundary') {
     adventure = markRoomInteraction(adventure, 'basement', 'basement-relay-stabilized');
@@ -386,11 +387,11 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                     : scenario === 'basement-arrival'
                                       ? 24
                                       : scenario === 'basement-power-fault'
-                                        ? 54
+                                        ? 92
                                         : scenario === 'basement-control-reveal'
-                                          ? 112
+                                          ? 120
                                           : scenario === 'laboratory-boundary'
-                                            ? 110
+                                            ? 109
                                             : 99;
   const positioned = withPlayer(falseEscape.session, x);
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };

@@ -2,9 +2,9 @@
 
 ## Status
 
-**ACCEPTED — T0–T9 COMPLETE**
+**ACTIVE — T0–T8 COMPLETE / T9 FINAL RECAPTURE**
 
-W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence, automated closeout coverage and Android visual review are complete on `feat/haunted-house-adventure`.
+W4 Attic remains accepted. W5 gameplay, loss-of-control reveal, Laboratory boundary, persistence and automated closeout coverage are complete on `feat/haunted-house-adventure`. T9 has a final evidence-only polish patch pending Android recapture.
 
 ## Product goal
 
@@ -285,9 +285,15 @@ TypeScript              PASS
 Static architecture     PASS
 ```
 
-### W5-T9 — Android visual gate — COMPLETE / ACCEPTED
+### W5-T9 — Android visual gate — FINAL RECAPTURE
 
-The final Android run produced the complete 37-screenshot contract. Screenshots 34–37 were visually reviewed after one evidence-only preset correction that froze the control-reveal preset inside the telegraph phase and the Laboratory-boundary preset inside the discharge phase. No gameplay timing, collision, damage, persistence or interaction radius changed.
+The 37-screenshot Android contract is stable. A final evidence-only polish patch now improves screenshots 35–37 without changing gameplay timing, collision, damage, persistence or interaction radii:
+
+- screenshot 35 moves the deterministic player/focus from the already-traced conduit to the next actionable isolation relay;
+- screenshot 36 keeps the deterministic telegraph phase but positions Wally outside the unsafe lane so the warning remains visually readable;
+- screenshot 37 keeps the active discharge phase while widening the service hatch presentation so the Laboratory boundary remains legible around Wally.
+
+One Android recapture is required before T9 is marked accepted.
 
 Accepted W5 evidence:
 
@@ -308,7 +314,7 @@ Review result:
 - the Android runner published exactly 37 screenshots;
 - screenshots 1–33 remain the regression baseline with no material W5-induced regression observed.
 
-The W5 visual gate is accepted. No additional screenshot round is required.
+The W5 visual gate is functionally complete but requires one final Android recapture of the 37-image contract after this evidence-only polish.
 
 ## Acceptance gate
 
@@ -356,7 +362,7 @@ The conduit/relay/terminal/hazard relationship remains Basement-specific until a
 
 ## Current implementation slice
 
-**T0–T9 complete. W5 is accepted.**
+**T0–T8 complete. T9 awaits final Android recapture; no gameplay work remains.**
 
 ```text
 W4 accepted Basement hatch
@@ -388,4 +394,4 @@ LAB FEED HATCH
 LABORATORY ROUTE IDENTIFIED
 ```
 
-No further W5 implementation or evidence is required. The next product increment is W6 Laboratory.
+No further W5 gameplay implementation is required. After the final Android recapture confirms screenshots 35–37, mark T9 accepted and W5 closed; only then proceed to W6 Laboratory.

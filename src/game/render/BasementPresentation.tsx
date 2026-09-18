@@ -147,36 +147,44 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
       {/* W5-T6/T7: rejected local failsafe exposes the downstream Laboratory feed hatch. */}
       {lossOfControlRevealed && (
         <>
-          <Line p1={vec(px(118), px(84))} p2={vec(px(124), px(92))} color="#ff8f72" strokeWidth={px(1.4)} />
-          <Line p1={vec(px(124), px(92))} p2={vec(px(124), px(97))} color="#79e8ff" strokeWidth={px(1.2)} />
+          <Line p1={vec(px(118), px(84))} p2={vec(px(122), px(90))} color="#ff8f72" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(122), px(90))} p2={vec(px(122), px(95))} color="#79e8ff" strokeWidth={px(1.2)} />
           <RoundedRect
-            x={px(107)}
-            y={px(94)}
-            width={px(20)}
-            height={px(9)}
+            x={px(100)}
+            y={px(91)}
+            width={px(28)}
+            height={px(12)}
             r={px(1.5)}
             color={laboratoryRouteRevealed ? '#315b62' : '#2b3032'}
           />
           <Rect
-            x={px(109)}
-            y={px(96)}
-            width={px(16)}
-            height={px(5)}
+            x={px(103)}
+            y={px(94)}
+            width={px(22)}
+            height={px(6)}
             color={laboratoryRouteRevealed ? 'rgba(121,232,255,0.26)' : '#171c1f'}
           />
           <Line
-            p1={vec(px(109), px(98.5))}
-            p2={vec(px(125), px(98.5))}
+            p1={vec(px(103), px(93))}
+            p2={vec(px(125), px(93))}
             color={laboratoryRouteRevealed ? '#9ff3ff' : '#697377'}
             strokeWidth={px(laboratoryRouteRevealed ? 1.1 : 0.8)}
           />
+          <Line
+            p1={vec(px(103), px(98))}
+            p2={vec(px(125), px(98))}
+            color={laboratoryRouteRevealed ? '#79e8ff' : '#596164'}
+            strokeWidth={px(0.8)}
+          />
+          <Line p1={vec(px(110), px(91))} p2={vec(px(114), px(87))} color={laboratoryRouteRevealed ? '#9ff3ff' : '#697377'} strokeWidth={px(0.8)} />
+          <Line p1={vec(px(118), px(91))} p2={vec(px(114), px(87))} color={laboratoryRouteRevealed ? '#9ff3ff' : '#697377'} strokeWidth={px(0.8)} />
           <Circle
             cx={px(123)}
-            cy={px(96)}
+            cy={px(95)}
             r={px(1.2)}
             color={laboratoryRouteRevealed ? '#79e8ff' : fastPulse === 0 ? '#f8da76' : '#ff9f73'}
           />
-          {laboratoryRouteRevealed && <Circle cx={px(117)} cy={px(99)} r={px(12)} color="rgba(121,232,255,0.07)" />}
+          {laboratoryRouteRevealed && <Circle cx={px(114)} cy={px(97)} r={px(15)} color="rgba(121,232,255,0.08)" />}
         </>
       )}
 
