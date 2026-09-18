@@ -8,6 +8,10 @@ import {
   type AdventureState,
 } from '../game/adventure/AdventureState';
 import { transitionAdventure } from '../game/adventure/RoomRegistry';
+import { LABORATORY_ENCOUNTER_SWITCHES } from '../game/adventure/LaboratoryEncounter';
+import { VESPER_CONTROL_DEVICES } from '../game/adventure/LaboratoryVesperControl';
+import { RESONATOR_WEAK_POINTS } from '../game/adventure/LaboratoryResonatorInstability';
+import { VESPER_NIGHTMARE_HIT_SWITCHES } from '../game/adventure/LaboratoryVesperNightmare';
 import { PLAYER_GROUND_Y } from '../game/core/World';
 import { createHauntedSession, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
 import type { HauntedGhostState } from '../game/haunted/HauntedThreats';
@@ -48,6 +52,11 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'basement-power-fault',
   'basement-control-reveal',
   'laboratory-boundary',
+  'laboratory-arrival',
+  'vesper-control',
+  'resonator-runaway',
+  'vesper-nightmare',
+  'resonator-shutdown',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -79,6 +88,11 @@ type AdventureScreenshotScenario = Extract<
   | 'basement-power-fault'
   | 'basement-control-reveal'
   | 'laboratory-boundary'
+  | 'laboratory-arrival'
+  | 'vesper-control'
+  | 'resonator-runaway'
+  | 'vesper-nightmare'
+  | 'resonator-shutdown'
 >;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -321,14 +335,14 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     if (basement.status !== 'ok') throw new Error(basement.reason);
     adventure = basement.state;
   }
-  if (scenario === 'basement-power-fault' || scenario === 'basement-control-reveal' || scenario === 'laboratory-boundary') {
+  if (scenario === 'basement-power-fault' || scenario === 'basement-control-reveal' || scenario === 'laboratory-boundary' || isLaboratoryScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'basement', 'unstable-power-conduit');
     adventure = markRoomInteraction(adventure, 'basement', 'basement-fault-traced');
     adventure = setRoomSwitch(adventure, 'basement', 'basement-fault-traced', true);
     adventure = setRoomSwitch(adventure, 'basement', 'conduit-focused', false);
     adventure = setRoomSwitch(adventure, 'basement', 'relay-focused', scenario === 'basement-power-fault');
   }
-  if (scenario === 'basement-control-reveal' || scenario === 'laboratory-boundary') {
+  if (scenario === 'basement-control-reveal' || scenario === 'laboratory-boundary' || isLaboratoryScenario(scenario)) {
     adventure = markRoomInteraction(adventure, 'basement', 'basement-relay-stabilized');
     adventure = setRoomSwitch(adventure, 'basement', 'basement-power-stabilized', true);
     adventure = markRoomInspected(adventure, 'basement', 'resonance-control-terminal');
@@ -337,13 +351,40 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = setRoomSwitch(adventure, 'basement', 'terminal-focused', scenario === 'basement-control-reveal');
     adventure = setRoomSwitch(adventure, 'basement', 'basement-control-revealed', true);
   }
-  if (scenario === 'laboratory-boundary') {
+  if (scenario === 'laboratory-boundary' || isLaboratoryScenario(scenario)) {
     adventure = markRoomInteraction(adventure, 'basement', 'basement-failsafe-attempted');
     adventure = setRoomSwitch(adventure, 'basement', 'basement-loss-of-control-revealed', true);
     adventure = markRoomInspected(adventure, 'basement', 'laboratory-feed-hatch');
     adventure = markRoomInteraction(adventure, 'basement', 'laboratory-route-traced');
     adventure = setRoomSwitch(adventure, 'basement', 'terminal-focused', false);
     adventure = setRoomSwitch(adventure, 'basement', 'laboratory-route-revealed', true);
+  }
+
+  if (isLaboratoryScenario(scenario)) {
+    const laboratory = transitionAdventure(adventure, 'laboratory', 'laboratory-from-basement');
+    if (laboratory.status !== 'ok') throw new Error(laboratory.reason);
+    adventure = laboratory.state;
+
+    if (scenario !== 'laboratory-arrival') {
+      adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
+    }
+    if (scenario === 'resonator-runaway' || scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown') {
+      adventure = setRoomSwitch(adventure, 'laboratory', VESPER_CONTROL_DEVICES.left.switchId, true);
+      adventure = setRoomSwitch(adventure, 'laboratory', VESPER_CONTROL_DEVICES.right.switchId, true);
+      adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.vesperControlBroken, true);
+    }
+    if (scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown') {
+      adventure = setRoomSwitch(adventure, 'laboratory', RESONATOR_WEAK_POINTS.left.switchId, true);
+      adventure = setRoomSwitch(adventure, 'laboratory', RESONATOR_WEAK_POINTS.right.switchId, true);
+      adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.resonatorDestabilized, true);
+    }
+    if (scenario === 'resonator-shutdown') {
+      for (const switchId of VESPER_NIGHTMARE_HIT_SWITCHES) {
+        adventure = setRoomSwitch(adventure, 'laboratory', switchId, true);
+      }
+      adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.nightmareDefeated, true);
+      adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.complete, true);
+    }
   }
   return adventure;
 }
@@ -392,10 +433,23 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                           ? 120
                                           : scenario === 'laboratory-boundary'
                                             ? 109
-                                            : 99;
+                                            : scenario === 'laboratory-arrival'
+                                              ? 24
+                                              : scenario === 'vesper-control'
+                                                ? 90
+                                                : scenario === 'resonator-runaway'
+                                                  ? 40
+                                                  : scenario === 'vesper-nightmare'
+                                                    ? 90
+                                                    : scenario === 'resonator-shutdown'
+                                                      ? 70
+                                                      : 99;
   const positioned = withPlayer(falseEscape.session, x);
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };
   if (scenario === 'laboratory-boundary') return { ...positioned, elapsedMs: 1_720 };
+  if (scenario === 'vesper-control') return { ...positioned, elapsedMs: 700 };
+  if (scenario === 'resonator-runaway') return { ...positioned, elapsedMs: 2_400 };
+  if (scenario === 'vesper-nightmare') return { ...positioned, elapsedMs: 600 };
   return positioned;
 }
 
@@ -457,7 +511,16 @@ function isBasementScenario(scenario: AdventureScreenshotScenario): boolean {
   return scenario === 'basement-arrival'
     || scenario === 'basement-power-fault'
     || scenario === 'basement-control-reveal'
-    || scenario === 'laboratory-boundary';
+    || scenario === 'laboratory-boundary'
+    || isLaboratoryScenario(scenario);
+}
+
+function isLaboratoryScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'laboratory-arrival'
+    || scenario === 'vesper-control'
+    || scenario === 'resonator-runaway'
+    || scenario === 'vesper-nightmare'
+    || scenario === 'resonator-shutdown';
 }
 
 function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
@@ -483,7 +546,12 @@ function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is A
     || scenario === 'basement-arrival'
     || scenario === 'basement-power-fault'
     || scenario === 'basement-control-reveal'
-    || scenario === 'laboratory-boundary';
+    || scenario === 'laboratory-boundary'
+    || scenario === 'laboratory-arrival'
+    || scenario === 'vesper-control'
+    || scenario === 'resonator-runaway'
+    || scenario === 'vesper-nightmare'
+    || scenario === 'resonator-shutdown';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
