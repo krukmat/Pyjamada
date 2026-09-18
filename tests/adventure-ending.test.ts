@@ -20,7 +20,7 @@ import {
 import { LABORATORY_ENCOUNTER_SWITCHES } from '../src/game/adventure/LaboratoryEncounter';
 import { applyRoomInteractionEffect } from '../src/game/adventure/RoomInteractionEffects';
 import { resolveRoomInteractionTarget } from '../src/game/adventure/RoomRegistry';
-import { createHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
+import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
 
 function completedLaboratory(): AdventureState {
   const base = createAdventureState();
@@ -61,7 +61,7 @@ void test('completed Laboratory exposes one idempotent morning-after transition'
   equal(shouldBeginAdventureEnding(adventure), true, 'ending boundary requests transition');
 
   const dirty = createHauntedSession('ending-start');
-  const session = {
+  const session: HauntedSessionState = {
     ...dirty,
     player: { ...dirty.player, x: 90, y: 80, vx: 20, vy: -10, grounded: false, facing: 'left' as const },
     combat: {
