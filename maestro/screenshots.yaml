@@ -482,6 +482,6 @@ tags:
       text: "The feed disappears through a service hatch. The Laboratory is below."
     timeout: 5000
 - assertVisible: "LABORATORY ROUTE IDENTIFIED"
-- assertVisible: "INTERACT · LAB FEED HATCH"
+- assertVisible: "INTERACT · LABORATORY"
 - takeScreenshot:
     path: 37_laboratory_boundary
