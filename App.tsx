@@ -142,6 +142,7 @@ export default function App() {
         if (nextAdventure !== currentAdventure) activateAdventure(nextAdventure);
 
         if (shouldBeginAdventureEnding(nextAdventure)) {
+          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
           beginEndingTransition(nextSession, nextAdventure);
           return;
         }
@@ -415,16 +416,16 @@ export default function App() {
     const nextAdventure = completeAdventureEnding(adventureRef.current);
     if (nextAdventure === adventureRef.current) return;
 
-    activateAdventure(nextAdventure);
-    resetRuntimeClocks();
     const completed = gameState(current, nextAdventure);
     try {
       await saveCoordinator.persist(completed, 'terminal');
+      activateAdventure(nextAdventure);
+      resetRuntimeClocks();
       setCanContinue(true);
       setCompletedRun(true);
       setView('ending');
     } catch {
-      Alert.alert('Ending not saved', 'The ending completed, but the final save could not be persisted.');
+      Alert.alert('Ending not saved', 'The ending could not be persisted. Try END NIGHT again.');
     }
   }
 
