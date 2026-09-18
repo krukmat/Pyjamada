@@ -4,6 +4,13 @@ import {
   tryFireDreamSpark,
 } from '../haunted/HauntedCombat';
 import { consumeTransientActions, createHauntedInputState } from '../haunted/HauntedInput';
+import {
+  applyResonatorDistortionInput,
+  isPlayerInsideResonatorElectricalPressure,
+  resolveResonatorInstabilityState,
+  resolveResonatorProjectileHits,
+  type ResonatorWeakPointId,
+} from './LaboratoryResonatorInstability';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import {
@@ -44,6 +51,10 @@ export type AdventureExplorationEvent =
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
   | { type: 'LABORATORY_VESPER_PULSE_HIT' }
+  | { type: 'LABORATORY_RESONATOR_NODE_BLOCKED'; nodeId: ResonatorWeakPointId }
+  | { type: 'LABORATORY_RESONATOR_NODE_DISABLED'; nodeId: ResonatorWeakPointId }
+  | { type: 'LABORATORY_RESONATOR_DESTABILIZED' }
+  | { type: 'LABORATORY_RESONATOR_SURGE_HIT' }
   | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
@@ -247,7 +258,13 @@ export function stepAdventureExploration(
     elapsedMs += dtMs;
   }
 
-  let player = stepHauntedPlayerPhysics(session.player, session.input, dtMs / 1000);
+  const resonatorBeforeMove = resolveResonatorInstabilityState(nextAdventure, elapsedMs);
+  const movementInput = applyResonatorDistortionInput(
+    session.input,
+    session.player.x,
+    resonatorBeforeMove.distortion,
+  );
+  let player = stepHauntedPlayerPhysics(session.player, movementInput, dtMs / 1000);
   let combat = laboratoryCombat
     ? stepDreamSparks(session.combat, dtMs / 1000)
     : session.combat.projectiles.length > 0
@@ -264,6 +281,27 @@ export function stepAdventureExploration(
   nextAdventure = controlHits.adventure;
   combat = controlHits.combat;
   events.push(...controlHits.events);
+  if (controlHits.events.some(event => event.type === 'LABORATORY_VESPER_CONTROL_BROKEN')) {
+    combat = {
+      ...combat,
+      projectiles: [],
+      nextAttackAllowedMs: elapsedMs,
+      invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
+    };
+  }
+
+  const resonatorHits = resolveResonatorProjectileHits(nextAdventure, combat, elapsedMs);
+  nextAdventure = resonatorHits.adventure;
+  combat = resonatorHits.combat;
+  events.push(...resonatorHits.events);
+  if (resonatorHits.events.some(event => event.type === 'LABORATORY_RESONATOR_DESTABILIZED')) {
+    combat = {
+      ...combat,
+      projectiles: [],
+      nextAttackAllowedMs: elapsedMs,
+      invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
+    };
+  }
 
   if (session.input.interactPressed) {
     const target = findAdventureInteractionTarget(adventure, player.x);
@@ -288,6 +326,18 @@ export function stepAdventureExploration(
           invulnerableUntilMs: Math.max(combat.invulnerableUntilMs, elapsedMs + 600),
         };
       }
+    }
+  }
+
+  const resonatorElectrical = resolveResonatorInstabilityState(nextAdventure, elapsedMs).electrical;
+  if (isPlayerInsideResonatorElectricalPressure(player.x, resonatorElectrical) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      const laneCenter = ((resonatorElectrical.minX ?? player.x) + (resonatorElectrical.maxX ?? player.x)) / 2;
+      player = applyHauntedKnockback(player, player.x <= laneCenter ? 1 : -1);
+      events.push({ type: 'LABORATORY_RESONATOR_SURGE_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }
 
