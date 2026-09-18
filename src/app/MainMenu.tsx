@@ -34,8 +34,10 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
         </View>
 
         <View style={styles.missionCard}>
-          <Text style={styles.missionKicker}>TODAY'S MISSION</Text>
-          <Text style={styles.missionText}>GET DRESSED · FIND KEYS · KEEP THE HOUSE ASLEEP</Text>
+          <Text style={styles.missionKicker}>{completedRun ? 'LAST RUN' : "TODAY'S MISSION"}</Text>
+          <Text style={styles.missionText}>
+            {completedRun ? 'RESONATOR SHUT DOWN · NIGHT COMPLETE' : 'GET DRESSED · FIND KEYS · KEEP THE HOUSE ASLEEP'}
+          </Text>
         </View>
 
         <Text style={styles.sectionLabel}>SELECT RUN</Text>

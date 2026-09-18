@@ -3,6 +3,7 @@ import {
   createScreenshotAdventureState,
   HAUNTED_SCREENSHOT_SCENARIOS,
 } from '../src/app/HauntedScreenshotScenarios';
+import { getAdventureEndingPhase } from '../src/game/adventure/AdventureEnding';
 import { getRoomState } from '../src/game/adventure/AdventureState';
 import { getLaboratoryEncounterPhase, LABORATORY_ENCOUNTER_SWITCHES } from '../src/game/adventure/LaboratoryEncounter';
 import { resolveVesperControlState } from '../src/game/adventure/LaboratoryVesperControl';
@@ -15,7 +16,7 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 40, 'visual tour has forty deterministic gameplay and adventure presets');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 44, 'visual tour has forty-four deterministic gameplay and adventure presets');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
@@ -246,5 +247,24 @@ equal(getLaboratoryEncounterPhase(resonatorShutdown), 'complete', 'shutdown pres
 equal(getRoomState(resonatorShutdown, 'laboratory').switches[LABORATORY_ENCOUNTER_SWITCHES.complete], true, 'shutdown evidence persists encounter completion');
 equal(resonatorShutdownSession.combat.projectiles.length, 0, 'shutdown evidence contains no transient Dream Sparks');
 equal(resonatorShutdownSession.player.x, 70, 'final evidence keeps Wally near the powered-down Resonator without obscuring it');
+
+const endingAwakening = createScreenshotAdventureState('ending-awakening');
+const endingAwakeningSession = createHauntedScreenshotScenario('ending-awakening');
+equal(endingAwakening.currentRoom, 'bedroom', 'awakening evidence returns to Bedroom');
+equal(getAdventureEndingPhase(endingAwakening), 'awakening', 'awakening preset freezes the first morning-after beat');
+equal(endingAwakeningSession.player.x, 16, 'awakening stages Wally beside the bed');
+
+const endingEvidence = createScreenshotAdventureState('ending-evidence');
+const endingEvidenceSession = createHauntedScreenshotScenario('ending-evidence');
+equal(getAdventureEndingPhase(endingEvidence), 'evidence', 'evidence preset confirms the physical sensor tag');
+equal(endingEvidenceSession.player.x, 56, 'evidence frame stages Wally beside the burned tag');
+
+const endingGhost = createScreenshotAdventureState('ending-ghost-sting');
+const endingGhostSession = createHauntedScreenshotScenario('ending-ghost-sting');
+equal(getAdventureEndingPhase(endingGhost), 'ghost-sting', 'Ghost sting preset freezes the final supernatural beat');
+equal(endingGhostSession.player.x, 108, 'Ghost sting stages Wally at the window');
+
+const endingCredits = createScreenshotAdventureState('ending-credits');
+equal(getAdventureEndingPhase(endingCredits), 'complete', 'credits preset represents a terminal completed run');
 
 console.log('haunted screenshot scenario tests passed');

@@ -316,9 +316,10 @@ export default function App() {
     clearTransitionTimers();
     screenshotScenarioRef.current = scenario;
     resetRuntimeClocks();
-    activateAdventure(createScreenshotAdventureState(scenario));
+    const nextAdventure = createScreenshotAdventureState(scenario);
+    activateAdventure(nextAdventure);
     activateSession(createHauntedScreenshotScenario(scenario));
-    setView('game');
+    setView(isAdventureEndingComplete(nextAdventure) ? 'ending' : 'game');
   }
 
   async function handleNewGame(overwrite = false) {

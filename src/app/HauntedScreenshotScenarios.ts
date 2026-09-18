@@ -7,6 +7,7 @@ import {
   setStoryFlag,
   type AdventureState,
 } from '../game/adventure/AdventureState';
+import { ADVENTURE_ENDING_SWITCHES } from '../game/adventure/AdventureEnding';
 import { transitionAdventure } from '../game/adventure/RoomRegistry';
 import { LABORATORY_ENCOUNTER_SWITCHES } from '../game/adventure/LaboratoryEncounter';
 import { VESPER_CONTROL_DEVICES } from '../game/adventure/LaboratoryVesperControl';
@@ -57,6 +58,10 @@ export const HAUNTED_SCREENSHOT_SCENARIOS = [
   'resonator-runaway',
   'vesper-nightmare',
   'resonator-shutdown',
+  'ending-awakening',
+  'ending-evidence',
+  'ending-ghost-sting',
+  'ending-credits',
 ] as const;
 
 export type HauntedScreenshotScenario = (typeof HAUNTED_SCREENSHOT_SCENARIOS)[number];
@@ -93,6 +98,10 @@ type AdventureScreenshotScenario = Extract<
   | 'resonator-runaway'
   | 'vesper-nightmare'
   | 'resonator-shutdown'
+  | 'ending-awakening'
+  | 'ending-evidence'
+  | 'ending-ghost-sting'
+  | 'ending-credits'
 >;
 
 export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScenario): HauntedSessionState {
@@ -368,23 +377,41 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     if (scenario !== 'laboratory-arrival') {
       adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.started, true);
     }
-    if (scenario === 'resonator-runaway' || scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown') {
+    if (scenario === 'resonator-runaway' || scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown' || isEndingScenario(scenario)) {
       adventure = setRoomSwitch(adventure, 'laboratory', VESPER_CONTROL_DEVICES.left.switchId, true);
       adventure = setRoomSwitch(adventure, 'laboratory', VESPER_CONTROL_DEVICES.right.switchId, true);
       adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.vesperControlBroken, true);
     }
-    if (scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown') {
+    if (scenario === 'vesper-nightmare' || scenario === 'resonator-shutdown' || isEndingScenario(scenario)) {
       adventure = setRoomSwitch(adventure, 'laboratory', RESONATOR_WEAK_POINTS.left.switchId, true);
       adventure = setRoomSwitch(adventure, 'laboratory', RESONATOR_WEAK_POINTS.right.switchId, true);
       adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.resonatorDestabilized, true);
     }
-    if (scenario === 'resonator-shutdown') {
+    if (scenario === 'resonator-shutdown' || isEndingScenario(scenario)) {
       for (const switchId of VESPER_NIGHTMARE_HIT_SWITCHES) {
         adventure = setRoomSwitch(adventure, 'laboratory', switchId, true);
       }
       adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.nightmareDefeated, true);
       adventure = setRoomSwitch(adventure, 'laboratory', LABORATORY_ENCOUNTER_SWITCHES.complete, true);
     }
+  }
+
+  if (isEndingScenario(scenario)) {
+    adventure = setRoomSwitch(adventure, 'bedroom', ADVENTURE_ENDING_SWITCHES.started, true);
+    if (scenario === 'ending-evidence' || scenario === 'ending-ghost-sting' || scenario === 'ending-credits') {
+      adventure = setRoomSwitch(adventure, 'bedroom', ADVENTURE_ENDING_SWITCHES.evidenceSeen, true);
+    }
+    if (scenario === 'ending-ghost-sting' || scenario === 'ending-credits') {
+      adventure = setRoomSwitch(adventure, 'bedroom', ADVENTURE_ENDING_SWITCHES.ghostStingSeen, true);
+    }
+    if (scenario === 'ending-credits') {
+      adventure = setRoomSwitch(adventure, 'bedroom', ADVENTURE_ENDING_SWITCHES.complete, true);
+    }
+    adventure = {
+      ...adventure,
+      currentRoom: 'bedroom',
+      currentEntry: 'bedroom-default',
+    };
   }
   return adventure;
 }
@@ -443,7 +470,15 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                                     ? 90
                                                     : scenario === 'resonator-shutdown'
                                                       ? 70
-                                                      : 99;
+                                                      : scenario === 'ending-awakening'
+                                                        ? 16
+                                                        : scenario === 'ending-evidence'
+                                                          ? 56
+                                                          : scenario === 'ending-ghost-sting'
+                                                            ? 108
+                                                            : scenario === 'ending-credits'
+                                                              ? 108
+                                                              : 99;
   const positioned = withPlayer(falseEscape.session, x);
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };
   if (scenario === 'laboratory-boundary') return { ...positioned, elapsedMs: 1_720 };
@@ -520,7 +555,15 @@ function isLaboratoryScenario(scenario: AdventureScreenshotScenario): boolean {
     || scenario === 'vesper-control'
     || scenario === 'resonator-runaway'
     || scenario === 'vesper-nightmare'
-    || scenario === 'resonator-shutdown';
+    || scenario === 'resonator-shutdown'
+    || isEndingScenario(scenario);
+}
+
+function isEndingScenario(scenario: AdventureScreenshotScenario): boolean {
+  return scenario === 'ending-awakening'
+    || scenario === 'ending-evidence'
+    || scenario === 'ending-ghost-sting'
+    || scenario === 'ending-credits';
 }
 
 function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is AdventureScreenshotScenario {
@@ -551,7 +594,11 @@ function isAdventureScenario(scenario: HauntedScreenshotScenario): scenario is A
     || scenario === 'vesper-control'
     || scenario === 'resonator-runaway'
     || scenario === 'vesper-nightmare'
-    || scenario === 'resonator-shutdown';
+    || scenario === 'resonator-shutdown'
+    || scenario === 'ending-awakening'
+    || scenario === 'ending-evidence'
+    || scenario === 'ending-ghost-sting'
+    || scenario === 'ending-credits';
 }
 
 function awakeBase(scenario: HauntedScreenshotScenario): HauntedSessionState {
