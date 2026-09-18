@@ -297,7 +297,7 @@ Delivered:
 
 Automated coverage:
 ```text
-tests/w6-laboratory-foundation.test.ts
+tests/laboratory-foundation.test.ts
 ```
 
 Repository validation:
@@ -323,7 +323,7 @@ Delivered files:
 - Laboratory Resonator activation in `RoomRegistry` / `RoomInteractionEffects`;
 - retry/Continue orchestration in `App.tsx`;
 - phase-aware HUD/retry copy in `HauntedGameScreen.tsx`;
-- `tests/w6-laboratory-encounter.test.ts`.
+- `tests/laboratory-encounter.test.ts`.
 
 Automated coverage confirms:
 - dormant -> encounter activation;
@@ -353,7 +353,7 @@ Delivered files:
 - T5 integration in `AdventureExplorationRuntime.ts`;
 - Laboratory pressure/control-state presentation in `LaboratoryPresentation.tsx`;
 - milestone/hit persistence integration in `App.tsx`;
-- `tests/w6-vesper-control.test.ts`.
+- `tests/vesper-control.test.ts`.
 
 Gameplay loop:
 ```text
@@ -403,7 +403,7 @@ Delivered files:
 - T6 integration in `AdventureExplorationRuntime.ts`;
 - Resonator runaway / distortion / surge / weak-point presentation in `LaboratoryPresentation.tsx`;
 - milestone/surge persistence integration in `App.tsx`;
-- `tests/w6-resonator-instability.test.ts`.
+- `tests/resonator-instability.test.ts`.
 
 Gameplay loop:
 ```text
@@ -453,7 +453,7 @@ Delivered files:
 - T7 integration in `AdventureExplorationRuntime.ts`;
 - transformed Vesper / attack-zone / vulnerability presentation in `LaboratoryPresentation.tsx`;
 - milestone/attack-hit persistence integration in `App.tsx`;
-- `tests/w6-vesper-nightmare.test.ts`.
+- `tests/vesper-nightmare.test.ts`.
 
 Gameplay loop:
 ```text
@@ -502,7 +502,7 @@ Delivered files:
 - completion milestone persistence in `App.tsx`;
 - final-state HUD/reaction in `HauntedGameScreen.tsx`;
 - powered-down Resonator / defeated Vesper presentation in `LaboratoryPresentation.tsx`;
-- `tests/w6-final-shutdown.test.ts`.
+- `tests/laboratory-final-shutdown.test.ts`.
 
 Final W6 gameplay boundary:
 ```text

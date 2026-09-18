@@ -235,7 +235,7 @@ Delivered:
 - recorder remains incomplete before evidence context and becomes meaningful afterward;
 - room-local `experiment-revealed` milestone;
 - concrete downward cable/hatch state via `basement-route-revealed`;
-- save/load and idempotence coverage in `tests/w4-attic-gate-a.test.ts`;
+- save/load and idempotence coverage in `tests/attic-gate-a.test.ts`;
 - no full Vesper reveal, Basement interior, clue engine, inventory, dialogue system or new enemy;
 - Android evidence 30–33 accepted.
 

@@ -270,9 +270,9 @@ Automated coverage now proves:
 Relevant suites:
 
 ```text
-tests/w5-basement-foundation.test.ts
-tests/w5-basement-hazard.test.ts
-tests/w5-basement-closeout.test.ts
+tests/basement-foundation.test.ts
+tests/basement-hazard.test.ts
+tests/basement-closeout.test.ts
 tests/haunted-screenshot-scenarios.test.ts
 ```
 

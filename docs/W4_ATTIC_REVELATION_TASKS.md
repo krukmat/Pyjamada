@@ -168,7 +168,7 @@ basement-route-revealed
 
 ### W4-T7 — Persistence and idempotence — COMPLETE
 
-Covered by `tests/w4-attic-gate-a.test.ts`:
+Covered by `tests/attic-gate-a.test.ts`:
 
 - individual evidence inspection;
 - incomplete recorder state;
