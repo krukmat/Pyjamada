@@ -29,6 +29,8 @@ type Props = {
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
   dreamSparks?: readonly DreamSparkProjectile[];
   hauntedSession?: HauntedSessionState;
+  /** Arcade Wally atlas used by the haunted runtime while the pixel-art pass is active. */
+  arcadeWallyImage?: SkImage | null;
   /** Bedroom-run Wally atlas; null until the texture decodes. */
   wallyImage?: SkImage | null;
   hauntedWallyImage?: SkImage | null;
@@ -46,6 +48,7 @@ export function GameCanvas({
   playerRenderPosition,
   dreamSparks = [],
   hauntedSession,
+  arcadeWallyImage = null,
   wallyImage = null,
   hauntedWallyImage = null,
   hauntedGhostImage = null,
@@ -99,6 +102,7 @@ export function GameCanvas({
 
         {hauntedSession ? (
           <HauntedWallySprite
+            arcadeImage={arcadeWallyImage}
             image={hauntedWallyImage}
             session={hauntedSession}
             x={px(playerX)}
