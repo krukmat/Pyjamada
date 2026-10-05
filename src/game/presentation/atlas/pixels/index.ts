@@ -33,6 +33,7 @@ export type SpriteSource = {
 // Imported after the type declarations because the sprite modules import the
 // SpriteSource type from this file.
 // eslint-disable-next-line import/first
+import { BEDROOM_TILES_SOURCE } from './BedroomTilesPixels';
 import { WALLY_SOURCE } from './WallyPixels';
 
-export const SPRITE_SOURCES: readonly SpriteSource[] = [WALLY_SOURCE];
+export const SPRITE_SOURCES: readonly SpriteSource[] = [WALLY_SOURCE, BEDROOM_TILES_SOURCE];
