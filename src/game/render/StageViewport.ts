@@ -25,7 +25,7 @@ export type StageDimensions = {
  * perfectly fitted one that crawls.
  */
 export const MIN_STAGE_SCALE = 1;
-export const MAX_STAGE_SCALE = 4;
+export const MAX_STAGE_SCALE = 6;
 export const STAGE_HORIZONTAL_INSET = 24;
 
 export function integerStageScaleForScreenWidth(screenWidth: number): number {
