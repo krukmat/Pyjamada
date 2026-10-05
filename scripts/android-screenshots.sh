@@ -3,9 +3,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APK_PATH="$REPO_ROOT/android/app/build/outputs/apk/release/app-release.apk"
-FLOW_PATH="$REPO_ROOT/maestro/screenshots.yaml"
-SCREENSHOTS_DIR="$REPO_ROOT/artifacts/android-screenshots"
-FAILED_DIR="$REPO_ROOT/artifacts/android-screenshots-failed"
+FLOW_PATH="${SCREENSHOT_FLOW_PATH:-$REPO_ROOT/maestro/screenshots.yaml}"
+SCREENSHOTS_DIR="${SCREENSHOT_OUTPUT_DIR:-$REPO_ROOT/artifacts/android-screenshots}"
+FAILED_DIR="${SCREENSHOT_FAILED_DIR:-$REPO_ROOT/artifacts/android-screenshots-failed}"
+[[ "$FLOW_PATH" = /* ]] || FLOW_PATH="$REPO_ROOT/$FLOW_PATH"
+[[ "$SCREENSHOTS_DIR" = /* ]] || SCREENSHOTS_DIR="$REPO_ROOT/$SCREENSHOTS_DIR"
+[[ "$FAILED_DIR" = /* ]] || FAILED_DIR="$REPO_ROOT/$FAILED_DIR"
 STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-screenshots-staging.XXXXXX")"
 MAESTRO_REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyjamada-maestro.XXXXXX")"
 # Screenshot-only scenario controls are gated on an Expo public env var that
@@ -64,6 +67,9 @@ EXPECTED_SCREENSHOTS=(
   "45_ending_ghost_sting.png"
   "46_ending_credits.png"
 )
+if [[ -n "${SCREENSHOT_EXPECTED:-}" ]]; then
+  IFS=',' read -r -a EXPECTED_SCREENSHOTS <<< "$SCREENSHOT_EXPECTED"
+fi
 
 # The run is staged and never touches SCREENSHOTS_DIR (the last published
 # evidence) until every check has passed. Any failure archives whatever partial
@@ -161,7 +167,7 @@ fi
 adb -s "$EMULATOR_SERIAL" install -r "$APK_PATH"
 adb -s "$EMULATOR_SERIAL" shell input keyevent 82 >/dev/null 2>&1 || true
 
-echo "Capturing Haunted House Android screens with Maestro..."
+echo "Capturing Android visual evidence with Maestro: $FLOW_PATH"
 maestro --device "$EMULATOR_SERIAL" test \
   --test-output-dir "$MAESTRO_REPORT_DIR" \
   "$FLOW_PATH"
