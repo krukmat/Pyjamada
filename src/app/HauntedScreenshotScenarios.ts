@@ -18,6 +18,7 @@ import { createHauntedSession, type HauntedSessionState } from '../game/haunted/
 import type { HauntedGhostState } from '../game/haunted/HauntedThreats';
 
 export const HAUNTED_SCREENSHOT_SCENARIOS = [
+  'wally-concepts',
   'sleepy',
   'wake',
   'ghost-telegraph',
@@ -110,6 +111,12 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
   const base = awakeBase(scenario);
 
   switch (scenario) {
+    case 'wally-concepts':
+      return {
+        ...createHauntedSession('screenshot-wally-concepts'),
+        threats: { ...createHauntedSession('screenshot-wally-concepts').threats, nextSpawnAtMs: FROZEN_SPAWN_MS },
+      };
+
     case 'sleepy':
       return {
         ...createHauntedSession('screenshot-sleepy'),
