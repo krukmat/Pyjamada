@@ -5,4 +5,3 @@ export const HAUNTED_WALLY_ATLAS_SOURCE = require('../../../assets/game/wally/ha
 export const HAUNTED_GHOST_ATLAS_SOURCE = require('../../../assets/game/monsters/haunted-ghost.png');
 export const BEDROOM_OBJECTS_ATLAS_SOURCE = require('../../../assets/game/objects/bedroom-objects.png');
 export const DOMESTIC_FX_ATLAS_SOURCE = require('../../../assets/game/fx/domestic-fx.png');
-export const BEDROOM_TILES_ATLAS_SOURCE = require('../../../assets/game/rooms/bedroom-tiles.png');
