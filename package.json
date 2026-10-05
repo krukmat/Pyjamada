@@ -36,7 +36,8 @@
     "audit:static": "bash scripts/audit-static.sh",
     "audit:premerge": "npm run assets:validate && npm run test:all && npm run typecheck && npm run audit:static",
     "visual:baseline": "node scripts/visual-checkpoints.mjs baseline",
-    "visual:compare": "node scripts/visual-checkpoints.mjs compare"
+    "visual:compare": "node scripts/visual-checkpoints.mjs compare",
+    "screenshot:wally-concepts": "SCREENSHOT_FLOW_PATH=maestro/wally-concepts.yaml SCREENSHOT_OUTPUT_DIR=artifacts/wally-concepts SCREENSHOT_FAILED_DIR=artifacts/wally-concepts-failed SCREENSHOT_EXPECTED=47_wally_concepts.png bash scripts/android-screenshots.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
