@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { PixelRatio, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useImage } from '@shopify/react-native-skia';
 import {
   findAdventureInteractionTarget,
@@ -77,7 +77,7 @@ export function HauntedGameScreen({
   onExit,
 }: Props) {
   const { width } = useWindowDimensions();
-  const viewport = stageDimensionsForScreenWidth(width);
+  const viewport = stageDimensionsForScreenWidth(width, PixelRatio.get());
   const [nowMs, setNowMs] = useState(() => Date.now());
   const arcadeWallyImage = useImage(WALLY_ATLAS_SOURCE);
   const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
@@ -108,7 +108,7 @@ export function HauntedGameScreen({
   const right = <HeldControl testID="move-right-button" label="▶" onChange={(pressed) => onHeldControl('right', pressed)} />;
 
   return (
-    <View testID="game-screen" style={styles.container}>
+    <View testID="game-screen" style={[styles.container, { paddingTop: Math.max(8, (StatusBar.currentHeight ?? 0) + 4) }]}>
       <View style={[styles.gameFrame, { width: viewport.width }]}>
         <GameCanvas
           state={state}
