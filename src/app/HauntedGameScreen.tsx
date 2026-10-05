@@ -39,7 +39,7 @@ import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
 import { getLaboratoryEncounterPhase, isLaboratoryEncounterActive } from '../game/adventure/LaboratoryEncounter';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
-import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE, WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
+import { BEDROOM_TILES_ATLAS_SOURCE, HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE, WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { roomInteractionTarget } from '../game/render/RoomPresentation';
@@ -79,10 +79,11 @@ export function HauntedGameScreen({
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width, PixelRatio.get());
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const bedroomTilesImage = useImage(BEDROOM_TILES_ATLAS_SOURCE);
   const arcadeWallyImage = useImage(WALLY_ATLAS_SOURCE);
   const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
-  const hauntedAssetsReady = Boolean(arcadeWallyImage && hauntedWallyImage && hauntedGhostImage);
+  const hauntedAssetsReady = Boolean(bedroomTilesImage && arcadeWallyImage && hauntedWallyImage && hauntedGhostImage);
   const state = session.domestic;
   const roomId = adventure?.currentRoom ?? 'bedroom';
   const exploration = adventure ? isAdventureExplorationActive(adventure) : false;
@@ -121,6 +122,7 @@ export function HauntedGameScreen({
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
           dreamSparks={session.combat.projectiles}
           hauntedSession={session}
+          bedroomTilesImage={bedroomTilesImage}
           arcadeWallyImage={arcadeWallyImage}
           hauntedWallyImage={hauntedWallyImage}
           hauntedGhostImage={hauntedGhostImage}
