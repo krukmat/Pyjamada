@@ -180,6 +180,21 @@ if [[ "$PNG_COUNT" -ne "$EXPECTED_COUNT" ]]; then
   fail "expected exactly $EXPECTED_COUNT screenshots, found $PNG_COUNT"
 fi
 
+GIT_BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+GIT_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)" ]]; then
+  GIT_DIRTY=true
+else
+  GIT_DIRTY=false
+fi
+{
+  echo "timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "branch: $GIT_BRANCH"
+  echo "commit: $GIT_COMMIT"
+  echo "dirty: $GIT_DIRTY"
+  echo "screenshots: $PNG_COUNT"
+} > "$STAGING_DIR/RUN.txt"
+
 rm -rf "${SCREENSHOTS_DIR}.previous"
 if [[ -d "$SCREENSHOTS_DIR" ]]; then
   mv "$SCREENSHOTS_DIR" "${SCREENSHOTS_DIR}.previous"
