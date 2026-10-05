@@ -16,7 +16,11 @@ function equal(actual: unknown, expected: unknown, label: string) {
 }
 function ok(value: unknown, label: string) { if (!value) throw new Error(label); }
 
-equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 44, 'visual tour has forty-four deterministic gameplay and adventure presets');
+equal(HAUNTED_SCREENSHOT_SCENARIOS.length, 45, 'visual tooling exposes forty-five deterministic gameplay, adventure and character-study presets');
+
+const concepts = createHauntedScreenshotScenario('wally-concepts');
+equal(concepts.runId, 'screenshot-wally-concepts', 'Wally concept review has a stable test-only run id');
+equal(concepts.threats.ghosts.length, 0, 'Wally concept review keeps the A1 bedroom free of enemies');
 
 const sleepy = createHauntedScreenshotScenario('sleepy');
 equal(sleepy.domestic.wallyState, 'sleepy', 'sleepy preset preserves the starting state');
