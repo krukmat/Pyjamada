@@ -1,5 +1,5 @@
 import React from 'react';
-import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
+import { Circle, Line, Rect, RoundedRect, vec, type SkImage } from '@shopify/react-native-skia';
 import { getAdventureEndingPhase, isAdventureEndingActive } from '../adventure/AdventureEnding';
 import { getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
 import { findActiveRoom } from '../adventure/RoomRegistry';
@@ -13,6 +13,7 @@ import { ArcadeStageAtmosphere, WallyFocusLight } from './ArcadeStageLighting';
 import { AtticPresentation } from './AtticPresentation';
 import { BasementPresentation } from './BasementPresentation';
 import { BathroomPresentation } from './BathroomPresentation';
+import { BedroomPixelBackdrop } from './BedroomPixelScene';
 import {
   HauntedExitDoor,
   HauntedPlayerReadability,
@@ -37,6 +38,7 @@ type Props = {
   adventure?: AdventureState;
   state: SystemicRunState;
   hauntedSession?: HauntedSessionState;
+  bedroomTilesImage?: SkImage | null;
   activeVisualEvents: readonly ActiveVisualEvent[];
   size: number;
   playerX: number;
@@ -136,7 +138,7 @@ export function RoomPresentation(props: Props) {
   }
 }
 
-function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEvents, size, playerX, playerY, nowMs, scale, px }: Props) {
+function BedroomPresentation({ adventure, state, hauntedSession, bedroomTilesImage, activeVisualEvents, size, playerX, playerY, nowMs, scale, px }: Props) {
   const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
   const endingActive = Boolean(adventure && isAdventureEndingActive(adventure)) || endingPhase === 'complete';
   const altered = adventure?.storyFlags.bedroomEscapeAttempted === true && !endingActive;
@@ -149,7 +151,9 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
 
   return (
     <>
-      <IllustratedBedroomBackdrop state={state} size={size} />
+      {bedroomTilesImage
+        ? <BedroomPixelBackdrop image={bedroomTilesImage} scale={scale} px={px} />
+        : <IllustratedBedroomBackdrop state={state} size={size} />}
       <ArcadeStageAtmosphere state={state} size={size} />
       {altered && <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="rgba(30,28,72,0.17)" />}
       <RoomContactShadows state={state} px={px} />
