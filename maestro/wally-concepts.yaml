@@ -1,0 +1,32 @@
+appId: com.krukmat.pyjamada
+name: Wally Character Review
+tags:
+  - android
+  - screenshots
+  - character-study
+---
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 20000
+
+- tapOn:
+    id: screenshot-scenario-menu
+- extendedWaitUntil:
+    visible:
+      id: screenshot-scenario-picker
+    timeout: 5000
+- tapOn:
+    id: screenshot-scenario-wally-concepts
+
+- extendedWaitUntil:
+    visible:
+      text: "W1 CHARACTER REVIEW"
+    timeout: 5000
+- assertVisible:
+    text: "A / B / C · STATIC IDLE STUDY"
+- takeScreenshot:
+    path: 47_wally_concepts
