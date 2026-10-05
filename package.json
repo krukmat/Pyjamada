@@ -34,7 +34,9 @@
     "agent:sync": "node scripts/sync-agent-instructions.mjs --write",
     "agent:check": "node scripts/sync-agent-instructions.mjs --check",
     "audit:static": "bash scripts/audit-static.sh",
-    "audit:premerge": "npm run assets:validate && npm run test:all && npm run typecheck && npm run audit:static"
+    "audit:premerge": "npm run assets:validate && npm run test:all && npm run typecheck && npm run audit:static",
+    "visual:baseline": "node scripts/visual-checkpoints.mjs baseline",
+    "visual:compare": "node scripts/visual-checkpoints.mjs compare"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
