@@ -28,19 +28,25 @@ export const MIN_STAGE_SCALE = 1;
 export const MAX_STAGE_SCALE = 6;
 export const STAGE_HORIZONTAL_INSET = 24;
 
-export function integerStageScaleForScreenWidth(screenWidth: number): number {
-  if (!Number.isFinite(screenWidth)) return MIN_STAGE_SCALE;
-  const availableWidth = Math.max(STAGE_LOGICAL_WIDTH, Math.floor(screenWidth - STAGE_HORIZONTAL_INSET));
-  const fitted = Math.floor(availableWidth / STAGE_LOGICAL_WIDTH);
+export function integerStageScaleForScreenWidth(screenWidth: number, pixelRatio = 1): number {
+  if (!Number.isFinite(screenWidth) || !Number.isFinite(pixelRatio) || pixelRatio <= 0) return MIN_STAGE_SCALE;
+  const availablePhysicalWidth = Math.max(
+    STAGE_LOGICAL_WIDTH,
+    Math.floor((screenWidth - STAGE_HORIZONTAL_INSET) * pixelRatio),
+  );
+  const fitted = Math.floor(availablePhysicalWidth / STAGE_LOGICAL_WIDTH);
   return Math.max(MIN_STAGE_SCALE, Math.min(MAX_STAGE_SCALE, fitted));
 }
 
-export function stageDimensionsForScreenWidth(screenWidth: number): StageDimensions {
-  const scale = integerStageScaleForScreenWidth(screenWidth);
+export function stageDimensionsForScreenWidth(screenWidth: number, pixelRatio = 1): StageDimensions {
+  const physicalScale = integerStageScaleForScreenWidth(screenWidth, pixelRatio);
+  const density = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
+  const width = (STAGE_LOGICAL_WIDTH * physicalScale) / density;
+  const height = (STAGE_LOGICAL_HEIGHT * physicalScale) / density;
   return {
-    width: STAGE_LOGICAL_WIDTH * scale,
-    height: STAGE_LOGICAL_HEIGHT * scale,
-    scale,
+    width,
+    height,
+    scale: height / STAGE_LOGICAL_HEIGHT,
   };
 }
 
