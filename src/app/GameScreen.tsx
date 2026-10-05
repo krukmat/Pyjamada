@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { PixelRatio, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useImage } from '@shopify/react-native-skia';
 import { WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
@@ -24,7 +24,7 @@ type Props = {
 
 export function GameScreen({ state, presentationRuntime, touchControlLayout, onInput, onRestart, onExit }: Props) {
   const { width } = useWindowDimensions();
-  const viewport = stageDimensionsForScreenWidth(width);
+  const viewport = stageDimensionsForScreenWidth(width, PixelRatio.get());
   // Decodes asynchronously; GameCanvas falls back to the primitive Wally until
   // it resolves, so the actor is never missing from the stage.
   const wallyImage = useImage(WALLY_ATLAS_SOURCE);
