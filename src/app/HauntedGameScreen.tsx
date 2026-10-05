@@ -92,7 +92,8 @@ export function HauntedGameScreen({
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
   const testHooksEnabled = isTestHooksEnabled();
-  const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
+  const conceptReview = session.runId === 'screenshot-wally-concepts';
+  const prompt = conceptReview ? undefined : promptFor(exitTarget, domesticTarget?.label, adventureTarget);
   const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
   const endingActive = Boolean(adventure && isAdventureEndingActive(adventure));
   const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
@@ -126,8 +127,8 @@ export function HauntedGameScreen({
 
         <View pointerEvents="none" style={styles.hud}>
           <View>
-            <Text style={styles.kicker}>{endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
-            <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
+            <Text style={styles.kicker}>{conceptReview ? 'W1 CHARACTER REVIEW' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
+            <Text style={styles.objective}>{conceptReview ? 'A / B / C · STATIC IDLE STUDY' : objectiveFor(session, adventure)}</Text>
           </View>
           {!exploration && (
             <View style={styles.stats}>
@@ -148,9 +149,9 @@ export function HauntedGameScreen({
         <RoomTransitionOverlay phase={transitionPhase} />
       </View>
 
-      <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session, adventure)}</Text>
+      <Text testID="game-reaction" style={styles.reaction}>{conceptReview ? 'A RETRO ORIGINAL   ·   B EXPRESSIVE 16-BIT   ·   C COMPACT CHARM' : reactionFor(session, adventure)}</Text>
 
-      {!done ? (
+      {!conceptReview && (!done ? (
         endingPhase === 'ghost-sting' ? (
           <TapControl testID="ending-finish-button" label="END NIGHT" accent onPress={onFinishEnding} />
         ) : endingActive ? (
@@ -178,7 +179,7 @@ export function HauntedGameScreen({
         )
       ) : (
         <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : 'TRY AGAIN'} accent onPress={onRestart} />
-      )}
+      ))}
 
       <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
         <Text style={styles.exitText}>BACK TO MENU</Text>
