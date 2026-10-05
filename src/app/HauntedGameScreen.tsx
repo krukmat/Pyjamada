@@ -39,7 +39,7 @@ import type { AdventureState, RoomId } from '../game/adventure/AdventureState';
 import { getLaboratoryEncounterPhase, isLaboratoryEncounterActive } from '../game/adventure/LaboratoryEncounter';
 import type { HauntedActionControl, HauntedHeldControl } from '../game/haunted/HauntedInput';
 import { isAtHauntedExit, type HauntedSessionState } from '../game/haunted/HauntedSessionRuntime';
-import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
+import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE, WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { roomInteractionTarget } from '../game/render/RoomPresentation';
@@ -79,9 +79,10 @@ export function HauntedGameScreen({
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const arcadeWallyImage = useImage(WALLY_ATLAS_SOURCE);
   const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
-  const hauntedAssetsReady = Boolean(hauntedWallyImage && hauntedGhostImage);
+  const hauntedAssetsReady = Boolean(arcadeWallyImage && hauntedWallyImage && hauntedGhostImage);
   const state = session.domestic;
   const roomId = adventure?.currentRoom ?? 'bedroom';
   const exploration = adventure ? isAdventureExplorationActive(adventure) : false;
@@ -120,6 +121,7 @@ export function HauntedGameScreen({
           playerRenderPosition={{ x: session.player.x, y: session.player.y, facing: session.player.facing }}
           dreamSparks={session.combat.projectiles}
           hauntedSession={session}
+          arcadeWallyImage={arcadeWallyImage}
           hauntedWallyImage={hauntedWallyImage}
           hauntedGhostImage={hauntedGhostImage}
         />
@@ -380,7 +382,7 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: SCENE_TOKENS.foreground, paddingHorizontal: 8, paddingVertical: 8 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 6, backgroundColor: SCENE_TOKENS.foreground, paddingHorizontal: 8, paddingVertical: 8 },
   gameFrame: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(244,217,164,0.34)', borderRadius: 12, backgroundColor: SCENE_TOKENS.skyDeep },
   hud: { position: 'absolute', top: 6, left: 6, right: 6, minHeight: 38, flexDirection: 'row', justifyContent: 'space-between', gap: 6, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: 'rgba(29,25,40,0.72)' },
   kicker: { color: SCENE_TOKENS.sunrise, fontFamily: 'monospace', fontSize: 5, fontWeight: '900', letterSpacing: 0.8 },
