@@ -151,6 +151,7 @@ const PRODUCTION_ASSETS = [
   { path: 'assets/game/monsters/haunted-ghost.png', manifestId: 'haunted-ghost' },
   { path: 'assets/game/objects/bedroom-objects.png', manifestId: 'bedroom-objects' },
   { path: 'assets/game/fx/domestic-fx.png', manifestId: 'domestic-fx' },
+  { path: 'assets/game/rooms/bedroom-tiles.png', manifestId: 'bedroom-tiles' },
 ];
 
 async function main() {
