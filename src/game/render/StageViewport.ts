@@ -10,14 +10,36 @@ export type StageDimensions = {
   scale: number;
 };
 
+/**
+ * Phase 1 / step 3 of docs/ARCADE_PIXEL_ART_DIRECTION.md.
+ *
+ * One logical pixel must cover an integer number of screen pixels, identically
+ * for sprites, tiles and any remaining primitive. Fractional scaling is what
+ * separates crisp arcade art from a blurred approximation of it: at a scale
+ * like 2.34 a sprite row lands on a screen-pixel boundary in some frames and
+ * between two in others, which is the shimmer visible while Wally walks.
+ *
+ * The scale is therefore floored to a whole number rather than fitted exactly
+ * to the screen. The leftover width is dead space the caller centres, which is
+ * the correct trade: a slightly smaller stage that stays sharp beats a
+ * perfectly fitted one that crawls.
+ */
+export const MIN_STAGE_SCALE = 1;
+export const MAX_STAGE_SCALE = 4;
+export const STAGE_HORIZONTAL_INSET = 24;
+
+export function integerStageScaleForScreenWidth(screenWidth: number): number {
+  if (!Number.isFinite(screenWidth)) return MIN_STAGE_SCALE;
+  const availableWidth = Math.max(STAGE_LOGICAL_WIDTH, Math.floor(screenWidth - STAGE_HORIZONTAL_INSET));
+  const fitted = Math.floor(availableWidth / STAGE_LOGICAL_WIDTH);
+  return Math.max(MIN_STAGE_SCALE, Math.min(MAX_STAGE_SCALE, fitted));
+}
+
 export function stageDimensionsForScreenWidth(screenWidth: number): StageDimensions {
-  const availableWidth = Math.max(STAGE_LOGICAL_WIDTH, Math.floor(screenWidth - 24));
-  const desiredScale = Math.max(1, Math.min(2.5, availableWidth / STAGE_LOGICAL_WIDTH));
-  const height = Math.floor(STAGE_LOGICAL_HEIGHT * desiredScale);
-  const scale = height / STAGE_LOGICAL_HEIGHT;
+  const scale = integerStageScaleForScreenWidth(screenWidth);
   return {
-    width: Math.floor(STAGE_LOGICAL_WIDTH * scale),
-    height,
+    width: STAGE_LOGICAL_WIDTH * scale,
+    height: STAGE_LOGICAL_HEIGHT * scale,
     scale,
   };
 }

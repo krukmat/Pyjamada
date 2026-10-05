@@ -12,8 +12,8 @@ import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
 import { HauntedWallySprite } from './HauntedWallySprite';
 import { IllustratedFx } from './IllustratedFx';
-import { IllustratedWally } from './IllustratedWally';
 import { PixelDreamSpark } from './PixelDreamSpark';
+import { WallySprite } from './WallySprite';
 import { RoomPresentation } from './RoomPresentation';
 import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
@@ -29,6 +29,8 @@ type Props = {
   playerRenderPosition?: { x: number; y: number; facing: 'left' | 'right' };
   dreamSparks?: readonly DreamSparkProjectile[];
   hauntedSession?: HauntedSessionState;
+  /** Bedroom-run Wally atlas; null until the texture decodes. */
+  wallyImage?: SkImage | null;
   hauntedWallyImage?: SkImage | null;
   hauntedGhostImage?: SkImage | null;
 };
@@ -44,6 +46,7 @@ export function GameCanvas({
   playerRenderPosition,
   dreamSparks = [],
   hauntedSession,
+  wallyImage = null,
   hauntedWallyImage = null,
   hauntedGhostImage = null,
 }: Props) {
@@ -105,7 +108,8 @@ export function GameCanvas({
             honorTerminalObjective={!exploration}
           />
         ) : legacyWally ? (
-          <IllustratedWally
+          <WallySprite
+            image={wallyImage}
             state={state}
             visual={legacyWally}
             x={px(playerX)}

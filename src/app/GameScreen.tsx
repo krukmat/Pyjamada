@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useImage } from '@shopify/react-native-skia';
+import { WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { selectWallyVisual } from '../game/presentation/WallyAnimator';
 import { GameCanvas } from '../game/render/GameCanvas';
@@ -23,6 +25,9 @@ type Props = {
 export function GameScreen({ state, presentationRuntime, touchControlLayout, onInput, onRestart, onExit }: Props) {
   const { width } = useWindowDimensions();
   const viewport = stageDimensionsForScreenWidth(width);
+  // Decodes asynchronously; GameCanvas falls back to the primitive Wally until
+  // it resolves, so the actor is never missing from the stage.
+  const wallyImage = useImage(WALLY_ATLAS_SOURCE);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const target = findSystemicObject(state.player.x);
   const done = state.objective.status !== 'active';
@@ -65,6 +70,7 @@ export function GameScreen({ state, presentationRuntime, touchControlLayout, onI
           height={viewport.height}
           activeVisualEvents={activeVisualEvents}
           nowMs={nowMs}
+          wallyImage={wallyImage}
         />
 
         <View pointerEvents="none" style={styles.sceneHud}>
