@@ -13,6 +13,7 @@ import { HauntedHitFeedback } from './HauntedStagePresentation';
 import { HauntedWallySprite } from './HauntedWallySprite';
 import { IllustratedFx } from './IllustratedFx';
 import { PixelDreamSpark } from './PixelDreamSpark';
+import { WallyConceptVariants } from './WallyConceptVariants';
 import { WallySprite } from './WallySprite';
 import { RoomPresentation } from './RoomPresentation';
 import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
@@ -67,6 +68,7 @@ export function GameCanvas({
     && (!exploration || roomId === 'basement' || roomId === 'laboratory'),
   );
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
+  const conceptReview = hauntedSession?.runId === 'screenshot-wally-concepts';
 
   return (
     <Canvas style={{ width, height }}>
@@ -76,7 +78,7 @@ export function GameCanvas({
           roomId={roomId}
           adventure={adventure}
           state={state}
-          hauntedSession={hauntedSession}
+          hauntedSession={conceptReview ? undefined : hauntedSession}
           activeVisualEvents={activeVisualEvents}
           size={height}
           playerX={playerX}
@@ -86,7 +88,7 @@ export function GameCanvas({
           px={px}
         />
 
-        {!exploration && hauntedSession && (
+        {!conceptReview && !exploration && hauntedSession && (
           <HauntedEnemyLayer
             session={hauntedSession}
             ghostImage={hauntedGhostImage}
@@ -97,7 +99,9 @@ export function GameCanvas({
           />
         )}
 
-        {hauntedSession ? (
+        {conceptReview ? (
+          <WallyConceptVariants px={px} groundY={PLAYER_GROUND_Y} />
+        ) : hauntedSession ? (
           <HauntedWallySprite
             image={hauntedWallyImage}
             session={hauntedSession}
