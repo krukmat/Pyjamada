@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StatusBar, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useImage } from '@shopify/react-native-skia';
 import {
   findAdventureInteractionTarget,
@@ -402,7 +402,8 @@ const ARCADE = {
 } as const;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', backgroundColor: ARCADE.cabinet, paddingTop: 14, paddingBottom: 6 },
+  // Android draws edge-to-edge: keep the marquee clear of the status bar.
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: ARCADE.cabinet, paddingTop: (StatusBar.currentHeight ?? 0) + 8, paddingBottom: 6 },
   cabinet: { alignItems: 'center', gap: 6, padding: 4, borderWidth: 3, borderColor: ARCADE.bezel, borderRadius: 4, backgroundColor: ARCADE.screen },
   marquee: { alignSelf: 'stretch', minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 2, borderColor: ARCADE.bezelLight },
   marqueeMission: { flexShrink: 1 },
