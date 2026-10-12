@@ -287,6 +287,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = markRoomInteraction(adventure, 'kitchen', 'microwave-overload');
     adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', true);
     adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', true);
+    adventure = markRoomInteraction(adventure, 'kitchen', 'kitchen-surge-armed');
   }
   if (scenario === 'kitchen-power-rerouted' || isBathroomOrDeeperScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'kitchen', 'breaker-panel');
@@ -480,6 +481,8 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                                               ? 108
                                                               : 99;
   const positioned = withPlayer(falseEscape.session, x);
+  // Mid-cycle surge front around x=70, well away from Wally at the breaker.
+  if (scenario === 'kitchen-overload') return { ...positioned, elapsedMs: 2_015 };
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };
   if (scenario === 'laboratory-boundary') return { ...positioned, elapsedMs: 1_720 };
   if (scenario === 'vesper-control') return { ...positioned, elapsedMs: 700 };

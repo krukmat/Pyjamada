@@ -14,6 +14,7 @@ import { SettingsScreen } from './src/app/SettingsScreen';
 import { EndingScreen } from './src/app/EndingScreen';
 import { isTestHooksEnabled } from './src/app/testHooks';
 import {
+  applyFirstVisitRecovery,
   applyFalseEscape,
   isAdventureExplorationActive,
   isLaboratoryCombatEnabled,
@@ -159,7 +160,7 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }
@@ -300,7 +301,7 @@ export default function App() {
       adventureCoordinatorRef.current.restore(currentAdventure);
       const result = adventureCoordinatorRef.current.transition(request.targetRoom, request.targetEntry);
       if (result.status !== 'ok') return;
-      const spawned = applyRoomSpawn(currentSession, result.spawn);
+      const spawned = applyRoomSpawn(applyFirstVisitRecovery(currentSession, currentAdventure, request.targetRoom), result.spawn);
       resetRuntimeClocks();
       activateAdventure(result.state);
       activateSession(spawned);

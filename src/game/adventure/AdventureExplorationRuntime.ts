@@ -38,6 +38,12 @@ import {
   resolveBasementElectricalHazard,
 } from './BasementElectricalHazard';
 import {
+  armKitchenSurge,
+  isKitchenSurgeLive,
+  isPlayerHitByKitchenSurge,
+  resolveKitchenSurge,
+} from './KitchenSurgeHazard';
+import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
 } from './RoomInteractionEffects';
@@ -53,6 +59,7 @@ export type AdventureExplorationEvent =
   | { type: 'ROOM_TRANSITION_REQUESTED'; targetRoom: RoomId; targetEntry: string }
   | { type: 'LIVING_ROOM_DOOR_REACHED' }
   | { type: 'BASEMENT_DISCHARGE_HIT' }
+  | { type: 'KITCHEN_SURGE_HIT' }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
@@ -163,6 +170,17 @@ export function isLivingRoomSourceCueRevealed(adventure: AdventureState): boolea
   return getRoomState(adventure, 'living-room').switches['source-hum-traced'] === true;
 }
 
+/** Entering a room for the first time restores one heart, capped at max HP. */
+export function applyFirstVisitRecovery(
+  session: HauntedSessionState,
+  adventureBeforeTransition: AdventureState,
+  targetRoom: RoomId,
+): HauntedSessionState {
+  if (adventureBeforeTransition.visitedRooms.includes(targetRoom)) return session;
+  const hp = Math.min(session.combat.maxHp, session.combat.hp + 1);
+  return hp === session.combat.hp ? session : { ...session, combat: { ...session.combat, hp } };
+}
+
 export function isKitchenCircuitOverloaded(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'kitchen').switches['circuit-overloaded'] === true;
 }
@@ -264,6 +282,11 @@ export function stepAdventureExploration(
   if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
     elapsedMs += dtMs;
     const armed = armBasementElectricalHazard(nextAdventure, elapsedMs);
+    nextAdventure = armed.adventure;
+    elapsedMs = armed.elapsedMs;
+  } else if (adventure.currentRoom === 'kitchen' && isKitchenSurgeLive(adventure)) {
+    elapsedMs += dtMs;
+    const armed = armKitchenSurge(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
   } else if (laboratoryCombat) {
@@ -405,6 +428,17 @@ export function stepAdventureExploration(
     if (hit.accepted) {
       player = applyHauntedKnockback(player, -1);
       events.push({ type: 'BASEMENT_DISCHARGE_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
+  const surge = resolveKitchenSurge(nextAdventure, elapsedMs);
+  if (isPlayerHitByKitchenSurge(player, surge) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, -1);
+      events.push({ type: 'KITCHEN_SURGE_HIT' });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }

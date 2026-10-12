@@ -2,6 +2,7 @@ import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import { KITCHEN_SURGE, resolveKitchenSurge } from '../adventure/KitchenSurgeHazard';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
@@ -25,6 +26,8 @@ export function KitchenPresentation({ adventure, hauntedSession, playerX, player
   const microwaveOn = kitchen?.switches['microwave-on'] === true;
   const pulse = Math.floor(nowMs / 150) % 3;
   const flicker = overloaded && Math.floor(nowMs / 90) % 2 === 0;
+  const surge = adventure && hauntedSession ? resolveKitchenSurge(adventure, hauntedSession.elapsedMs) : undefined;
+  const sparkPhase = Math.floor(nowMs / 70) % 2;
 
   return (
     <>
@@ -118,6 +121,26 @@ export function KitchenPresentation({ adventure, hauntedSession, playerX, player
       )}
 
       {overloaded && <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={flicker ? 'rgba(5,8,14,0.18)' : 'rgba(5,8,14,0.34)'} />}
+
+      {/* Floor surge: sparks at the breaker outlet, then an arc running to the door. */}
+      {surge?.phase === 'telegraph' && (
+        <>
+          <Rect x={px(KITCHEN_SURGE.sourceX - 2)} y={px(101)} width={px(6)} height={px(1)} color={`rgba(255,216,74,${(0.25 + surge.progress * 0.6).toFixed(2)})`} />
+          <Line p1={vec(px(KITCHEN_SURGE.sourceX), px(100))} p2={vec(px(KITCHEN_SURGE.sourceX - 3 - sparkPhase * 2), px(95 - surge.progress * 4))} color="#ffd84a" strokeWidth={px(1)} />
+          <Line p1={vec(px(KITCHEN_SURGE.sourceX + 1), px(100))} p2={vec(px(KITCHEN_SURGE.sourceX + 4 - sparkPhase), px(96 - surge.progress * 3))} color="#44d9e6" strokeWidth={px(1)} />
+          {surge.progress > 0.5 && <Circle cx={px(KITCHEN_SURGE.sourceX)} cy={px(99)} r={px(1.5 + sparkPhase)} color="#f4f1de" />}
+        </>
+      )}
+      {surge?.phase === 'surge' && surge.frontX !== undefined && (
+        <>
+          <Rect x={px(surge.frontX)} y={px(101)} width={px(KITCHEN_SURGE.sourceX - surge.frontX)} height={px(1)} color="rgba(255,216,74,0.45)" />
+          <Line p1={vec(px(surge.frontX - 4), px(101))} p2={vec(px(surge.frontX - 2), px(90))} color="#44d9e6" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(surge.frontX - 2), px(90))} p2={vec(px(surge.frontX), px(100))} color="#f4f1de" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(surge.frontX), px(100))} p2={vec(px(surge.frontX + 2), px(88 + sparkPhase))} color="#44d9e6" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(surge.frontX + 2), px(88 + sparkPhase))} p2={vec(px(surge.frontX + 4), px(101))} color="#f4f1de" strokeWidth={px(1.4)} />
+          <Circle cx={px(surge.frontX)} cy={px(98)} r={px(5)} color="rgba(68,217,230,0.22)" />
+        </>
+      )}
 
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
     </>
