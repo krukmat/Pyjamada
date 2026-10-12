@@ -103,7 +103,7 @@ tags:
     visible:
       id: game-screen
     timeout: 5000
-- assertVisible: HAUNTED MORNING
+- assertVisible: "HAUNTED NIGHT · 5:12 AM"
 - takeScreenshot:
     path: 07_wally_jump
 
@@ -126,7 +126,7 @@ tags:
     visible:
       id: game-screen
     timeout: 5000
-- assertVisible: HAUNTED MORNING
+- assertVisible: "HAUNTED NIGHT · 5:12 AM"
 - takeScreenshot:
     path: 09_ghost_defeated
 
@@ -271,7 +271,7 @@ tags:
     id: screenshot-scenario-living-room-transmission
 - extendedWaitUntil:
     visible:
-      text: "A voice cuts through: RESONANCE STABLE... SUBJECT... Then static."
+      text: "A voice under the static: VESPER LOG. RESONANCE STABLE. SUBJECT STILL DREAMING."
     timeout: 5000
 - assertVisible: "FIND THE SOURCE"
 - assertVisible: "INTERACT · TELEVISION"
@@ -414,7 +414,7 @@ tags:
     id: screenshot-scenario-attic-recording
 - extendedWaitUntil:
     visible:
-      text: "SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment."
+      text: "SUBJECT W-01: WALLY. The house is Vesper's experiment, and Wally is the battery."
     timeout: 5000
 - assertVisible: "FIND THE MACHINE"
 - assertVisible: "INTERACT · RECORDER"

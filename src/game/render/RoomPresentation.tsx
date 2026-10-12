@@ -149,7 +149,7 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
 
   return (
     <>
-      <IllustratedBedroomBackdrop state={state} size={size} />
+      <IllustratedBedroomBackdrop state={state} size={size} night={!endingActive} />
       <ArcadeStageAtmosphere state={state} size={size} />
       {altered && <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="rgba(30,28,72,0.17)" />}
       <RoomContactShadows state={state} px={px} />

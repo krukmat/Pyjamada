@@ -12,7 +12,14 @@ import { SCENE_TOKENS } from './VisualLanguage';
 type Props = {
   state: SystemicRunState;
   size: number;
+  /** Act I happens before dawn; only the ending shows the morning sky. */
+  night?: boolean;
 };
+
+type Sky = { deep: string; mid: string; low: string; orb: string };
+
+const DAY_SKY: Sky = { deep: SCENE_TOKENS.skyDeep, mid: SCENE_TOKENS.sky, low: SCENE_TOKENS.skyLight, orb: SCENE_TOKENS.sunrise };
+const NIGHT_SKY: Sky = { deep: '#1d1426', mid: '#34405e', low: '#5c86a8', orb: '#f3d29a' };
 
 type LayerProps = Props & {
   px: (value: number) => number;
@@ -33,7 +40,8 @@ const STAGE_COLORS = {
   floorGold: '#956a4d',
 } as const;
 
-export function IllustratedBedroomBackdrop({ state, size }: Props) {
+export function IllustratedBedroomBackdrop({ state, size, night = false }: Props) {
+  const sky = night ? NIGHT_SKY : DAY_SKY;
   const px = (value: number) => stagePx(size, value);
   const far = stageParallaxPx(size, state.player.x, -2.5);
   const distant = stageParallaxPx(size, state.player.x, -1.45);
@@ -41,9 +49,9 @@ export function IllustratedBedroomBackdrop({ state, size }: Props) {
 
   return (
     <>
-      <MorningSky px={px} offset={far} />
+      <BedroomSky px={px} offset={far} sky={sky} night={night} />
       <DistantNeighbourhood px={px} offset={distant} />
-      <RoomShell state={state} size={size} px={px} offset={room} />
+      <RoomShell state={state} size={size} px={px} offset={room} sky={sky} night={night} />
       <StageRhythm px={px} />
       <FloorAndRoute px={px} />
       <BedroomDressing state={state} size={size} px={px} />
@@ -108,15 +116,15 @@ export function IllustratedBedroomForeground({ state, size }: Props) {
   );
 }
 
-function MorningSky({ px, offset }: { px: (value: number) => number; offset: number }) {
+function BedroomSky({ px, offset, sky, night }: { px: (value: number) => number; offset: number; sky: Sky; night: boolean }) {
   const left = -STAGE_SIDE_MARGIN - 10;
   const width = STAGE_LOGICAL_WIDTH + 20;
   return (
     <Group transform={[{ translateX: offset }]}>
-      <Rect x={px(left)} y={0} width={px(width)} height={px(58)} color={SCENE_TOKENS.skyDeep} />
-      <Rect x={px(left)} y={px(8)} width={px(width)} height={px(50)} color={SCENE_TOKENS.sky} />
-      <Rect x={px(left)} y={px(30)} width={px(width)} height={px(28)} color={SCENE_TOKENS.skyLight} />
-      <Circle cx={px(111)} cy={px(22)} r={px(9)} color={SCENE_TOKENS.sunrise} />
+      <Rect x={px(left)} y={0} width={px(width)} height={px(58)} color={sky.deep} />
+      <Rect x={px(left)} y={px(8)} width={px(width)} height={px(50)} color={night ? sky.deep : sky.mid} />
+      <Rect x={px(left)} y={px(30)} width={px(width)} height={px(28)} color={night ? sky.mid : sky.low} />
+      <Circle cx={px(111)} cy={px(22)} r={px(9)} color={sky.orb} />
       <Circle cx={px(111)} cy={px(22)} r={px(13)} color="rgba(246,217,144,0.10)" />
       <RoundedRect x={px(-14)} y={px(20)} width={px(25)} height={px(5)} r={px(2.5)} color="rgba(244,234,209,0.68)" />
       <RoundedRect x={px(6)} y={px(16)} width={px(29)} height={px(5)} r={px(2.5)} color={SCENE_TOKENS.cloudShade} />
@@ -156,7 +164,7 @@ function Building({ px, x, y, width, height, light = false }: { px: (value: numb
   return <Rect x={px(x)} y={px(y)} width={px(width)} height={px(height)} color={light ? SCENE_TOKENS.distantLight : SCENE_TOKENS.distant} />;
 }
 
-function RoomShell({ state, px, offset }: LayerProps & { offset: number }) {
+function RoomShell({ state, px, offset, sky, night }: LayerProps & { offset: number; sky: Sky; night: boolean }) {
   return (
     <Group transform={[{ translateX: offset }]}>
       <Rect x={px(-20)} y={px(4)} width={px(168)} height={px(95)} color={SCENE_TOKENS.wallShadow} />
@@ -168,7 +176,7 @@ function RoomShell({ state, px, offset }: LayerProps & { offset: number }) {
       <Rect x={px(-15)} y={px(91)} width={px(158)} height={px(2)} color={SCENE_TOKENS.trim} />
       <StagePosts px={px} />
       <MorningPicture px={px} />
-      <Window state={state} px={px} />
+      <Window state={state} px={px} sky={sky} night={night} />
     </Group>
   );
 }
@@ -212,15 +220,19 @@ function MorningPicture({ px }: { px: (value: number) => number }) {
   );
 }
 
-function Window({ state, px }: { state: SystemicRunState; px: (value: number) => number }) {
+function Window({ state, px, sky, night }: { state: SystemicRunState; px: (value: number) => number; sky: Sky; night: boolean }) {
   const glow = state.flags.windowOpen ? SCENE_TOKENS.windowGlowStrong : SCENE_TOKENS.windowGlow;
   return (
     <>
       <Rect x={px(82)} y={px(8)} width={px(41)} height={px(64)} color={SCENE_TOKENS.trimDark} />
-      <Rect x={px(86)} y={px(12)} width={px(33)} height={px(56)} color={SCENE_TOKENS.skyDeep} />
-      <Rect x={px(87)} y={px(13)} width={px(31)} height={px(30)} color={SCENE_TOKENS.sky} />
-      <Rect x={px(87)} y={px(43)} width={px(31)} height={px(24)} color={SCENE_TOKENS.skyLight} />
-      <Circle cx={px(111)} cy={px(24)} r={px(5)} color={SCENE_TOKENS.sunrise} />
+      <Rect x={px(86)} y={px(12)} width={px(33)} height={px(56)} color={sky.deep} />
+      <Rect x={px(87)} y={px(13)} width={px(31)} height={px(30)} color={night ? sky.deep : sky.mid} />
+      <Rect x={px(87)} y={px(43)} width={px(31)} height={px(24)} color={night ? sky.mid : sky.low} />
+      <Circle cx={px(111)} cy={px(24)} r={px(5)} color={sky.orb} />
+      {night && <Circle cx={px(113)} cy={px(22)} r={px(4)} color={sky.deep} />}
+      {night && [[90, 17], [96, 28], [93, 35], [107, 33], [115, 15]].map(([x, y]) => (
+        <Rect key={`star-${x}`} x={px(x)} y={px(y)} width={px(1)} height={px(1)} color={sky.orb} />
+      ))}
       <Rect x={px(101)} y={px(13)} width={px(2)} height={px(53)} color={SCENE_TOKENS.trimDark} />
       <Rect x={px(87)} y={px(39)} width={px(31)} height={px(2)} color={SCENE_TOKENS.trimDark} />
       <Rect x={px(78)} y={px(7)} width={px(7)} height={px(65)} color={SCENE_TOKENS.curtainDeep} />

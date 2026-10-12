@@ -192,7 +192,7 @@ export function HauntedGameScreen({
 }
 
 function kickerFor(roomId: RoomId, exploration: boolean): string {
-  if (!exploration) return 'HAUNTED MORNING';
+  if (!exploration) return 'HAUNTED NIGHT · 5:12 AM';
   if (roomId === 'hallway') return 'HAUNTED HOUSE · HALLWAY';
   if (roomId === 'living-room') return 'HAUNTED HOUSE · LIVING ROOM';
   if (roomId === 'kitchen') return 'HAUNTED HOUSE · KITCHEN';
@@ -303,7 +303,7 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
       if (isLivingRoomSourceCueRevealed(adventure)) return 'The radio catches the same pulse. Stronger through the wall.';
       if (isLivingRoomPhotoFocused(adventure)) return 'The glass reflects a room that is not here.';
       if (isLivingRoomRadioFocused(adventure)) return 'No station. Just a pulse under the static.';
-      if (hasLabTransmissionBeenSeen(adventure)) return 'A voice cuts through: RESONANCE STABLE... SUBJECT... Then static.';
+      if (hasLabTransmissionBeenSeen(adventure)) return 'A voice under the static: VESPER LOG. RESONANCE STABLE. SUBJECT STILL DREAMING.';
       if (isLivingRoomTvActivated(adventure)) return 'Static. Not a channel. Something is underneath it.';
       return 'The television is dark. The room is listening.';
     }
@@ -321,18 +321,18 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
     }
     if (adventure.currentRoom === 'attic') {
       if (isAtticBasementRouteRevealed(adventure)) return 'The recorder output drops through the floor. The machine is below.';
-      if (isAtticExperimentRevealed(adventure)) return 'SUBJECT W-01. RESONANCE EXTRACTION. This house is an experiment.';
+      if (isAtticExperimentRevealed(adventure)) return "SUBJECT W-01: WALLY. The house is Vesper's experiment, and Wally is the battery.";
       const logSeen = isAtticLogInspected(adventure);
       const sensorsSeen = isAtticSensorsInspected(adventure);
       if (logSeen && sensorsSeen) return 'Bedroom. Television. Power. Mirror. The readings all belong to the same experiment.';
       if (isAtticRecorderFocused(adventure)) return 'The recorder has fragments, but the labels mean nothing yet.';
-      if (logSeen) return 'The log lists resonance spikes beside rooms I have already crossed.';
+      if (logSeen) return 'A resonance spike for every room Wally crossed. Signed: Dr. E. Vesper.';
       if (sensorsSeen) return 'These sensors map the house. Someone wired every anomaly.';
       return 'Old storage. New cables. Someone turned the attic into an observation post.';
     }
     if (adventure.currentRoom === 'laboratory') {
       const phase = getLaboratoryEncounterPhase(adventure);
-      if (phase === 'dormant') return 'The feed ends here. The Resonator is the source. Someone is still at the controls.';
+      if (phase === 'dormant') return 'The feed ends at the Resonator. Dr. Vesper is still at the controls.';
       if (phase === 'vesper-control') return 'Vesper seals the controls. Break his hold on the machine.';
       if (phase === 'resonator') return 'The control link is broken. The Resonator is running away on its own.';
       if (phase === 'nightmare') return 'The Resonator turned Vesper into the thing it was feeding.';
@@ -341,7 +341,7 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
     }
     if (adventure.currentRoom === 'basement') {
       if (isBasementLaboratoryRouteRevealed(adventure)) return 'The feed disappears through a service hatch. The Laboratory is below.';
-      if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. Safeguards are bypassed. Control continues beyond the Basement.';
+      if (isBasementLossOfControlRevealed(adventure)) return 'LOCAL CUTOFF REJECTED. OVERRIDE: VESPER. Control continues below the Basement.';
       if (isBasementControlRevealed(adventure)) return 'Resonance load is above the safe line. The system is still climbing.';
       if (isBasementTerminalFocused(adventure) && !isBasementPowerStabilized(adventure)) return 'The control terminal is dark. The unstable feed cannot hold a reading.';
       if (isBasementPowerStabilized(adventure)) return 'The relay holds. The control terminal finally has a readable signal.';
