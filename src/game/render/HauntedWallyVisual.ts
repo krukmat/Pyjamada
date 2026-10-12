@@ -10,7 +10,7 @@ export function selectHauntedWallyPose(
   if (honorTerminalObjective && session.objective.phase === 'completed') return 'success';
   if (honorTerminalObjective && session.objective.phase === 'failed') return 'fail';
   if (session.combat.invulnerableUntilMs > session.elapsedMs) return 'hit';
-  if (session.combat.projectiles.some((projectile) => Math.abs(projectile.x - session.player.x) <= 22)) return 'attack';
+  if (hauntedWallyAttackDistance(session) !== undefined) return 'attack';
   if (!session.player.grounded) return 'jump';
   if (session.input.interactPressed) return 'interact';
   if (session.domestic.wallyState === 'sleepy') return 'sleepy';
@@ -19,7 +19,19 @@ export function selectHauntedWallyPose(
   return options.combat ? 'guard' : 'idle';
 }
 
-export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number): number {
+// The punch is timed from the newest Dream Spark: it spawns 8 units ahead of
+// Wally and flies at 76 units/s, so its distance tells how long ago he struck.
+// Each phase spans at least one ~80ms render tick.
+const ATTACK_POSE_MAX_DISTANCE = 28;
+
+export function hauntedWallyAttackDistance(session: HauntedSessionState): number | undefined {
+  const distances = session.combat.projectiles
+    .map((projectile) => Math.abs(projectile.x - session.player.x))
+    .filter((distance) => distance <= ATTACK_POSE_MAX_DISTANCE);
+  return distances.length > 0 ? Math.min(...distances) : undefined;
+}
+
+export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number, attackDistance?: number): number {
   const phase2 = Math.floor(nowMs / 170) % 2;
   const phase4 = Math.floor(nowMs / 95) % 4;
   switch (pose) {
@@ -27,7 +39,10 @@ export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number): n
     case 'guard': return 19 + phase2;
     case 'walk': return 2 + phase4;
     case 'jump': return 6;
-    case 'attack': return 10 + phase4;
+    case 'attack':
+      if (attackDistance === undefined) return 10 + phase4;
+      if (attackDistance < 14) return 11;
+      return attackDistance < 21 ? 12 : 13;
     case 'hit': return 17 + phase2;
     case 'interact': return 14;
     case 'sleepy': return 15 + phase2;

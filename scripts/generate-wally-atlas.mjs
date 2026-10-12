@@ -100,8 +100,9 @@ class Sprite {
           else if (mat(x - 1, y) !== m && mat(x, y - 1) !== m) color = light;
           color = this.detail.get(y * FRAME_W + x) ?? color;
         } else {
+          // Effect pixels (sparks, z's, sweat) may float outside the body.
           const neighbor = [mat(x + 1, y), mat(x - 1, y), mat(x, y + 1), mat(x, y - 1)].find(Boolean);
-          if (neighbor) color = MATERIALS[neighbor][3];
+          color = this.detail.get(y * FRAME_W + x) ?? (neighbor ? MATERIALS[neighbor][3] : undefined);
         }
         if (color) sheet.set(ox + x, oy + y, color);
       }
@@ -139,6 +140,8 @@ const EXTRAS = {
   spark: [['Y', [[29, 22], [28, 23], [29, 23], [30, 23], [29, 24]]], ['W', [[29, 23]]]],
   burst: [['Y', [[28, 20], [31, 21], [27, 26], [31, 26], [29, 19], [29, 27], [30, 23], [28, 23]]], ['W', [[29, 23], [29, 22], [29, 24]]]],
   cheer: [['Y', [[4, 9], [5, 8], [5, 10], [6, 9], [26, 4], [27, 3], [27, 5], [28, 4], [3, 18], [28, 14]]]],
+  swoosh: [['W', [[19, 20], [20, 20], [21, 20], [22, 20], [20, 27], [21, 27], [22, 27]]]],
+  pow: [['Y', [[26, 20], [28, 19], [30, 20], [31, 22], [31, 25], [30, 27], [28, 28], [26, 27]]], ['W', [[31, 23], [31, 24], [30, 21], [30, 26]]]],
 };
 
 const HAIR_SPIKES = [[17, 1], [18, 1], [17, 2], [16, 3], [17, 3], [16, 4], [10, 4], [11, 4], [11, 5], [23, 4], [22, 4], [22, 5], [7, 8], [8, 8]];
@@ -160,19 +163,29 @@ const ARMS = {
   reach: { l: [[8, 30]], r: [[25, 19]] },
   slump: { l: [[10, 32]], r: [[21, 32]] },
   guard: { l: [[6, 27], [9, 20]], r: [[25, 27], [22, 20]] },
+  cock: { l: [[6, 27], [9, 20]], r: [[24, 27]] },
+  strike: { l: [[6, 27], [9, 21]], r: [[25, 23]], fist: true },
+  recoil: { l: [[6, 27], [9, 21]], r: [[25, 25]] },
 };
 
 function hand(sprite, [x, y]) {
   sprite.paint(rect(x - 1, y + 1, x + 1, y + 2), 'hand');
 }
 
-function arm(sprite, shoulder, path, material) {
+function arm(sprite, shoulder, path, material, fist = false) {
   let from = shoulder;
   for (const point of path) {
     sprite.paint(line(from, point), material);
+    // A mostly horizontal segment needs a second row to keep the sleeve thick.
+    if (Math.abs(point[0] - from[0]) > Math.abs(point[1] - from[1])) sprite.paint(line([from[0], from[1] + 1], [point[0], point[1] + 1]), material);
     from = point;
   }
-  hand(sprite, from);
+  if (!fist) {
+    hand(sprite, from);
+    return;
+  }
+  sprite.paint(rect(from[0] + 1, from[1] - 1, from[0] + 3, from[1] + 2), 'hand');
+  sprite.dot('S', [[from[0] + 2, from[1]], [from[0] + 2, from[1] + 1]]);
 }
 
 function legs(sprite, pose) {
@@ -202,7 +215,7 @@ function upperBody(sprite, pose) {
   sprite.paint([...HAIR_SPIKES, ...FRINGE, ...(pose.hairUp ? HAIR_FLY : [])], 'hair');
   const arms = ARMS[pose.arms ?? 'down'];
   arm(sprite, SHOULDER_L, arms.l, top);
-  arm(sprite, SHOULDER_R, arms.r, top);
+  arm(sprite, SHOULDER_R, arms.r, top, arms.fist);
   sprite.dot('S', [[16, 17]]);
   sprite.dot('C', [[10, 18], [11, 18], [20, 18], [21, 18]]);
   for (const [code, points] of EYES[pose.eyes ?? 'half']) sprite.dot(code, points);
@@ -234,10 +247,10 @@ const POSES = [
   { arms: 'upWide', tuck: true, bob: -1, eyes: 'wide', mouth: 'open', hairUp: true }, // 7
   { arms: 'swingA', spread: 1, bob: 1, eyes: 'open', mouth: 'small' }, // 8 land
   { arms: 'down', eyes: 'open', mouth: 'small' }, // 9
-  { arms: 'windup', eyes: 'fierce', mouth: 'grit' }, // 10 attack
-  { arms: 'shoot', lean: 1, eyes: 'fierce', mouth: 'shout', extras: ['spark'] }, // 11
-  { arms: 'shoot', lean: 1, eyes: 'fierce', mouth: 'shout', extras: ['burst'] }, // 12
-  { arms: 'windup', eyes: 'fierce', mouth: 'grit' }, // 13
+  { arms: 'cock', lean: -1, eyes: 'fierce', mouth: 'grit' }, // 10 attack wind-up
+  { arms: 'strike', lean: 1, spread: 1, eyes: 'fierce', mouth: 'shout', extras: ['swoosh'] }, // 11 punch lands
+  { arms: 'strike', lean: 1, spread: 1, eyes: 'fierce', mouth: 'shout', extras: ['pow'] }, // 12 impact
+  { arms: 'recoil', eyes: 'fierce', mouth: 'grit' }, // 13 recover to guard
   { arms: 'reach', eyes: 'open', mouth: 'small' }, // 14 interact
   { arms: 'rub', eyes: 'rub', mouth: 'yawn', extras: ['z'] }, // 15 sleepy
   { arms: 'down', eyes: 'closed', mouth: 'mumble', bob: 1, extras: ['z2'] }, // 16

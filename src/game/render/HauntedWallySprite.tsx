@@ -5,7 +5,7 @@ import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_WALLY_ATLAS } from '../presentation/atlas/HauntedWallyAtlas';
 import { HauntedWallyFallback } from './HauntedActorFallbacks';
-import { hauntedWallyFrameIndex, selectHauntedWallyPose } from './HauntedWallyVisual';
+import { hauntedWallyAttackDistance, hauntedWallyFrameIndex, selectHauntedWallyPose } from './HauntedWallyVisual';
 
 const INDEX = createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS);
 
@@ -45,7 +45,7 @@ export function HauntedWallySprite({
 
   const palette = session.domestic.flags.dressed ? 'dressed' : 'pajamas';
   const pose = selectHauntedWallyPose(session, { honorTerminalObjective, combat });
-  const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
+  const frameIndex = hauntedWallyFrameIndex(pose, nowMs, pose === 'attack' ? hauntedWallyAttackDistance(session) : undefined);
   const frame = requireAtlasFrame(INDEX, `${palette}_${String(frameIndex).padStart(2, '0')}`);
   const invulnerable = session.combat.invulnerableUntilMs > session.elapsedMs;
   const opacity = invulnerable && Math.floor(nowMs / 70) % 2 === 0 ? 0.76 : 1;
