@@ -61,6 +61,7 @@ void test('end-to-end opens the house and exposes the Living Room boundary', () 
   equal(falseEscape.adventure.storyFlags.bedroomEscapeAttempted, true, 'Adventure state owns the false-escape progression');
   equal(falseEscape.adventure.storyFlags.hallwayUnlocked, true, 'Hallway is opened by the twist');
   equal(selectHauntedWallyPose(falseEscape.session, { honorTerminalObjective: false }), 'idle', 'adventure rendering suppresses Haunted victory pose');
+  equal(selectHauntedWallyPose(falseEscape.session, { honorTerminalObjective: false, combat: true }), 'guard', 'idle Wally raises his guard while an enemy is on stage');
   deepEqual(falseEscape.adventure.visitedRooms, ['bedroom'], 'Hallway is not visited until Wally actually crosses the door');
 
   const bedroomDoor = stepAdventureExploration(at(falseEscape.session, 112), falseEscape.adventure, 33);

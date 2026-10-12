@@ -8,6 +8,7 @@ import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import type { SystemicRunState } from '../systemic/SystemicState';
+import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
 import { HauntedWallySprite } from './HauntedWallySprite';
@@ -65,6 +66,11 @@ export function GameCanvas({
     && (!exploration || roomId === 'basement' || roomId === 'laboratory'),
   );
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
+  const laboratoryPhase = roomId === 'laboratory' && adventure ? getLaboratoryEncounterPhase(adventure) : undefined;
+  const combat = Boolean(
+    (hauntedSession && !exploration && hauntedSession.threats.ghosts.some((ghost) => ghost.phase !== 'dying'))
+    || laboratoryPhase === 'vesper-control' || laboratoryPhase === 'resonator' || laboratoryPhase === 'nightmare',
+  );
 
   return (
     <Canvas style={{ width, height }}>
@@ -107,6 +113,7 @@ export function GameCanvas({
               scale={scale}
               nowMs={nowMs}
               honorTerminalObjective={!exploration}
+              combat={combat}
             />
           ) : legacyWally ? (
             <IllustratedWally

@@ -23,6 +23,7 @@ equal(HAUNTED_WALLY_ATLAS.height, 336, 'haunted Wally atlas height is frozen');
 equal(HAUNTED_WALLY_ATLAS.frames.length, 50, 'haunted Wally atlas exposes both 25-frame palettes');
 equal(validateSpriteAtlasManifest(HAUNTED_WALLY_ATLAS).length, 0, 'haunted Wally atlas manifest is valid');
 equal(hauntedWallyFrameIndex('attack', 0), 10, 'attack starts on dedicated pixel pose');
+equal(hauntedWallyFrameIndex('guard', 0), 19, 'combat guard uses its dedicated pixel pose');
 equal(hauntedWallyFrameIndex('success', 0), 23, 'success has dedicated pixel pose');
 equal(hauntedWallyFrameIndex('fail', 0), 24, 'failure has dedicated pixel pose');
 
@@ -76,6 +77,7 @@ ok(stepped.events.some((event) => event.type === 'DREAM_SPARK_FIRED'), 'attack f
 equal(combatSession.combat.projectiles.length, 1, 'first attack creates one projectile');
 equal(combatSession.domestic.noise, initialNoise + DREAM_SPARK.noisePerShot, 'Dream Spark adds noise');
 equal(selectHauntedWallyPose(combatSession), 'attack', 'fresh Dream Spark selects attack sprite pose');
+equal(selectHauntedWallyPose(combatSession, { combat: true }), 'attack', 'attacking still wins over the combat guard');
 
 combatSession = { ...combatSession, input: pressAction(combatSession.input, 'attack') };
 stepped = stepHauntedSession(combatSession, HAUNTED_STEP_MS);

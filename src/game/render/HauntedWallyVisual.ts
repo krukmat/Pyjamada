@@ -1,10 +1,10 @@
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 
-export type HauntedWallyPose = 'idle' | 'walk' | 'jump' | 'attack' | 'hit' | 'interact' | 'sleepy' | 'startled' | 'success' | 'fail';
+export type HauntedWallyPose = 'idle' | 'guard' | 'walk' | 'jump' | 'attack' | 'hit' | 'interact' | 'sleepy' | 'startled' | 'success' | 'fail';
 
 export function selectHauntedWallyPose(
   session: HauntedSessionState,
-  options: { honorTerminalObjective?: boolean } = {},
+  options: { honorTerminalObjective?: boolean; combat?: boolean } = {},
 ): HauntedWallyPose {
   const honorTerminalObjective = options.honorTerminalObjective ?? true;
   if (honorTerminalObjective && session.objective.phase === 'completed') return 'success';
@@ -16,7 +16,7 @@ export function selectHauntedWallyPose(
   if (session.domestic.wallyState === 'sleepy') return 'sleepy';
   if (session.domestic.wallyState === 'startled') return 'startled';
   if (Math.abs(session.player.vx) > 4) return 'walk';
-  return 'idle';
+  return options.combat ? 'guard' : 'idle';
 }
 
 export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number): number {
@@ -24,6 +24,7 @@ export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number): n
   const phase4 = Math.floor(nowMs / 95) % 4;
   switch (pose) {
     case 'idle': return phase2;
+    case 'guard': return 19 + phase2;
     case 'walk': return 2 + phase4;
     case 'jump': return 6;
     case 'attack': return 10 + phase4;

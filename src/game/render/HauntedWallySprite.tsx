@@ -17,6 +17,8 @@ type Props = {
   scale: number;
   nowMs: number;
   honorTerminalObjective?: boolean;
+  /** An enemy is on stage: idle Wally raises his guard instead of dozing. */
+  combat?: boolean;
 };
 
 export function HauntedWallySprite({
@@ -27,6 +29,7 @@ export function HauntedWallySprite({
   scale,
   nowMs,
   honorTerminalObjective = true,
+  combat = false,
 }: Props) {
   if (!image) {
     return (
@@ -41,7 +44,7 @@ export function HauntedWallySprite({
   }
 
   const palette = session.domestic.flags.dressed ? 'dressed' : 'pajamas';
-  const pose = selectHauntedWallyPose(session, { honorTerminalObjective });
+  const pose = selectHauntedWallyPose(session, { honorTerminalObjective, combat });
   const frameIndex = hauntedWallyFrameIndex(pose, nowMs);
   const frame = requireAtlasFrame(INDEX, `${palette}_${String(frameIndex).padStart(2, '0')}`);
   const invulnerable = session.combat.invulnerableUntilMs > session.elapsedMs;

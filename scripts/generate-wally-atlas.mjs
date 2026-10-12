@@ -118,6 +118,8 @@ const EYES = {
   happy: [['E', [[11, 16], [12, 15], [13, 16], [18, 16], [19, 15], [20, 16]]]],
   hurt: [['E', [[11, 14], [12, 15], [11, 16], [20, 14], [19, 15], [20, 16]]]],
   rub: [['E', [[11, 16], [12, 16], [13, 16]]]],
+  // Brows slant down toward the nose; narrowed eyes look toward the facing side.
+  fierce: [['E', [[10, 13], [11, 13], [12, 14], [13, 14], [18, 14], [19, 14], [20, 13], [21, 13], [13, 15], [20, 15]]], ['W', [[11, 15], [12, 15], [18, 15], [19, 15]]], ['S', [[11, 16], [12, 16], [13, 16], [18, 16], [19, 16], [20, 16]]]],
 };
 const MOUTHS = {
   mumble: [['N', [[14, 19], [15, 19], [16, 19], [15, 20]]]],
@@ -127,6 +129,8 @@ const MOUTHS = {
   open: [['N', rect(15, 19, 16, 20)]],
   frown: [['N', [[14, 20], [15, 19], [16, 19], [17, 20]]]],
   grit: [['W', [[14, 19], [15, 19], [16, 19]]], ['N', [[14, 20], [15, 20], [16, 20]]]],
+  shout: [['W', [[14, 19], [15, 19], [16, 19], [17, 19]]], ['N', [[14, 20], [15, 20], [16, 20], [17, 20], [15, 21], [16, 21]]]],
+  smirk: [['N', [[14, 19], [15, 19], [16, 19], [17, 18]]]],
 };
 const EXTRAS = {
   z: [['W', [[24, 6], [25, 6], [26, 6], [25, 7], [24, 8], [25, 8], [26, 8], [28, 2], [29, 2], [29, 3], [28, 4], [29, 4]]]],
@@ -155,6 +159,7 @@ const ARMS = {
   shoot: { l: [[8, 28]], r: [[26, 24]] },
   reach: { l: [[8, 30]], r: [[25, 19]] },
   slump: { l: [[10, 32]], r: [[21, 32]] },
+  guard: { l: [[6, 27], [9, 20]], r: [[25, 27], [22, 20]] },
 };
 
 function hand(sprite, [x, y]) {
@@ -229,17 +234,17 @@ const POSES = [
   { arms: 'upWide', tuck: true, bob: -1, eyes: 'wide', mouth: 'open', hairUp: true }, // 7
   { arms: 'swingA', spread: 1, bob: 1, eyes: 'open', mouth: 'small' }, // 8 land
   { arms: 'down', eyes: 'open', mouth: 'small' }, // 9
-  { arms: 'windup', eyes: 'focus', mouth: 'grit' }, // 10 attack
-  { arms: 'shoot', lean: 1, eyes: 'focus', mouth: 'open', extras: ['spark'] }, // 11
-  { arms: 'shoot', lean: 1, eyes: 'focus', mouth: 'open', extras: ['burst'] }, // 12
-  { arms: 'windup', eyes: 'focus', mouth: 'grit' }, // 13
+  { arms: 'windup', eyes: 'fierce', mouth: 'grit' }, // 10 attack
+  { arms: 'shoot', lean: 1, eyes: 'fierce', mouth: 'shout', extras: ['spark'] }, // 11
+  { arms: 'shoot', lean: 1, eyes: 'fierce', mouth: 'shout', extras: ['burst'] }, // 12
+  { arms: 'windup', eyes: 'fierce', mouth: 'grit' }, // 13
   { arms: 'reach', eyes: 'open', mouth: 'small' }, // 14 interact
   { arms: 'rub', eyes: 'rub', mouth: 'yawn', extras: ['z'] }, // 15 sleepy
   { arms: 'down', eyes: 'closed', mouth: 'mumble', bob: 1, extras: ['z2'] }, // 16
   { arms: 'upWide', lean: -1, eyes: 'wide', mouth: 'open', hairUp: true, extras: ['sweat'] }, // 17 hit / startled
   { arms: 'up', lean: -1, bob: 1, eyes: 'hurt', mouth: 'open', hairUp: true, extras: ['sweat'] }, // 18
-  { arms: 'down', eyes: 'open', mouth: 'small' }, // 19 spare
-  { arms: 'down', eyes: 'open', mouth: 'small', bob: 1 }, // 20 spare
+  { arms: 'guard', spread: 1, eyes: 'fierce', mouth: 'smirk' }, // 19 combat guard
+  { arms: 'guard', spread: 1, bob: 1, eyes: 'fierce', mouth: 'smirk' }, // 20
   { arms: 'down', eyes: 'half' }, // 21 spare
   { arms: 'down', eyes: 'half', bob: 1 }, // 22 spare
   { arms: 'cheer', bob: -1, eyes: 'happy', mouth: 'smile', hairUp: true, extras: ['cheer'] }, // 23 success
