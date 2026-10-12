@@ -160,7 +160,7 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
           ...next.combat,
           nextAttackAllowedMs: 13_325,
           nextProjectileId: 2,
-          projectiles: [{ id: 1, x: 62, y: PLAYER_GROUND_Y - 18, vx: 76, damage: 1 }],
+          projectiles: [{ id: 1, x: 66, y: PLAYER_GROUND_Y - 18, vx: 76, damage: 1 }],
         },
         threats: withGhost(base, ghost(1, 88, 80, 'active')),
       };
