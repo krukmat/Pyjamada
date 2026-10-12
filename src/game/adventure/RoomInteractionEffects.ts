@@ -9,6 +9,7 @@ import {
 } from './AdventureState';
 import { ADVENTURE_ENDING_SWITCHES, getAdventureEndingPhase } from './AdventureEnding';
 import type { RoomInteractionEffect } from './RoomRegistry';
+import { isBathroomTwinDispelled } from './BathroomTwinHazard';
 
 export type RoomInteractionEffectEvent =
   | { type: 'HALLWAY_CLOCK_INSPECTED' }
@@ -24,6 +25,7 @@ export type RoomInteractionEffectEvent =
   | { type: 'BATHROOM_MIRROR_ANOMALY_SEEN' }
   | { type: 'BATHROOM_LIGHT_TESTED' }
   | { type: 'BATHROOM_ROUTE_REVEALED' }
+  | { type: 'BATHROOM_TWIN_BLOCKS_MIRROR' }
   | { type: 'ATTIC_LOG_INSPECTED' }
   | { type: 'ATTIC_SENSORS_INSPECTED' }
   | { type: 'ATTIC_RECORDER_INCOMPLETE' }
@@ -234,6 +236,10 @@ function inspectBathroomMirror(adventure: AdventureState, roomId: RoomId): RoomI
   if (!anomalySeen) {
     next = setRoomSwitch(next, 'bathroom', 'mirror-anomaly-seen', true);
     return { adventure: next, events: [{ type: 'BATHROOM_MIRROR_ANOMALY_SEEN' }] };
+  }
+
+  if (lightOff && !routeRevealed && !isBathroomTwinDispelled(adventure)) {
+    return { adventure: next, events: [{ type: 'BATHROOM_TWIN_BLOCKS_MIRROR' }] };
   }
 
   if (lightOff && !routeRevealed) {

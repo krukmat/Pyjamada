@@ -15,9 +15,9 @@ import { EndingScreen } from './src/app/EndingScreen';
 import { isTestHooksEnabled } from './src/app/testHooks';
 import {
   applyFirstVisitRecovery,
+  isExplorationCombatEnabled,
   applyFalseEscape,
   isAdventureExplorationActive,
-  isLaboratoryCombatEnabled,
   stepAdventureExploration,
   type AdventureExplorationEvent,
 } from './src/game/adventure/AdventureExplorationRuntime';
@@ -160,7 +160,7 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LIVING_ROOM_STATIC_HIT' || event.type === 'HALLWAY_PENDULUM_HIT' || event.type === 'ATTIC_CRATE_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LIVING_ROOM_STATIC_HIT' || event.type === 'HALLWAY_PENDULUM_HIT' || event.type === 'ATTIC_CRATE_HIT' || event.type === 'BATHROOM_TWIN_CONTACT_HIT' || event.type === 'BATHROOM_TWIN_HIT' || event.type === 'BATHROOM_TWIN_DISPELLED' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }
@@ -405,7 +405,7 @@ export default function App() {
     if (!current || current.objective.phase === 'failed') return;
     const exploration = isAdventureExplorationActive(adventureRef.current);
     if (!exploration && current.objective.phase === 'completed') return;
-    if (exploration && control === 'attack' && !isLaboratoryCombatEnabled(adventureRef.current)) return;
+    if (exploration && control === 'attack' && !isExplorationCombatEnabled(adventureRef.current)) return;
     activateSession({ ...current, input: pressAction(current.input, control) });
   }
 

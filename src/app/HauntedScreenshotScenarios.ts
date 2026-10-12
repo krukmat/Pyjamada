@@ -445,7 +445,7 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                       : scenario === 'bathroom-mirror-mismatch'
                         ? 64
                         : scenario === 'bathroom-reflected-route'
-                          ? 64
+                          ? 82
                           : scenario === 'bathroom-route-revealed'
                             ? 108
                             : scenario === 'attic-arrival'

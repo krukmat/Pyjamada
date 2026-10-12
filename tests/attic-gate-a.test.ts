@@ -9,7 +9,7 @@ import {
   type AdventureExplorationEvent,
 } from '../src/game/adventure/AdventureExplorationRuntime';
 import { decodeAdventureGameSession, encodeAdventureGameSession } from '../src/game/adventure/AdventureSessionCodec';
-import { createAdventureState, getRoomState } from '../src/game/adventure/AdventureState';
+import { createAdventureState, getRoomState, markRoomInteraction } from '../src/game/adventure/AdventureState';
 import { transitionAdventure } from '../src/game/adventure/RoomRegistry';
 import { createHauntedInputState, pressAction } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
@@ -94,7 +94,9 @@ function solveBathroom(runId: string) {
   const bathroom = setupBathroom(runId);
   const mirror = stepAdventureExploration(at(bathroom.session, 64), bathroom.adventure, 33);
   const light = stepAdventureExploration(at(mirror.session, 99), mirror.adventure, 33);
-  const confirm = stepAdventureExploration(at(light.session, 64), light.adventure, 33);
+  // T5: the reflection must be dispelled before the mirror confirms the route.
+  const dispelled = markRoomInteraction(light.adventure, 'bathroom', 'bathroom-twin-dispelled');
+  const confirm = stepAdventureExploration(at(light.session, 64), dispelled, 33);
   return { session: confirm.session, adventure: confirm.adventure };
 }
 

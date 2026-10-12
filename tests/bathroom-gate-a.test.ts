@@ -9,7 +9,7 @@ import {
   type AdventureExplorationEvent,
 } from '../src/game/adventure/AdventureExplorationRuntime';
 import { decodeAdventureGameSession, encodeAdventureGameSession } from '../src/game/adventure/AdventureSessionCodec';
-import { createAdventureState, getRoomState } from '../src/game/adventure/AdventureState';
+import { createAdventureState, getRoomState, markRoomInteraction } from '../src/game/adventure/AdventureState';
 import { transitionAdventure } from '../src/game/adventure/RoomRegistry';
 import { createHauntedInputState, pressAction } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
@@ -139,7 +139,11 @@ void test('requires observing the mirror, testing the light, then confirming the
   equal(light.events.some(event => event.type === 'BATHROOM_LIGHT_TESTED'), true, 'light test emits a deterministic event');
   equal(isBathroomRouteRevealed(light.adventure), false, 'light contrast still requires mirror confirmation');
 
-  const confirm = stepAdventureExploration(at(light.session, 64), light.adventure, 33);
+  // T5: with the light off the reflection steps out and blocks the mirror until dispelled.
+  const blocked = stepAdventureExploration(at(light.session, 64), light.adventure, 33);
+  equal(isBathroomRouteRevealed(blocked.adventure), false, 'the reflection blocks the mirror while it is out');
+  const dispelled = markRoomInteraction(light.adventure, 'bathroom', 'bathroom-twin-dispelled');
+  const confirm = stepAdventureExploration(at(light.session, 64), dispelled, 33);
   equal(isBathroomRouteRevealed(confirm.adventure), true, 'mirror confirmation after darkness reveals the hidden route');
   equal(getRoomState(confirm.adventure, 'bathroom').interactions.includes('mirror-route-confirmed'), true, 'route confirmation persists as room history');
   equal(confirm.events.some(event => event.type === 'BATHROOM_ROUTE_REVEALED'), true, 'route reveal emits one progression event');

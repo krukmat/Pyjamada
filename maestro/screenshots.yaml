@@ -362,10 +362,9 @@ tags:
     id: screenshot-scenario-bathroom-reflected-route
 - extendedWaitUntil:
     visible:
-      text: "The room went dark. The reflection did not."
+      text: "Your reflection stepped out of the glass. It copies every move."
     timeout: 5000
-- assertVisible: "CHECK THE MIRROR"
-- assertVisible: "INTERACT · MIRROR"
+- assertVisible: "DISPEL THE REFLECTION"
 - takeScreenshot:
     path: 28_bathroom_reflected_route
 

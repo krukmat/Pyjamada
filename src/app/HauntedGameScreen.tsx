@@ -24,7 +24,7 @@ import {
   isKitchenBreakerInspected,
   isKitchenCircuitOverloaded,
   isKitchenPowerRerouted,
-  isLaboratoryCombatEnabled,
+  isExplorationCombatEnabled,
   isLivingRoomPathRevealed,
   isLivingRoomPhotoFocused,
   isLivingRoomRadioFocused,
@@ -50,6 +50,7 @@ import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { PixelMeter } from './RetroUiKit';
 import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
 import { isTestHooksEnabled } from './testHooks';
+import { isBathroomTwinActive, isBathroomTwinDispelled, isBathroomTwinWounded } from '../game/adventure/BathroomTwinHazard';
 
 type Props = {
   session: HauntedSessionState;
@@ -95,7 +96,7 @@ export function HauntedGameScreen({
   const prompt = promptFor(exitTarget, domesticTarget?.label, adventureTarget);
   const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
   const endingActive = Boolean(adventure && isAdventureEndingActive(adventure));
-  const laboratoryCombat = Boolean(adventure && isLaboratoryCombatEnabled(adventure));
+  const explorationCombat = Boolean(adventure && isExplorationCombatEnabled(adventure));
   const laboratoryRetry = Boolean(adventure && adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure));
 
   useEffect(() => {
@@ -178,7 +179,7 @@ export function HauntedGameScreen({
               {dpad}
               <View style={styles.buttonCluster}>
                 <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
-                {(!exploration || laboratoryCombat) && <TapControl testID="attack-button" label="ATTACK" danger onPress={() => onAction('attack')} />}
+                {(!exploration || explorationCombat) && <TapControl testID="attack-button" label="ATTACK" danger onPress={() => onAction('attack')} />}
                 <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
               </View>
             </>
@@ -232,6 +233,7 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
     }
     if (adventure.currentRoom === 'bathroom') {
       if (isBathroomRouteRevealed(adventure)) return 'ATTIC ACCESS REVEALED';
+      if (isBathroomTwinActive(adventure)) return 'DISPEL THE REFLECTION';
       if (isBathroomLightOff(adventure)) return 'CHECK THE MIRROR';
       if (isBathroomMirrorAnomalySeen(adventure)) return 'TEST THE REFLECTION';
       return 'FOLLOW THE PULSE';
@@ -328,6 +330,12 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
     }
     if (adventure.currentRoom === 'bathroom') {
       if (isBathroomRouteRevealed(adventure)) return 'The wall is copying the mirror. A hidden stair climbs behind it.';
+      if (isBathroomTwinActive(adventure)) {
+        return isBathroomTwinWounded(adventure)
+          ? 'The reflection flickers. One more hit.'
+          : 'Your reflection stepped out of the glass. It copies every move.';
+      }
+      if (isBathroomTwinDispelled(adventure)) return 'The reflection is gone. The mirror is still lit.';
       if (isBathroomLightOff(adventure)) return 'The room went dark. The reflection did not.';
       if (isBathroomMirrorAnomalySeen(adventure)) return 'The pulse stops here. In the mirror, it keeps going.';
       return 'The pulse stops at the sink.';

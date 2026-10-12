@@ -62,6 +62,12 @@ import {
   resolveAtticCrates,
 } from './AtticCrateHazard';
 import {
+  bathroomTwinX,
+  isBathroomTwinActive,
+  isPlayerTouchingBathroomTwin,
+  resolveBathroomTwinSparks,
+} from './BathroomTwinHazard';
+import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
 } from './RoomInteractionEffects';
@@ -81,6 +87,9 @@ export type AdventureExplorationEvent =
   | { type: 'LIVING_ROOM_STATIC_HIT' }
   | { type: 'HALLWAY_PENDULUM_HIT' }
   | { type: 'ATTIC_CRATE_HIT' }
+  | { type: 'BATHROOM_TWIN_HIT' }
+  | { type: 'BATHROOM_TWIN_DISPELLED' }
+  | { type: 'BATHROOM_TWIN_CONTACT_HIT' }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
@@ -202,6 +211,11 @@ export function applyFirstVisitRecovery(
   return hp === session.combat.hp ? session : { ...session, combat: { ...session.combat, hp } };
 }
 
+/** Dream Sparks are available in exploration during the Laboratory fight and against the Bathroom reflection. */
+export function isExplorationCombatEnabled(adventure: AdventureState): boolean {
+  return isLaboratoryCombatEnabled(adventure) || isBathroomTwinActive(adventure);
+}
+
 export function isKitchenCircuitOverloaded(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'kitchen').switches['circuit-overloaded'] === true;
 }
@@ -300,6 +314,9 @@ export function stepAdventureExploration(
   // only for its electrical cycle; Laboratory advances the combat clock required
   // by Dream Spark cooldowns without reactivating domestic deadline/noise rules.
   const laboratoryCombat = isLaboratoryCombatEnabled(adventure);
+  const twinCombat = isBathroomTwinActive(adventure);
+  const combatEnabled = laboratoryCombat || twinCombat;
+  let clockAdvanced = false;
   if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
     elapsedMs += dtMs;
     const armed = armBasementElectricalHazard(nextAdventure, elapsedMs);
@@ -325,9 +342,10 @@ export function stepAdventureExploration(
     const armed = armAtticCrates(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
-  } else if (laboratoryCombat) {
+  } else if (combatEnabled) {
     elapsedMs += dtMs;
   }
+  clockAdvanced = elapsedMs !== session.elapsedMs;
 
   const resonatorBeforeMove = resolveResonatorInstabilityState(nextAdventure, elapsedMs);
   const movementInput = applyResonatorDistortionInput(
@@ -336,7 +354,7 @@ export function stepAdventureExploration(
     resonatorBeforeMove.distortion,
   );
   let player = stepHauntedPlayerPhysics(session.player, movementInput, dtMs / 1000);
-  let combat = laboratoryCombat
+  let combat = combatEnabled
     ? stepDreamSparks(session.combat, dtMs / 1000)
     : session.combat.projectiles.length > 0
       ? { ...session.combat, projectiles: [] }
@@ -344,7 +362,7 @@ export function stepAdventureExploration(
   let objective = session.objective;
   const events: AdventureExplorationEvent[] = [];
 
-  if (laboratoryCombat && session.input.attackPressed) {
+  if (combatEnabled && session.input.attackPressed) {
     combat = tryFireDreamSpark(combat, player, elapsedMs).combat;
   }
 
@@ -499,6 +517,26 @@ export function stepAdventureExploration(
       events.push({ type: 'HALLWAY_PENDULUM_HIT' });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
+  }
+
+  const twinSparks = resolveBathroomTwinSparks(nextAdventure, combat, player.x);
+  nextAdventure = twinSparks.adventure;
+  combat = twinSparks.combat;
+  events.push(...twinSparks.events);
+  if (isBathroomTwinActive(nextAdventure) && isPlayerTouchingBathroomTwin(player.x) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, player.x < bathroomTwinX(player.x) ? -1 : 1);
+      events.push({ type: 'BATHROOM_TWIN_CONTACT_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
+  // A room whose threat clock stopped (or never ran) cannot keep Wally
+  // invulnerable: the frozen clock would otherwise hold the hit pose forever.
+  if (!clockAdvanced && combat.invulnerableUntilMs > elapsedMs) {
+    combat = { ...combat, invulnerableUntilMs: elapsedMs };
   }
 
   const crates = resolveAtticCrates(nextAdventure, elapsedMs);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Canvas, Group, Rect, type SkImage } from '@shopify/react-native-skia';
+import { BlendColor, Canvas, Group, Paint, Rect, type SkImage } from '@shopify/react-native-skia';
 import type { AdventureState, RoomId } from '../adventure/AdventureState';
 import { PLAYER_GROUND_Y } from '../core/World';
 import { PLAYER_HIT_RULES, type DreamSparkProjectile } from '../haunted/HauntedCombat';
@@ -9,6 +9,7 @@ import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import type { SystemicRunState } from '../systemic/SystemicState';
+import { bathroomTwinX, isBathroomTwinActive, isBathroomTwinWounded } from '../adventure/BathroomTwinHazard';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
@@ -65,14 +66,17 @@ export function GameCanvas({
   const shake = { x: domesticShake.x + impactShake.x, y: domesticShake.y + impactShake.y };
   const playerInvulnerable = Boolean(
     hauntedSession
-    && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs
-    && (!exploration || roomId === 'basement' || roomId === 'laboratory'),
+    // Exploration clamps stale invulnerability when a room's threat clock stops.
+    && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs,
   );
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
   const laboratoryPhase = roomId === 'laboratory' && adventure ? getLaboratoryEncounterPhase(adventure) : undefined;
+  const twinActive = Boolean(adventure && isBathroomTwinActive(adventure));
+  const twinFlicker = Boolean(adventure && isBathroomTwinWounded(adventure)) && Math.floor(nowMs / 90) % 3 === 0;
   const combat = Boolean(
     (hauntedSession && !exploration && hauntedSession.threats.ghosts.some((ghost) => ghost.phase !== 'dying'))
-    || laboratoryPhase === 'vesper-control' || laboratoryPhase === 'resonator' || laboratoryPhase === 'nightmare',
+    || laboratoryPhase === 'vesper-control' || laboratoryPhase === 'resonator' || laboratoryPhase === 'nightmare'
+    || twinActive,
   );
 
   return (
@@ -107,6 +111,21 @@ export function GameCanvas({
             />
           )}
 
+          {twinActive && hauntedSession && (
+            // The reflection: Wally's own pose, mirrored across the glass, tinted cyan.
+            <Group opacity={twinFlicker ? 0.3 : 0.85} layer={<Paint><BlendColor color="#44d9e6" mode="modulate" /></Paint>}>
+              <HauntedWallySprite
+                image={hauntedWallyImage}
+                session={{ ...hauntedSession, player: { ...hauntedSession.player, x: bathroomTwinX(playerX), facing: playerFacing === 'right' ? 'left' : 'right' } }}
+                x={px(bathroomTwinX(playerX))}
+                y={px(playerY)}
+                scale={scale}
+                nowMs={nowMs}
+                honorTerminalObjective={false}
+                combat
+              />
+            </Group>
+          )}
           {hauntedSession ? (
             <HauntedWallySprite
               image={hauntedWallyImage}
@@ -129,7 +148,7 @@ export function GameCanvas({
             />
           ) : null}
 
-          {(!exploration || roomId === 'laboratory') && dreamSparks.map((projectile) => (
+          {(!exploration || roomId === 'laboratory' || twinActive) && dreamSparks.map((projectile) => (
             <PixelDreamSpark
               key={projectile.id}
               projectile={projectile}
