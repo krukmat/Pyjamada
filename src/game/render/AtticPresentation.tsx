@@ -123,6 +123,13 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
             {drop.stage !== 'debris' && (
               <Rect x={px(drop.x - shadowWidth / 2)} y={px(floorY)} width={px(shadowWidth)} height={px(2)} color={`rgba(10,6,4,${(0.35 + (drop.stage === 'shadow' ? drop.progress * 0.4 : 0.4)).toFixed(2)})`} />
             )}
+            {drop.stage === 'shadow' && (
+              // The crate wobbles loose on the rafter for the whole warning.
+              <>
+                <Rect x={px(drop.x - 5 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 2)} width={px(10)} height={px(9)} color="#1a120e" />
+                <Rect x={px(drop.x - 4 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 1)} width={px(8)} height={px(7)} color="#c8925a" />
+              </>
+            )}
             {drop.stage === 'shadow' && [0, 1, 2].map(speck => (
               <Rect key={`dust-${speck}`} x={px(drop.x - 3 + speck * 3)} y={px(rafterY + ((drop.progress * 60 + speck * 17) % 60))} width={px(1)} height={px(1)} color="#c8925a" />
             ))}
