@@ -1,6 +1,15 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Canvas, useImage } from '@shopify/react-native-skia';
+import { HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
+import { AtlasSprite } from '../game/presentation/atlas/AtlasSprite';
+import { HAUNTED_WALLY_ATLAS } from '../game/presentation/atlas/HauntedWallyAtlas';
+import { createSpriteAtlasIndex, requireAtlasFrame } from '../game/presentation/atlas/SpriteAtlas';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
+
+// The menu portrait reuses Wally's sleepy eye-rubbing gameplay frame.
+const PORTRAIT_FRAME = requireAtlasFrame(createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS), 'pajamas_15');
+const PORTRAIT_SCALE = 1.5;
 
 type Props = {
   busy: boolean;
@@ -20,7 +29,7 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
       <View style={styles.backdropStripeB} />
       <View style={styles.poster}>
         <View style={styles.topRail}>
-          <Text style={styles.topRailText}>MORNING OPS // 07:42</Text>
+          <Text style={styles.topRailText}>NIGHT OPS // 05:12</Text>
           <View style={styles.liveDot} />
         </View>
 
@@ -29,14 +38,14 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
           <View style={styles.titleBlock}>
             <Text style={styles.eyebrow}>DOMESTIC ARCADE ADVENTURE</Text>
             <Text style={styles.title}>PYJAMADA</Text>
-            <Text style={styles.subtitle}>ONE ROOM. BAD DECISIONS. GREAT CONSEQUENCES.</Text>
+            <Text style={styles.subtitle}>ONE HOUSE. BAD DREAMS. NO SLEEP.</Text>
           </View>
         </View>
 
         <View style={styles.missionCard}>
-          <Text style={styles.missionKicker}>{completedRun ? 'LAST RUN' : "TODAY'S MISSION"}</Text>
+          <Text style={styles.missionKicker}>{completedRun ? 'LAST RUN' : "TONIGHT'S MISSION"}</Text>
           <Text style={styles.missionText}>
-            {completedRun ? 'RESONATOR SHUT DOWN · NIGHT COMPLETE' : 'GET DRESSED · FIND KEYS · KEEP THE HOUSE ASLEEP'}
+            {completedRun ? 'RESONATOR SHUT DOWN · NIGHT COMPLETE' : 'BAD DREAMS AGAIN. DRESS · GRAB THE KEYS · SLIP OUT QUIETLY'}
           </Text>
         </View>
 
@@ -47,9 +56,9 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
         <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
 
         <View style={styles.footerRail}>
-          <Text style={styles.footer}>6 OBJECTS</Text>
-          <Text style={styles.footerAccent}>10 RULES</Text>
-          <Text style={styles.footer}>ZERO RANDOMNESS</Text>
+          <Text style={styles.footer}>8 ROOMS</Text>
+          <Text style={styles.footerAccent}>1 MAD SCIENTIST</Text>
+          <Text style={styles.footer}>0 SLEEP</Text>
         </View>
       </View>
     </View>
@@ -57,18 +66,12 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
 }
 
 function WallyBadge() {
+  const image = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
   return (
     <View style={styles.wallyBadge} accessibilityLabel="Wally pixel portrait">
-      <View style={styles.wallyHair} />
-      <View style={styles.wallyHead}>
-        <View style={styles.wallyEye} />
-        <View style={[styles.wallyEye, styles.wallyEyeRight]} />
-      </View>
-      <View style={styles.wallyBody} />
-      <View style={styles.wallyPajamaStripe} />
-      <View style={styles.wallyFeet} />
-      <View style={styles.badgeShockA} />
-      <View style={styles.badgeShockB} />
+      <Canvas style={styles.wallyCanvas}>
+        <AtlasSprite image={image} frame={PORTRAIT_FRAME} x={31} y={74} scale={PORTRAIT_SCALE} />
+      </Canvas>
     </View>
   );
 }
@@ -103,15 +106,7 @@ const styles = StyleSheet.create({
   title: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 36, fontWeight: '900', letterSpacing: 2, textShadowColor: VISUAL_TOKENS.ui.magentaDark, textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 0 },
   subtitle: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', lineHeight: 11 },
   wallyBadge: { width: 68, height: 82, position: 'relative', backgroundColor: VISUAL_TOKENS.environment.wallDeep, borderWidth: 3, borderColor: VISUAL_TOKENS.ui.cyanDark },
-  wallyHair: { position: 'absolute', left: 22, top: 10, width: 26, height: 7, backgroundColor: VISUAL_TOKENS.actor.outline },
-  wallyHead: { position: 'absolute', left: 20, top: 16, width: 30, height: 24, backgroundColor: VISUAL_TOKENS.actor.skin, borderWidth: 3, borderColor: VISUAL_TOKENS.actor.outline },
-  wallyEye: { position: 'absolute', left: 5, top: 7, width: 4, height: 4, backgroundColor: VISUAL_TOKENS.actor.outline },
-  wallyEyeRight: { left: 16 },
-  wallyBody: { position: 'absolute', left: 16, top: 41, width: 38, height: 28, backgroundColor: VISUAL_TOKENS.actor.pajamas, borderWidth: 3, borderColor: VISUAL_TOKENS.actor.outline },
-  wallyPajamaStripe: { position: 'absolute', left: 22, top: 48, width: 26, height: 4, backgroundColor: VISUAL_TOKENS.actor.pajamasLight },
-  wallyFeet: { position: 'absolute', left: 18, top: 69, width: 34, height: 7, backgroundColor: VISUAL_TOKENS.actor.slippers },
-  badgeShockA: { position: 'absolute', right: 5, top: 7, width: 3, height: 11, backgroundColor: VISUAL_TOKENS.fx.shock, transform: [{ rotate: '20deg' }] },
-  badgeShockB: { position: 'absolute', right: 11, top: 3, width: 3, height: 8, backgroundColor: VISUAL_TOKENS.fx.shock, transform: [{ rotate: '-16deg' }] },
+  wallyCanvas: { width: 62, height: 76 },
   missionCard: { padding: 10, gap: 3, borderWidth: 2, borderColor: VISUAL_TOKENS.interactive.shadow, backgroundColor: VISUAL_TOKENS.ui.panelRaised },
   missionKicker: { color: VISUAL_TOKENS.interactive.focus, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', letterSpacing: 1.5 },
   missionText: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
