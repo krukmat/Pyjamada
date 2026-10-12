@@ -11,6 +11,8 @@ import { resolveSpritePlacement } from '../src/game/presentation/atlas/SpriteTra
 import { OBJECT_VISUAL_ORIGINS } from '../src/game/presentation/VisualEvent';
 import { ROOM_IDS } from '../src/game/adventure/AdventureState';
 import { PIXEL_PALETTE_SIZE, pixelPaletteFor, pixelPaletteUniform } from '../src/game/render/PixelArcadePalette';
+import { VESPER_NIGHTMARE_TARGET } from '../src/game/adventure/LaboratoryVesperNightmare';
+import { NIGHTMARE_CORE, NIGHTMARE_ORIGIN, VESPER_DOWN_SPRITE, VESPER_SPRITE, nightmareSprite } from '../src/game/render/VesperSprites';
 import { restartSystemicRun, updateSystemicRun } from '../src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicRunState } from '../src/game/systemic/SystemicState';
 
@@ -401,5 +403,15 @@ for (const roomId of ROOM_IDS) {
   ok(uniform.every((value) => value >= 0 && value <= 1), `${roomId} palette uniform is normalized`);
 }
 equal(new Set(ROOM_IDS.map((roomId) => pixelPaletteFor(roomId).join())).size, ROOM_IDS.length, 'every room owns a distinct pixel palette');
+
+for (const sprite of [VESPER_SPRITE, VESPER_DOWN_SPRITE, nightmareSprite(0, false), nightmareSprite(200, true)]) {
+  ok(sprite.runs.length > 0, 'procedural boss sprites are not empty');
+  ok(sprite.runs.every((run) => run.x >= 0 && run.x + run.length <= sprite.width && run.y >= 0 && run.y < sprite.height), 'sprite runs stay inside their frame');
+}
+equal(nightmareSprite(0, false), nightmareSprite(0, false), 'nightmare frames are built once and reused');
+const coreX = NIGHTMARE_ORIGIN.x + NIGHTMARE_CORE.x;
+const coreY = NIGHTMARE_ORIGIN.y + NIGHTMARE_CORE.y;
+ok(Math.abs(coreX - VESPER_NIGHTMARE_TARGET.x) <= VESPER_NIGHTMARE_TARGET.hitRadiusX, 'nightmare core is drawn inside the gameplay hit area (x)');
+ok(Math.abs(coreY - VESPER_NIGHTMARE_TARGET.y) <= VESPER_NIGHTMARE_TARGET.hitRadiusY, 'nightmare core is drawn inside the gameplay hit area (y)');
 
 console.log('presentation tests passed');

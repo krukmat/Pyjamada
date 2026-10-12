@@ -13,6 +13,16 @@ import {
 } from '../adventure/LaboratoryVesperNightmare';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
+import { PixelSpritePicture } from './PixelSpritePicture';
+import {
+  NIGHTMARE_CORE,
+  NIGHTMARE_ORIGIN,
+  VESPER_DOWN_ORIGIN,
+  VESPER_DOWN_SPRITE,
+  VESPER_ORIGIN,
+  VESPER_SPRITE,
+  nightmareSprite,
+} from './VesperSprites';
 
 type Px = (value: number) => number;
 
@@ -279,7 +289,10 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
         );
       })}
 
-      {/* Operator station remains; Vesper mutates only during the Nightmare phase. */}
+      {/* Vesper stands behind the operator station; he mutates only during the Nightmare phase. */}
+      {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && encounterPhase !== 'complete' && (
+        <PixelSpritePicture sprite={VESPER_SPRITE} x={VESPER_ORIGIN.x} y={VESPER_ORIGIN.y} px={px} />
+      )}
       <RoundedRect x={px(102)} y={px(70)} width={px(25)} height={px(29)} r={px(2)} color="#243142" />
       <Rect x={px(105)} y={px(74)} width={px(19)} height={px(10)} color="#0b1219" />
       <Line
@@ -295,22 +308,11 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
         strokeWidth={px(0.8)}
       />
 
-      {encounterPhase !== 'nightmare' && encounterPhase !== 'shutdown' && encounterPhase !== 'complete' && (
-        <>
-          <Circle cx={px(114)} cy={px(57)} r={px(5)} color="#151722" />
-          <RoundedRect x={px(109)} y={px(61)} width={px(10)} height={px(17)} r={px(3)} color="#d8dde6" />
-          <Rect x={px(111)} y={px(64)} width={px(6)} height={px(14)} color="#6d7890" />
-          <Line p1={vec(px(108), px(66))} p2={vec(px(103), px(75))} color="#d8dde6" strokeWidth={px(2)} />
-          <Line p1={vec(px(120), px(66))} p2={vec(px(124), px(74))} color="#d8dde6" strokeWidth={px(2)} />
-          <Circle cx={px(112.5)} cy={px(56)} r={px(0.8)} color="#d36bff" />
-          <Circle cx={px(115.8)} cy={px(56)} r={px(0.8)} color="#79e8ff" />
-        </>
-      )}
 
       {encounterPhase === 'vesper-control' && (
         <>
-          <Line p1={vec(px(109), px(67))} p2={vec(px(52), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
-          <Line p1={vec(px(119), px(67))} p2={vec(px(108), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
+          <Line p1={vec(px(102), px(42))} p2={vec(px(52), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
+          <Line p1={vec(px(125), px(66))} p2={vec(px(108), px(58))} color="rgba(211,107,255,0.58)" strokeWidth={px(0.8)} />
         </>
       )}
 
@@ -319,25 +321,22 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
           {nightmareState?.vulnerable && (
             <Circle
               cx={px(VESPER_NIGHTMARE_TARGET.x)}
-              cy={px(65)}
+              cy={px(NIGHTMARE_ORIGIN.y + NIGHTMARE_CORE.y)}
               r={px(17 + fastPulse)}
               color="rgba(255,241,168,0.14)"
             />
           )}
-          <Circle cx={px(108)} cy={px(48)} r={px(8 + fastPulse * 0.5)} color="#1b1425" />
-          <RoundedRect x={px(98)} y={px(55)} width={px(20)} height={px(31)} r={px(6)} color="#3a2148" />
-          <RoundedRect x={px(102)} y={px(59)} width={px(13)} height={px(24)} r={px(5)} color="#1b1724" />
-          <Line p1={vec(px(101), px(61))} p2={vec(px(89), px(73))} color="#d36bff" strokeWidth={px(3)} />
-          <Line p1={vec(px(116), px(61))} p2={vec(px(125), px(73))} color="#79e8ff" strokeWidth={px(3)} />
-          <Line p1={vec(px(104), px(84))} p2={vec(px(99), px(96))} color="#6e446f" strokeWidth={px(3)} />
-          <Line p1={vec(px(113), px(84))} p2={vec(px(117), px(96))} color="#6e446f" strokeWidth={px(3)} />
-          <Circle cx={px(105)} cy={px(47)} r={px(1.4)} color="#ff5d69" />
-          <Circle cx={px(111)} cy={px(47)} r={px(1.4)} color="#fff1a8" />
+          <PixelSpritePicture
+            sprite={nightmareSprite(nowMs, Boolean(nightmareState?.vulnerable))}
+            x={NIGHTMARE_ORIGIN.x}
+            y={NIGHTMARE_ORIGIN.y}
+            px={px}
+          />
           {[0, 1, 2].map(index => (
             <Circle
               key={`nightmare-hit-${index}`}
-              cx={px(99 + index * 7)}
-              cy={px(38)}
+              cx={px(101 + index * 7)}
+              cy={px(14)}
               r={px(1.8)}
               color={(nightmareState?.hits ?? 0) > index ? '#ff5d69' : '#394354'}
             />
@@ -347,10 +346,7 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
 
       {(encounterPhase === 'shutdown' || encounterPhase === 'complete') && (
         <>
-          <Circle cx={px(110)} cy={px(82)} r={px(5)} color="#191923" />
-          <RoundedRect x={px(101)} y={px(86)} width={px(17)} height={px(8)} r={px(3)} color="#352b3b" />
-          <Line p1={vec(px(101), px(91))} p2={vec(px(93), px(96))} color="#5a4a60" strokeWidth={px(2)} />
-          <Line p1={vec(px(117), px(91))} p2={vec(px(123), px(96))} color="#5a4a60" strokeWidth={px(2)} />
+          <PixelSpritePicture sprite={VESPER_DOWN_SPRITE} x={VESPER_DOWN_ORIGIN.x} y={VESPER_DOWN_ORIGIN.y} px={px} />
         </>
       )}
 
