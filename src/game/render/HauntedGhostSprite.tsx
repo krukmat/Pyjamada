@@ -1,5 +1,5 @@
 import React from 'react';
-import { Group, type SkImage } from '@shopify/react-native-skia';
+import { Group, type SkImage, BlendColor, Paint } from '@shopify/react-native-skia';
 import { GHOST_RULES, type HauntedGhostState } from '../haunted/HauntedThreats';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
@@ -29,10 +29,16 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
   const deathProgress = dying
     ? Math.max(0, Math.min(1, 1 - Math.max(0, ghost.phaseUntilMs - nowMs) / GHOST_RULES.dyingMs))
     : 0;
+  // The hit lands as a white flash, then the ghost is knocked away from Wally
+  // while it fades. Presentation-only: derived from the dying timer.
+  const flash = dying && deathProgress < 0.35;
+  const knockDirection = ghost.x >= playerX ? 1 : -1;
+  const knockX = dying ? Math.round(knockDirection * scale * 7 * Math.sqrt(deathProgress)) : 0;
+  const knockY = dying ? -Math.round(scale * 3 * deathProgress) : 0;
   const spriteOpacity = telegraph
     ? 0.42
     : dying
-      ? Math.max(0.05, 0.28 - deathProgress * 0.24)
+      ? flash ? 1 : Math.max(0.05, 0.7 - deathProgress * 0.65)
       : 1;
 
   return (
@@ -63,9 +69,9 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
         />
       )}
 
-      <Group opacity={spriteOpacity}>
+      <Group opacity={spriteOpacity} layer={flash ? <Paint><BlendColor color="#ffffff" mode="srcIn" /></Paint> : undefined}>
         {image && frame ? (
-          <AtlasSprite image={image} frame={frame} x={x} y={y} scale={scale} facing={facing} />
+          <AtlasSprite image={image} frame={frame} x={x + knockX} y={y + knockY} scale={scale} facing={facing} />
         ) : (
           <HauntedGhostFallback ghost={ghost} x={x} y={y} scale={scale} playerX={playerX} />
         )}

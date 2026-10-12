@@ -24,6 +24,7 @@ equal(HAUNTED_WALLY_ATLAS.frames.length, 50, 'haunted Wally atlas exposes both 2
 equal(validateSpriteAtlasManifest(HAUNTED_WALLY_ATLAS).length, 0, 'haunted Wally atlas manifest is valid');
 equal(hauntedWallyFrameIndex('attack', 0), 10, 'attack starts on dedicated pixel pose');
 equal(hauntedWallyFrameIndex('guard', 0), 19, 'combat guard uses its dedicated pixel pose');
+equal(hauntedWallyFrameIndex('advance', 0), 21, 'Wally advances in guard while walking into a fight');
 equal(hauntedWallyFrameIndex('attack', 0, 8), 11, 'a fresh Dream Spark shows the punch landing');
 equal(hauntedWallyFrameIndex('attack', 0, 16), 12, 'the impact frame follows the punch');
 equal(hauntedWallyFrameIndex('attack', 0, 24), 13, 'Wally recovers as the spark flies away');

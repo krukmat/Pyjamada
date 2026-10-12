@@ -259,8 +259,8 @@ const POSES = [
   { arms: 'up', lean: -1, bob: 1, eyes: 'hurt', mouth: 'open', hairUp: true, extras: ['sweat'] }, // 18
   { arms: 'guard', spread: 1, eyes: 'fierce', mouth: 'smirk' }, // 19 combat guard
   { arms: 'guard', spread: 1, bob: 1, eyes: 'fierce', mouth: 'smirk' }, // 20
-  { arms: 'down', eyes: 'half' }, // 21 spare
-  { arms: 'down', eyes: 'half', bob: 1 }, // 22 spare
+  { arms: 'guard', lift: { r: 2 }, eyes: 'fierce', mouth: 'grit' }, // 21 advance in guard
+  { arms: 'guard', lift: { l: 2 }, bob: 1, eyes: 'fierce', mouth: 'grit' }, // 22
   { arms: 'cheer', bob: -1, eyes: 'happy', mouth: 'smile', hairUp: true, extras: ['cheer'] }, // 23 success
   { arms: 'slump', bob: 2, eyes: 'closed', mouth: 'frown' }, // 24 fail
 ];

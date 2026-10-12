@@ -2,7 +2,8 @@ import React from 'react';
 import { Canvas, Group, Rect, type SkImage } from '@shopify/react-native-skia';
 import type { AdventureState, RoomId } from '../adventure/AdventureState';
 import { PLAYER_GROUND_Y } from '../core/World';
-import type { DreamSparkProjectile } from '../haunted/HauntedCombat';
+import { PLAYER_HIT_RULES, type DreamSparkProjectile } from '../haunted/HauntedCombat';
+import { GHOST_RULES } from '../haunted/HauntedThreats';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import type { ActiveVisualEvent } from '../presentation/PresentationRuntime';
 import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
@@ -59,7 +60,9 @@ export function GameCanvas({
   const legacyWally = hauntedSession ? null : resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const exploration = adventure?.storyFlags.bedroomEscapeAttempted === true;
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
-  const shake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
+  const domesticShake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
+  const impactShake = resolveCombatImpactShake(hauntedSession, nowMs);
+  const shake = { x: domesticShake.x + impactShake.x, y: domesticShake.y + impactShake.y };
   const playerInvulnerable = Boolean(
     hauntedSession
     && hauntedSession.combat.invulnerableUntilMs > hauntedSession.elapsedMs
@@ -153,6 +156,22 @@ export function GameCanvas({
       </Group>
     </Canvas>
   );
+}
+
+// A short jolt when a ghost is defeated or Wally is hit. Derived from the
+// combat timers, so it is never stored and restarts cleanly.
+const IMPACT_SHAKE_MS = 140;
+
+function resolveCombatImpactShake(session: HauntedSessionState | undefined, nowMs: number): { x: number; y: number } {
+  if (!session) return { x: 0, y: 0 };
+  const ghostImpact = session.threats.ghosts.some(
+    (ghost) => ghost.phase === 'dying' && ghost.phaseUntilMs - session.elapsedMs > GHOST_RULES.dyingMs - IMPACT_SHAKE_MS,
+  );
+  const playerImpact = session.combat.invulnerableUntilMs - session.elapsedMs > PLAYER_HIT_RULES.invulnerabilityMs - IMPACT_SHAKE_MS;
+  if (!ghostImpact && !playerImpact) return { x: 0, y: 0 };
+  const magnitude = playerImpact ? 2 : 1.5;
+  const flip = Math.floor(nowMs / 35) % 2 === 0 ? 1 : -1;
+  return { x: flip * magnitude, y: -flip * magnitude * 0.5 };
 }
 
 function resolveHauntedHitDirection(

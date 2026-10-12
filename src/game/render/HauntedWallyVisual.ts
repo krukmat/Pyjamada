@@ -1,6 +1,6 @@
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 
-export type HauntedWallyPose = 'idle' | 'guard' | 'walk' | 'jump' | 'attack' | 'hit' | 'interact' | 'sleepy' | 'startled' | 'success' | 'fail';
+export type HauntedWallyPose = 'idle' | 'guard' | 'walk' | 'advance' | 'jump' | 'attack' | 'hit' | 'interact' | 'sleepy' | 'startled' | 'success' | 'fail';
 
 export function selectHauntedWallyPose(
   session: HauntedSessionState,
@@ -15,7 +15,7 @@ export function selectHauntedWallyPose(
   if (session.input.interactPressed) return 'interact';
   if (session.domestic.wallyState === 'sleepy') return 'sleepy';
   if (session.domestic.wallyState === 'startled') return 'startled';
-  if (Math.abs(session.player.vx) > 4) return 'walk';
+  if (Math.abs(session.player.vx) > 4) return options.combat ? 'advance' : 'walk';
   return options.combat ? 'guard' : 'idle';
 }
 
@@ -37,6 +37,7 @@ export function hauntedWallyFrameIndex(pose: HauntedWallyPose, nowMs: number, at
   switch (pose) {
     case 'idle': return phase2;
     case 'guard': return 19 + phase2;
+    case 'advance': return 21 + (Math.floor(nowMs / 120) % 2);
     case 'walk': return 2 + phase4;
     case 'jump': return 6;
     case 'attack':
