@@ -160,7 +160,7 @@ export default function App() {
           return;
         }
 
-        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LIVING_ROOM_STATIC_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
+        if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LIVING_ROOM_STATIC_HIT' || event.type === 'HALLWAY_PENDULUM_HIT' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
           void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }

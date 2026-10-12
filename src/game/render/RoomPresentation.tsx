@@ -30,6 +30,7 @@ import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
+import { HALLWAY_PENDULUM, resolveHallwayPendulum } from '../adventure/HallwayPendulumHazard';
 
 type Px = (value: number) => number;
 type ObjectPlacement = { x: number; y: number };
@@ -216,6 +217,7 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
   const hallway = adventure ? getRoomState(adventure, 'hallway') : undefined;
   const clockInspected = hallway?.inspected.includes('backward-clock') === true;
   const livingUnlocked = hallway?.switches['living-room-unlocked'] === true;
+  const pendulum = adventure && hauntedSession ? resolveHallwayPendulum(adventure, hauntedSession.elapsedMs) : undefined;
   const clockStep = Math.floor(nowMs / 260) % 12;
   const minuteAngle = (-clockStep / 12) * Math.PI * 2 - Math.PI / 2;
   const hourAngle = (-(clockStep / 3) / 12) * Math.PI * 2 - Math.PI / 2;
@@ -266,6 +268,27 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
         </>
       )}
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
+      {/* Phantom pendulum: raised (safe), dropping (warning), sweeping (danger). */}
+      {pendulum && pendulum.phase !== 'inactive' && (
+        <>
+          <Line
+            p1={vec(px(HALLWAY_PENDULUM.pivotX), px(HALLWAY_PENDULUM.pivotY + 6))}
+            p2={vec(px(pendulum.bobX), px(pendulum.bobY))}
+            color={pendulum.dangerous ? '#f4f1de' : 'rgba(149,133,201,0.8)'}
+            strokeWidth={px(1)}
+          />
+          {pendulum.dangerous && (
+            <Circle cx={px(pendulum.bobX)} cy={px(pendulum.bobY)} r={px(9)} color="rgba(176,79,209,0.30)" />
+          )}
+          <Circle
+            cx={px(pendulum.bobX)}
+            cy={px(pendulum.bobY)}
+            r={px(5)}
+            color={pendulum.dangerous ? '#b04fd1' : pendulum.phase === 'dropping' ? '#ffd84a' : '#4c3d7a'}
+          />
+          <Circle cx={px(pendulum.bobX - 1)} cy={px(pendulum.bobY - 1)} r={px(2)} color={pendulum.dangerous ? '#f4f1de' : '#9585c9'} />
+        </>
+      )}
     </>
   );
 }
