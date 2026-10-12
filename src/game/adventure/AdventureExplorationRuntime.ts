@@ -44,6 +44,12 @@ import {
   resolveKitchenSurge,
 } from './KitchenSurgeHazard';
 import {
+  armLivingRoomStatic,
+  isLivingRoomStaticLive,
+  isPlayerHitByLivingRoomStatic,
+  resolveLivingRoomStatic,
+} from './LivingRoomStaticHazard';
+import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
 } from './RoomInteractionEffects';
@@ -60,6 +66,7 @@ export type AdventureExplorationEvent =
   | { type: 'LIVING_ROOM_DOOR_REACHED' }
   | { type: 'BASEMENT_DISCHARGE_HIT' }
   | { type: 'KITCHEN_SURGE_HIT' }
+  | { type: 'LIVING_ROOM_STATIC_HIT' }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
@@ -289,6 +296,11 @@ export function stepAdventureExploration(
     const armed = armKitchenSurge(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
+  } else if (adventure.currentRoom === 'living-room' && isLivingRoomStaticLive(adventure)) {
+    elapsedMs += dtMs;
+    const armed = armLivingRoomStatic(nextAdventure, elapsedMs);
+    nextAdventure = armed.adventure;
+    elapsedMs = armed.elapsedMs;
   } else if (laboratoryCombat) {
     elapsedMs += dtMs;
   }
@@ -439,6 +451,17 @@ export function stepAdventureExploration(
     if (hit.accepted) {
       player = applyHauntedKnockback(player, -1);
       events.push({ type: 'KITCHEN_SURGE_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
+  const staticWave = resolveLivingRoomStatic(nextAdventure, elapsedMs);
+  if (isPlayerHitByLivingRoomStatic(player, staticWave) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, -1);
+      events.push({ type: 'LIVING_ROOM_STATIC_HIT' });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }

@@ -261,6 +261,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
   if (isTvOnScenario(scenario)) {
     adventure = setRoomSwitch(adventure, 'living-room', 'tv-on', true);
     adventure = markRoomInteraction(adventure, 'living-room', 'tv-activated');
+    adventure = markRoomInteraction(adventure, 'living-room', 'living-room-static-armed');
   }
   if (isTransmissionScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'living-room', 'television');
@@ -481,6 +482,8 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                                               ? 108
                                                               : 99;
   const positioned = withPlayer(falseEscape.session, x);
+  // First static wave mid-room (x~60), clear of Wally beside the television.
+  if (scenario === 'living-room-transmission') return { ...positioned, elapsedMs: 2_086 };
   // Mid-cycle surge front around x=70, well away from Wally at the breaker.
   if (scenario === 'kitchen-overload') return { ...positioned, elapsedMs: 2_015 };
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };

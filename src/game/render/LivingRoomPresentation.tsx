@@ -2,6 +2,7 @@ import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from '../adventure/LivingRoomStaticHazard';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
@@ -25,6 +26,8 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
   const radioInspected = livingRoom?.inspected.includes('radio-static') === true;
   const sourceCueRevealed = livingRoom?.switches['source-hum-traced'] === true;
   const screenPulse = Math.floor(nowMs / 220) % 3;
+  const staticWave = adventure && hauntedSession ? resolveLivingRoomStatic(adventure, hauntedSession.elapsedMs) : undefined;
+  const jitter = Math.floor(nowMs / 60) % 3;
   const radioPulse = Math.floor(nowMs / 180) % 3;
 
   return (
@@ -153,6 +156,30 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
       )}
       <RoundedRect x={px(70)} y={px(31)} width={px(12)} height={px(18)} r={px(1)} color="#161b27" />
       <Rect x={px(72)} y={px(33)} width={px(8)} height={px(14)} color="#5a4655" />
+
+      {/* Static threat: the screen whites out, then static rolls along the floor. */}
+      {staticWave?.phase === 'telegraph' && (
+        <>
+          <Rect x={px(98)} y={px(50)} width={px(23)} height={px(20)} color={`rgba(244,241,222,${(0.2 + staticWave.progress * 0.55).toFixed(2)})`} />
+          <Rect x={px(LIVING_ROOM_STATIC.sourceX - 1)} y={px(97 - jitter)} width={px(2)} height={px(2)} color="#f4f1de" />
+          <Rect x={px(LIVING_ROOM_STATIC.sourceX + 3)} y={px(95 + jitter)} width={px(1)} height={px(1)} color="#44d9e6" />
+        </>
+      )}
+      {staticWave?.fronts.map((front, index) => (
+        <React.Fragment key={`static-wave-${index}`}>
+          <Rect x={px(front - 3)} y={px(83)} width={px(7)} height={px(19)} color="rgba(68,217,230,0.45)" />
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(row => (
+            <Rect
+              key={`static-${index}-${row}`}
+              x={px(front - 3 + ((row * 2 + jitter + index) % 5))}
+              y={px(84 + row * 2)}
+              width={px(2)}
+              height={px(1)}
+              color={(row + jitter) % 2 === 0 ? '#f4f1de' : '#44d9e6'}
+            />
+          ))}
+        </React.Fragment>
+      ))}
 
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
     </>
