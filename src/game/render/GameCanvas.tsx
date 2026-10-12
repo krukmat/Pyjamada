@@ -13,9 +13,11 @@ import { HauntedHitFeedback } from './HauntedStagePresentation';
 import { HauntedWallySprite } from './HauntedWallySprite';
 import { IllustratedFx } from './IllustratedFx';
 import { IllustratedWally } from './IllustratedWally';
+import { PixelArcadeLayer } from './PixelArcadeLayer';
+import { pixelPaletteUniform } from './PixelArcadePalette';
 import { PixelDreamSpark } from './PixelDreamSpark';
 import { RoomPresentation } from './RoomPresentation';
-import { stageCameraOffsetPx, stageOriginX, stagePx, stageScale } from './StageViewport';
+import { stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
 
 type Props = {
@@ -53,7 +55,6 @@ export function GameCanvas({
   const playerX = playerRenderPosition?.x ?? state.player.x;
   const playerY = playerRenderPosition?.y ?? PLAYER_GROUND_Y;
   const playerFacing = playerRenderPosition?.facing ?? state.player.facing;
-  const cameraX = stageCameraOffsetPx(height, playerX, playerFacing);
   const legacyWally = hauntedSession ? null : resolveWallyVisualFrame(state, activeVisualEvents, nowMs);
   const exploration = adventure?.storyFlags.bedroomEscapeAttempted === true;
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
@@ -68,76 +69,80 @@ export function GameCanvas({
   return (
     <Canvas style={{ width, height }}>
       <Rect x={0} y={0} width={width} height={height} color={SCENE_TOKENS.skyDeep} />
-      <Group transform={[{ translateX: originX + cameraX + px(shake.x) }, { translateY: px(shake.y) }]}>
-        <RoomPresentation
-          roomId={roomId}
-          adventure={adventure}
-          state={state}
-          hauntedSession={hauntedSession}
-          activeVisualEvents={activeVisualEvents}
-          size={height}
-          playerX={playerX}
-          playerY={playerY}
-          nowMs={nowMs}
-          scale={scale}
-          px={px}
-        />
-
-        {!exploration && hauntedSession && (
-          <HauntedEnemyLayer
-            session={hauntedSession}
-            ghostImage={hauntedGhostImage}
-            scale={scale}
-            nowMs={hauntedSession.elapsedMs}
-            playerX={playerX}
-            px={px}
-          />
-        )}
-
-        {hauntedSession ? (
-          <HauntedWallySprite
-            image={hauntedWallyImage}
-            session={hauntedSession}
-            x={px(playerX)}
-            y={px(playerY)}
-            scale={scale}
-            nowMs={nowMs}
-            honorTerminalObjective={!exploration}
-          />
-        ) : legacyWally ? (
-          <IllustratedWally
+      <Group transform={[{ translateX: originX + px(shake.x) }, { translateY: px(shake.y) }]}>
+        <PixelArcadeLayer block={scale} palette={pixelPaletteUniform(roomId)}>
+          <RoomPresentation
+            roomId={roomId}
+            adventure={adventure}
             state={state}
-            visual={legacyWally}
-            x={px(playerX)}
-            y={px(playerY)}
+            hauntedSession={hauntedSession}
+            activeVisualEvents={activeVisualEvents}
+            size={height}
+            playerX={playerX}
+            playerY={playerY}
+            nowMs={nowMs}
             scale={scale}
-            facing={playerFacing}
-          />
-        ) : null}
-
-        {(!exploration || roomId === 'laboratory') && dreamSparks.map((projectile) => (
-          <PixelDreamSpark
-            key={projectile.id}
-            projectile={projectile}
-            x={px(projectile.x)}
-            y={px(projectile.y)}
-            scale={scale}
-          />
-        ))}
-
-        {fx.map((item) => (
-          <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
-        ))}
-
-        {playerInvulnerable && (
-          <HauntedHitFeedback
-            x={px(playerX)}
-            y={px(playerY - 23)}
             px={px}
-            pulse={Math.floor(nowMs / 90) % 2}
-            direction={hitDirection}
           />
-        )}
+        </PixelArcadeLayer>
+
+        <PixelArcadeLayer block={scale}>
+          {!exploration && hauntedSession && (
+            <HauntedEnemyLayer
+              session={hauntedSession}
+              ghostImage={hauntedGhostImage}
+              scale={scale}
+              nowMs={hauntedSession.elapsedMs}
+              playerX={playerX}
+              px={px}
+            />
+          )}
+
+          {hauntedSession ? (
+            <HauntedWallySprite
+              image={hauntedWallyImage}
+              session={hauntedSession}
+              x={px(playerX)}
+              y={px(playerY)}
+              scale={scale}
+              nowMs={nowMs}
+              honorTerminalObjective={!exploration}
+            />
+          ) : legacyWally ? (
+            <IllustratedWally
+              state={state}
+              visual={legacyWally}
+              x={px(playerX)}
+              y={px(playerY)}
+              scale={scale}
+              facing={playerFacing}
+            />
+          ) : null}
+
+          {(!exploration || roomId === 'laboratory') && dreamSparks.map((projectile) => (
+            <PixelDreamSpark
+              key={projectile.id}
+              projectile={projectile}
+              x={px(projectile.x)}
+              y={px(projectile.y)}
+              scale={scale}
+            />
+          ))}
+
+          {fx.map((item) => (
+            <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
+          ))}
+
+          {playerInvulnerable && (
+            <HauntedHitFeedback
+              x={px(playerX)}
+              y={px(playerY - 23)}
+              px={px}
+              pulse={Math.floor(nowMs / 90) % 2}
+              direction={hitDirection}
+            />
+          )}
+        </PixelArcadeLayer>
       </Group>
     </Canvas>
   );

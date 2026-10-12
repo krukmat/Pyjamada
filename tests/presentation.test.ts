@@ -9,6 +9,8 @@ import { createSpriteAtlasIndex, validateSpriteAtlasManifest, type AtlasFrame, t
 import { ALL_GAME_ATLASES } from '../src/game/presentation/atlas/manifests';
 import { resolveSpritePlacement } from '../src/game/presentation/atlas/SpriteTransform';
 import { OBJECT_VISUAL_ORIGINS } from '../src/game/presentation/VisualEvent';
+import { ROOM_IDS } from '../src/game/adventure/AdventureState';
+import { PIXEL_PALETTE_SIZE, pixelPaletteFor, pixelPaletteUniform } from '../src/game/render/PixelArcadePalette';
 import { restartSystemicRun, updateSystemicRun } from '../src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicRunState } from '../src/game/systemic/SystemicState';
 
@@ -389,5 +391,15 @@ equal(facingLeft.pivotX, 48, 'the mirror pivots on the sprite\'s own world x, so
 let threw = false;
 try { resolveSpritePlacement(mirrorFrame, 48.5, 88, 2, 'right'); } catch { threw = true; }
 ok(threw, 'a non-integer logical x is rejected for both facings, matching the prior AtlasSprite guard');
+
+for (const roomId of ROOM_IDS) {
+  const palette = pixelPaletteFor(roomId);
+  equal(palette.length, PIXEL_PALETTE_SIZE, `${roomId} palette fills every shader palette slot`);
+  ok(palette.every((hex) => /^#[0-9a-f]{6}$/.test(hex)), `${roomId} palette uses opaque lowercase hex colors`);
+  const uniform = pixelPaletteUniform(roomId);
+  equal(uniform.length, PIXEL_PALETTE_SIZE * 3, `${roomId} palette uniform is flattened RGB`);
+  ok(uniform.every((value) => value >= 0 && value <= 1), `${roomId} palette uniform is normalized`);
+}
+equal(new Set(ROOM_IDS.map((roomId) => pixelPaletteFor(roomId).join())).size, ROOM_IDS.length, 'every room owns a distinct pixel palette');
 
 console.log('presentation tests passed');
