@@ -3,6 +3,8 @@ import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
+import { PixelSpritePicture } from './PixelSpritePicture';
+import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 
 type Px = (value: number) => number;
 
@@ -34,6 +36,7 @@ export function KitchenPresentation({ adventure, hauntedSession, playerX, player
         <Rect key={`kitchen-floor-${x}`} x={px(x)} y={px(102)} width={px(1)} height={px(26)} color="rgba(7,8,12,0.28)" />
       ))}
       <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#12151a" />
+      <PixelSpritePicture sprite={roomTexture('kitchen')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
       <RoundedRect x={px(3)} y={px(44)} width={px(23)} height={px(59)} r={px(2)} color="#4a4f57" />
       <Rect x={px(7)} y={px(49)} width={px(15)} height={px(52)} color="#232a30" />

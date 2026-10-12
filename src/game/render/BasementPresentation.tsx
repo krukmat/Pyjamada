@@ -7,6 +7,8 @@ import {
 } from '../adventure/BasementElectricalHazard';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
+import { PixelSpritePicture } from './PixelSpritePicture';
+import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 
 type Px = (value: number) => number;
 
@@ -52,6 +54,7 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
       ))}
 
       <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#090d10" />
+      <PixelSpritePicture sprite={roomTexture('basement')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
       {[6, 28, 50, 72, 94, 116].map((x) => (
         <Line key={`floor-${x}`} p1={vec(px(x), px(103))} p2={vec(px(x + 7), px(128))} color="rgba(5,8,10,0.30)" strokeWidth={px(0.8)} />
       ))}

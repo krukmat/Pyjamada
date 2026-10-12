@@ -3,6 +3,8 @@ import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
+import { PixelSpritePicture } from './PixelSpritePicture';
+import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 
 type Px = (value: number) => number;
 
@@ -41,6 +43,7 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
         <Line key={`floor-${x}`} p1={vec(px(x), px(103))} p2={vec(px(x + 8), px(128))} color="rgba(9,8,12,0.24)" strokeWidth={px(0.8)} />
       ))}
       <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#100e13" />
+      <PixelSpritePicture sprite={roomTexture('attic')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
       <RoundedRect x={px(3)} y={px(51)} width={px(22)} height={px(52)} r={px(2)} color="#433941" />
       <Rect x={px(7)} y={px(58)} width={px(14)} height={px(43)} color="#201c22" />

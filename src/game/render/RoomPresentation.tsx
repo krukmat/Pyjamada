@@ -28,6 +28,8 @@ import { KitchenPresentation } from './KitchenPresentation';
 import { LaboratoryPresentation } from './LaboratoryPresentation';
 import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
+import { PixelSpritePicture } from './PixelSpritePicture';
+import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 
 type Px = (value: number) => number;
 type ObjectPlacement = { x: number; y: number };
@@ -233,6 +235,7 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
         <Rect key={`floor-${x}`} x={px(x)} y={px(102)} width={px(1)} height={px(26)} color="rgba(9,10,24,0.24)" />
       ))}
       <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#111126" />
+      <PixelSpritePicture sprite={roomTexture('hallway')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
       <HallwayDoor x={4} px={px} accent="bedroom" unlocked />
       <HallwayDoor x={103} px={px} accent="living" unlocked={livingUnlocked} />

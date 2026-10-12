@@ -12,6 +12,7 @@ import { OBJECT_VISUAL_ORIGINS } from '../src/game/presentation/VisualEvent';
 import { ROOM_IDS } from '../src/game/adventure/AdventureState';
 import { PIXEL_PALETTE_SIZE, pixelPaletteFor, pixelPaletteUniform } from '../src/game/render/PixelArcadePalette';
 import { VESPER_NIGHTMARE_TARGET } from '../src/game/adventure/LaboratoryVesperNightmare';
+import { roomTexture } from '../src/game/render/RoomTextures';
 import { NIGHTMARE_CORE, NIGHTMARE_ORIGIN, VESPER_DOWN_SPRITE, VESPER_SPRITE, nightmareSprite } from '../src/game/render/VesperSprites';
 import { restartSystemicRun, updateSystemicRun } from '../src/game/systemic/SystemicRuntime';
 import { createSystemicRun, type SystemicRunState } from '../src/game/systemic/SystemicState';
@@ -413,5 +414,13 @@ const coreX = NIGHTMARE_ORIGIN.x + NIGHTMARE_CORE.x;
 const coreY = NIGHTMARE_ORIGIN.y + NIGHTMARE_CORE.y;
 ok(Math.abs(coreX - VESPER_NIGHTMARE_TARGET.x) <= VESPER_NIGHTMARE_TARGET.hitRadiusX, 'nightmare core is drawn inside the gameplay hit area (x)');
 ok(Math.abs(coreY - VESPER_NIGHTMARE_TARGET.y) <= VESPER_NIGHTMARE_TARGET.hitRadiusY, 'nightmare core is drawn inside the gameplay hit area (y)');
+
+for (const roomId of ROOM_IDS) {
+  if (roomId === 'bedroom') continue;
+  const texture = roomTexture(roomId);
+  ok(texture.runs.length > 100, `${roomId} has a surface texture`);
+  ok(texture.runs.every((run) => run.x >= 0 && run.x + run.length <= texture.width && run.y >= 0 && run.y < texture.height), `${roomId} texture stays inside the stage overscan`);
+  equal(roomTexture(roomId), texture, `${roomId} texture is built once and cached`);
+}
 
 console.log('presentation tests passed');

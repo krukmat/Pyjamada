@@ -14,6 +14,7 @@ import {
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
+import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 import {
   NIGHTMARE_CORE,
   NIGHTMARE_ORIGIN,
@@ -61,6 +62,7 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
       <Rect x={px(-20)} y={px(20)} width={px(168)} height={px(2)} color="#31465d" />
       <Rect x={px(-20)} y={px(87)} width={px(168)} height={px(41)} color="#101722" />
       <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(3)} color="#263746" />
+      <PixelSpritePicture sprite={roomTexture('laboratory')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
       {pressure?.lane && pressure.minX !== undefined && pressure.maxX !== undefined && (
         <>
