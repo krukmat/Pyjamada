@@ -2,6 +2,7 @@ import React from 'react';
 import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { getRoomState, type AdventureState } from '../adventure/AdventureState';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import { ATTIC_CRATES, resolveAtticCrates } from '../adventure/AtticCrateHazard';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function AtticPresentation({ adventure, hauntedSession, playerX, playerY, nowMs, px }: Props) {
+  const crates = adventure && hauntedSession ? resolveAtticCrates(adventure, hauntedSession.elapsedMs) : undefined;
   const attic = adventure ? getRoomState(adventure, 'attic') : undefined;
   const logSeen = attic?.inspected.includes('attic-experiment-log') === true;
   const sensorsSeen = attic?.inspected.includes('attic-sensor-map') === true;
@@ -110,6 +112,47 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
           ))}
         </>
       )}
+
+      {/* Falling crates: shadow warning, fall, impact, debris. */}
+      {crates?.drops.map((drop, index) => {
+        const { rafterY, floorY } = ATTIC_CRATES;
+        const crateY = drop.stage === 'falling' ? rafterY + (floorY - 9 - rafterY) * drop.progress * drop.progress : floorY - 9;
+        const shadowWidth = drop.stage === 'shadow' ? 4 + drop.progress * 10 : 14;
+        return (
+          <React.Fragment key={`crate-${index}`}>
+            {drop.stage !== 'debris' && (
+              <Rect x={px(drop.x - shadowWidth / 2)} y={px(floorY)} width={px(shadowWidth)} height={px(2)} color={`rgba(10,6,4,${(0.35 + (drop.stage === 'shadow' ? drop.progress * 0.4 : 0.4)).toFixed(2)})`} />
+            )}
+            {drop.stage === 'shadow' && [0, 1, 2].map(speck => (
+              <Rect key={`dust-${speck}`} x={px(drop.x - 3 + speck * 3)} y={px(rafterY + ((drop.progress * 60 + speck * 17) % 60))} width={px(1)} height={px(1)} color="#c8925a" />
+            ))}
+            {(drop.stage === 'falling' || drop.stage === 'impact') && (
+              <>
+                <Rect x={px(drop.x - 5)} y={px(crateY)} width={px(10)} height={px(9)} color="#1a120e" />
+                <Rect x={px(drop.x - 4)} y={px(crateY + 1)} width={px(8)} height={px(7)} color="#9a6b3e" />
+                <Rect x={px(drop.x - 4)} y={px(crateY + 4)} width={px(8)} height={px(1)} color="#6e4a2e" />
+                <Rect x={px(drop.x - 1)} y={px(crateY + 1)} width={px(1)} height={px(7)} color="#6e4a2e" />
+              </>
+            )}
+            {drop.stage === 'impact' && (
+              <>
+                <Circle cx={px(drop.x - 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
+                <Circle cx={px(drop.x + 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
+              </>
+            )}
+            {drop.stage === 'debris' && [-6, -2, 3, 7].map(offset => (
+              <Rect
+                key={`plank-${offset}`}
+                x={px(drop.x + offset * (1 + drop.progress))}
+                y={px(floorY - 2 - Math.abs(offset) * 0.3)}
+                width={px(4)}
+                height={px(1)}
+                color={`rgba(154,107,62,${(1 - drop.progress).toFixed(2)})`}
+              />
+            ))}
+          </React.Fragment>
+        );
+      })}
 
       {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
     </>

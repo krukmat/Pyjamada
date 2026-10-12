@@ -56,6 +56,12 @@ import {
   resolveHallwayPendulum,
 } from './HallwayPendulumHazard';
 import {
+  armAtticCrates,
+  isAtticCratesLive,
+  isPlayerHitByAtticCrate,
+  resolveAtticCrates,
+} from './AtticCrateHazard';
+import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
 } from './RoomInteractionEffects';
@@ -74,6 +80,7 @@ export type AdventureExplorationEvent =
   | { type: 'KITCHEN_SURGE_HIT' }
   | { type: 'LIVING_ROOM_STATIC_HIT' }
   | { type: 'HALLWAY_PENDULUM_HIT' }
+  | { type: 'ATTIC_CRATE_HIT' }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
@@ -313,6 +320,11 @@ export function stepAdventureExploration(
     const armed = armHallwayPendulum(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
+  } else if (adventure.currentRoom === 'attic' && isAtticCratesLive(adventure)) {
+    elapsedMs += dtMs;
+    const armed = armAtticCrates(nextAdventure, elapsedMs);
+    nextAdventure = armed.adventure;
+    elapsedMs = armed.elapsedMs;
   } else if (laboratoryCombat) {
     elapsedMs += dtMs;
   }
@@ -485,6 +497,18 @@ export function stepAdventureExploration(
     if (hit.accepted) {
       player = applyHauntedKnockback(player, player.x < pendulum.bobX ? -1 : 1);
       events.push({ type: 'HALLWAY_PENDULUM_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
+  const crates = resolveAtticCrates(nextAdventure, elapsedMs);
+  if (isPlayerHitByAtticCrate(player, crates) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      const crateX = crates.drops.find(drop => drop.dangerous)?.x ?? player.x;
+      player = applyHauntedKnockback(player, player.x < crateX ? -1 : 1);
+      events.push({ type: 'ATTIC_CRATE_HIT' });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }

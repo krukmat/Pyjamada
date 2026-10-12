@@ -321,6 +321,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     const attic = transitionAdventure(adventure, 'attic', 'attic-from-bathroom');
     if (attic.status !== 'ok') throw new Error(attic.reason);
     adventure = attic.state;
+    adventure = markRoomInteraction(adventure, 'attic', 'attic-crates-armed');
   }
   if (scenario === 'attic-evidence' || scenario === 'attic-recording' || scenario === 'attic-basement-route' || isBasementScenario(scenario)) {
     adventure = markRoomInspected(adventure, 'attic', 'attic-experiment-log');
@@ -483,6 +484,9 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
                                                               ? 108
                                                               : 99;
   const positioned = withPlayer(falseEscape.session, x);
+  // Attic: a crate shadow growing at x=36, then a crate mid-fall at x=36.
+  if (scenario === 'attic-arrival') return { ...positioned, elapsedMs: 1_000 };
+  if (scenario === 'attic-evidence') return { ...positioned, elapsedMs: 1_420 };
   // Pendulum dropping at the left end (warning) while Wally reads the clock.
   if (scenario === 'hallway-clock') return { ...positioned, elapsedMs: 1_750 };
   // Pendulum mid-sweep across the corridor while Wally waits at the far door.
