@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   label: { color: '#c9bdba', fontFamily: 'monospace', fontSize: 4, fontWeight: '900' },
   prompt: { position: 'absolute', bottom: 7, left: '28%', right: '28%', minHeight: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(29,25,40,0.82)' },
   promptText: { color: '#fff0c9', fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
-  reaction: { minHeight: 18, color: '#f5e9d2', fontFamily: 'monospace', fontSize: 8, fontWeight: '800', textAlign: 'center' },
+  reaction: { alignSelf: 'stretch', paddingHorizontal: 16, minHeight: 18, color: '#f5e9d2', fontFamily: 'monospace', fontSize: 8, fontWeight: '800', textAlign: 'center' },
   controls: { flexDirection: 'row', gap: 7 },
   control: { minWidth: 62, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(186,213,199,0.45)', borderRadius: 13, backgroundColor: 'rgba(62,98,134,0.42)', paddingHorizontal: 9 },
   tapControl: { minWidth: 76 },

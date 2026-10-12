@@ -335,8 +335,8 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
           {[0, 1, 2].map(index => (
             <Circle
               key={`nightmare-hit-${index}`}
-              cx={px(101 + index * 7)}
-              cy={px(14)}
+              cx={px(126 + index * 7)}
+              cy={px(30)}
               r={px(1.8)}
               color={(nightmareState?.hits ?? 0) > index ? '#ff5d69' : '#394354'}
             />
