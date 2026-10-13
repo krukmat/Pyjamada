@@ -29,9 +29,18 @@ export type FloorWaveSnapshot = {
 
 export const INACTIVE_FLOOR_WAVE: FloorWaveSnapshot = { phase: 'inactive', dangerous: false, progress: 0, fronts: [] };
 
-export function alignFloorWaveStart(config: FloorWaveConfig, elapsedMs: number): number {
-  // Start on a cycle boundary so the first wave is always fully telegraphed.
-  return Math.ceil(Math.max(0, elapsedMs) / config.cycleMs) * config.cycleMs;
+/**
+ * Moves the clock forward (never backward) to where the first cycle should
+ * start. 'safe' begins with the quiet window; 'telegraph' skips it so the first
+ * wave follows its warning immediately. Either way every wave is telegraphed.
+ */
+export function alignFloorWaveStart(
+  config: FloorWaveConfig,
+  elapsedMs: number,
+  startAt: 'safe' | 'telegraph' = 'safe',
+): number {
+  const offset = startAt === 'telegraph' ? config.safeMs : 0;
+  return Math.ceil((Math.max(0, elapsedMs) - offset) / config.cycleMs) * config.cycleMs + offset;
 }
 
 export function resolveFloorWave(config: FloorWaveConfig, elapsedMs: number): FloorWaveSnapshot {
