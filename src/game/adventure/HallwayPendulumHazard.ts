@@ -14,14 +14,18 @@ export type HallwayPendulumSnapshot = {
  * first reaches the Living Room, a phantom pendulum hangs from the clock. It
  * waits raised at one end of its arc, drops (the warning), sweeps the middle
  * of the corridor at body height, then rises at the other end. Jumping does
- * not clear it; the counterplay is crossing while it is raised. Both room
- * entries sit outside its reach.
+ * not clear it; the counterplay is crossing while it is raised. It arms raised
+ * on the door side, so its first swing comes back at a Wally heading for the
+ * Living Room after only `firstWarningMs`; stepping back toward the Bedroom
+ * escapes it. Both room entries sit outside its reach.
  */
 export const HALLWAY_PENDULUM = {
   cycleMs: 6_000,
   holdMs: 2_000,
   sweepMs: 1_000,
   dropMs: 500,
+  /** Raised time left plus the drop when the pendulum arms on the door side. */
+  firstWarningMs: 700,
   pivotX: 64,
   pivotY: 43,
   leftX: 39,
@@ -49,8 +53,11 @@ export function armHallwayPendulum(
   if (adventure.currentRoom !== 'hallway' || !isHallwayPendulumLive(adventure) || isHallwayPendulumArmed(adventure)) {
     return { adventure, elapsedMs };
   }
-  // A cycle starts raised, so Wally always gets the full hold to move away.
-  const aligned = Math.ceil(Math.max(0, elapsedMs) / HALLWAY_PENDULUM.cycleMs) * HALLWAY_PENDULUM.cycleMs;
+  // Start raised at the door end with `firstWarningMs` left before the sweep
+  // back toward the clock; the clock only moves forward.
+  const { cycleMs, holdMs, sweepMs, firstWarningMs } = HALLWAY_PENDULUM;
+  const offset = 2 * holdMs + sweepMs - firstWarningMs;
+  const aligned = Math.ceil((Math.max(0, elapsedMs) - offset) / cycleMs) * cycleMs + offset;
   return { adventure: markRoomInteraction(adventure, 'hallway', ARMED_INTERACTION), elapsedMs: aligned };
 }
 

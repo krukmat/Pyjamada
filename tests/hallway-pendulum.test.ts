@@ -49,21 +49,62 @@ void test('stays calm before the clock and after reaching the Living Room', () =
   }
 });
 
-void test('starts raised, so Wally at the clock has the whole hold to move away', () => {
+void test('arms raised on the door side and swings back after a short warning', () => {
   const s = setup('pendulum-arm', true);
   const armed = stepAdventureExploration(s.session, s.adventure, 16);
   equal(isHallwayPendulumArmed(armed.adventure), true, 'inspecting the clock arms the pendulum');
-  equal(armed.session.elapsedMs % P.cycleMs, 0, 'arming aligns to a cycle boundary');
-  for (let t = 0; t < P.holdMs; t += 50) {
-    equal(resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs + t).dangerous, false, `raised and harmless ${t}ms after arming`);
+  equal(armed.session.elapsedMs >= s.session.elapsedMs, true, 'arming never moves the clock backward');
+  const first = resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs);
+  equal(first.phase, 'raised', 'it appears raised');
+  equal(first.bobX, P.rightX, 'on the door side of the arc');
+  for (let t = 0; t < P.firstWarningMs; t += 50) {
+    equal(resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs + t).dangerous, false, `harmless ${t}ms after arming`);
   }
-  equal(resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs + P.holdMs - 100).phase, 'dropping', 'it visibly drops before sweeping');
+  equal(resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs + P.firstWarningMs - 100).phase, 'dropping', 'it visibly drops before sweeping');
+  equal(resolveHallwayPendulum(armed.adventure, armed.session.elapsedMs + P.firstWarningMs + 1).dangerous, true, 'the sweep follows the warning');
+});
+
+function walk(session: HauntedSessionState, adventure: AdventureState, direction: 'left' | 'right', untilX: (x: number) => boolean) {
+  let current = session;
+  let state = adventure;
+  let hit = false;
+  for (let step = 0; step < 90 && !untilX(current.player.x) && !hit; step += 1) {
+    const stepped = stepAdventureExploration({ ...current, input: { ...createHauntedInputState(), [direction]: true } }, state, 1000 / 30);
+    hit = stepped.session.combat.hp < current.combat.hp;
+    current = stepped.session;
+    state = stepped.adventure;
+  }
+  return { hit, session: current, adventure: state };
+}
+
+void test('the first swing hits a Wally who walks from the clock to the Living Room door', () => {
+  // Coming from the Bedroom, the clock is inspected from its left half (x 54..64).
+  for (let clockX = 54; clockX <= 64; clockX += 2) {
+    const s = setup(`pendulum-walk-${clockX}`, true);
+    const armed = stepAdventureExploration({ ...s.session, player: { ...s.session.player, x: clockX } }, s.adventure, 16);
+    const run = walk(armed.session, armed.adventure, 'right', x => x >= 106);
+    equal(run.hit, true, `the bob meets Wally walking right from x ${clockX}`);
+  }
+});
+
+void test('stepping back toward the Bedroom escapes the first swing', () => {
+  const s = setup('pendulum-retreat', true);
+  const armed = stepAdventureExploration(s.session, s.adventure, 16);
+  let session = armed.session;
+  let adventure = armed.adventure;
+  for (let t = 0; t < P.firstWarningMs + P.sweepMs + 200; t += 1000 / 30) {
+    const left = session.player.x > P.leftX - P.halfWidth - 3;
+    const stepped = stepAdventureExploration({ ...session, input: { ...createHauntedInputState(), left } }, adventure, 1000 / 30);
+    equal(stepped.session.combat.hp, session.combat.hp, `retreating Wally is safe at ${Math.round(t)}ms`);
+    session = stepped.session;
+    adventure = stepped.adventure;
+  }
 });
 
 void test('standing in the sweep is hit, and jumping does not help', () => {
   const s = setup('pendulum-hit', true);
   const armed = stepAdventureExploration(s.session, s.adventure, 16);
-  const midSweep = armed.session.elapsedMs + P.holdMs + P.sweepMs / 2;
+  const midSweep = armed.session.elapsedMs + P.firstWarningMs + P.sweepMs / 2;
   for (const grounded of [true, false]) {
     const session = { ...armed.session, elapsedMs: midSweep, player: { ...armed.session.player, x: 64, grounded, y: grounded ? 104 : 90 } };
     const stepped = stepAdventureExploration(session, armed.adventure, 0);
@@ -75,7 +116,8 @@ void test('a well-timed run crosses the corridor without a hit', () => {
   const s = setup('pendulum-cross', true);
   const armed = stepAdventureExploration(s.session, s.adventure, 16);
   // Wait left of the arc; start running the moment it rises at the right end.
-  const start = armed.session.elapsedMs + P.holdMs + P.sweepMs;
+  const cycleStart = armed.session.elapsedMs - (armed.session.elapsedMs % P.cycleMs) + P.cycleMs;
+  const start = cycleStart + P.holdMs + P.sweepMs;
   let x = P.leftX - P.halfWidth - 1;
   let v = 0;
   for (let t = 0; x < P.rightX + P.halfWidth + 1; t += 10) {
