@@ -19,7 +19,10 @@ npm run qa:bot     # prints a Markdown balance report; never fails
 - **Route bot** - explores every visible interaction (memoized per room state),
   walks to the nearest room with something untried, fights the Bathroom twin and
   the Laboratory phases with Dream Sparks, and dodges with a lookahead that sees
-  danger `reactionMs` ahead (0 = never dodges).
+  danger `reactionMs` ahead (0 = never dodges). After using an object it stays
+  put for `readMs` (default 1.2 s), like a player reading the reaction text,
+  while still dodging. Navigation uses the same lookahead for every bot so only
+  danger perception differs.
 - **Random bot** - seeded button mashing, started from the route bot's snapshot
   at each room entry.
 
@@ -37,6 +40,10 @@ A stuck or failing run reports the room, Wally's position, HP and the bot's
 current goal.
 
 ## Limits
+
+Bots that see danger less than 800 ms ahead can still stall in the Laboratory
+fight (input distortion and timed weak points); Laboratory balance needs human
+playtesting.
 
 The bot does not see the screen: rendering, readability and device performance
 still need `npm run screenshots:android` and human playtesting. The Bedroom

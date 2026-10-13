@@ -29,8 +29,16 @@ import {
   restoreLaboratoryCheckpoint,
   shouldUseLaboratoryCheckpoint,
 } from '../../src/game/adventure/LaboratoryEncounter';
-import { isResonatorWeakPointDisabled, RESONATOR_WEAK_POINTS } from '../../src/game/adventure/LaboratoryResonatorInstability';
-import { isVesperControlDeviceDisabled, VESPER_CONTROL_DEVICES } from '../../src/game/adventure/LaboratoryVesperControl';
+import {
+  isResonatorWeakPointDisabled,
+  RESONATOR_ELECTRICAL_LANES,
+  RESONATOR_WEAK_POINTS,
+} from '../../src/game/adventure/LaboratoryResonatorInstability';
+import {
+  isVesperControlDeviceDisabled,
+  VESPER_CONTROL_DEVICES,
+  VESPER_PRESSURE_LANES,
+} from '../../src/game/adventure/LaboratoryVesperControl';
 import { VESPER_NIGHTMARE_TARGET } from '../../src/game/adventure/LaboratoryVesperNightmare';
 import {
   ACTIVE_ROOM_IDS,
@@ -298,7 +306,13 @@ type Goal = { x: number; label: string; interactionId?: string; aimX?: number };
 const DECISION_STEPS = 3;
 const ARRIVE_DISTANCE = 2.5;
 const FIRING_DISTANCE = 28;
+const FIRING_DISTANCES = [16, 22, FIRING_DISTANCE] as const;
 const CONTINUATIONS = ['goal', 'idle', 'hold'] as const;
+/**
+ * Lookahead used for navigation (does walking approach the goal?). It is the
+ * same for every bot; only damage inside `reactionMs` counts as seen danger.
+ */
+const NAVIGATION_STEPS = 24;
 
 function clampX(x: number): number {
   return Math.min(HAUNTED_PLAYER_BOUNDS.maxX, Math.max(HAUNTED_PLAYER_BOUNDS.minX, x));
@@ -334,6 +348,14 @@ export function combatTargets(world: BotWorld): number[] {
   return [];
 }
 
+function laboratoryLanes(adventure: AdventureState): readonly { minX: number; maxX: number }[] {
+  if (adventure.currentRoom !== 'laboratory') return [];
+  const phase = getLaboratoryEncounterPhase(adventure);
+  if (phase === 'vesper-control') return Object.values(VESPER_PRESSURE_LANES);
+  if (phase === 'resonator') return Object.values(RESONATOR_ELECTRICAL_LANES);
+  return [];
+}
+
 function facingDirection(world: BotWorld): -1 | 1 {
   return world.session.player.facing === 'left' ? -1 : 1;
 }
@@ -348,8 +370,18 @@ function goalAction(world: BotWorld, goal: Goal): BotAction {
     const move = dx < 0 ? -1 : 1;
     return { move, jump: false, attack: aimed && move === aimDirection, interact: interactsWith(world, goal) };
   }
-  if (aimDirection !== undefined && !aimed) return { move: aimDirection, jump: false, attack: false, interact: false };
+  if (aimDirection !== undefined && !aimed) return { move: turningMove(world, aimDirection), jump: false, attack: false, interact: false };
   return { move: 0, jump: false, attack: aimed, interact: interactsWith(world, goal) };
+}
+
+/** The tap that actually turns Wally toward the target (controls may be inverted by the resonator). */
+function turningMove(world: BotWorld, aimDirection: -1 | 1): -1 | 1 {
+  for (const move of [aimDirection, aimDirection === 1 ? -1 : 1] as const) {
+    const input = toInput({ move, jump: false, attack: false, interact: false });
+    const stepped = stepAdventureExploration({ ...world.session, input }, world.adventure, BOT_STEP_MS);
+    if ((stepped.session.player.facing === 'left' ? -1 : 1) === aimDirection) return move;
+  }
+  return aimDirection;
 }
 
 function interactsWith(world: BotWorld, goal: Goal): boolean {
@@ -362,13 +394,20 @@ export class RouteBot implements BotPolicy {
   /** Interactions the bot reached but could not select because another target wins at that spot. */
   readonly shadowed = new Set<string>();
   private readonly horizonSteps: number;
+  private readonly readSteps: number;
+  private reading: { x: number; stepsLeft: number; label: string } | undefined;
   private current: BotAction = IDLE_ACTION;
   private stepsUntilDecision = 0;
   private goal: Goal | undefined = { x: 0, label: 'start' };
 
-  /** `reactionMs` is how far ahead the bot sees danger; 0 never dodges. */
-  constructor(reactionMs = 800) {
+  /**
+   * `reactionMs` is how far ahead the bot sees danger; 0 never dodges.
+   * `readMs` is how long it stays put after using an object, like a player
+   * reading the reaction text (it still dodges and fights meanwhile).
+   */
+  constructor(reactionMs = 800, readMs = 1200) {
     this.horizonSteps = Math.round(reactionMs / BOT_STEP_MS);
+    this.readSteps = Math.round(readMs / BOT_STEP_MS);
   }
 
   describe(): string {
@@ -380,6 +419,7 @@ export class RouteBot implements BotPolicy {
   }
 
   act(world: BotWorld): BotAction {
+    if (this.reading && --this.reading.stepsLeft <= 0) this.reading = undefined;
     if (this.stepsUntilDecision > 0) {
       this.stepsUntilDecision -= 1;
       return { ...this.current, jump: false, interact: false };
@@ -397,6 +437,10 @@ export class RouteBot implements BotPolicy {
     if (action.interact && this.goal.interactionId) {
       const room = world.adventure.currentRoom;
       this.attempted.add(`${room}|${this.goal.interactionId}|${roomSignature(world.adventure, room)}`);
+      const used = findActiveRoom(room)?.interactions.find(interaction => interaction.id === this.goal?.interactionId);
+      if (used?.behavior.type === 'effect' && this.readSteps > 0) {
+        this.reading = { x: world.session.player.x, stepsLeft: this.readSteps, label: `reading after ${used.id}` };
+      }
     }
     this.current = action;
     this.stepsUntilDecision = DECISION_STEPS - 1;
@@ -429,6 +473,8 @@ export class RouteBot implements BotPolicy {
       return { x: this.firingPosition(world, target), aimX: target, label: `fight target@${Math.round(target)}` };
     }
 
+    if (this.reading) return { x: this.reading.x, label: this.reading.label };
+
     const room = adventure.currentRoom;
     const effects = this.untriedEffects(adventure, room)
       .sort((a, b) => Math.abs(a.x - playerX) - Math.abs(b.x - playerX));
@@ -439,12 +485,22 @@ export class RouteBot implements BotPolicy {
     return undefined;
   }
 
+  /** Nearest spot within spark range of the target, preferring spots outside the phase's hazard lanes. */
   private firingPosition(world: BotWorld, targetX: number): number {
     const playerX = world.session.player.x;
     if (isBathroomTwinActive(world.adventure)) return playerX < 64 ? 24 : 104;
-    const side = playerX <= targetX ? -1 : 1;
-    const preferred = clampX(targetX + side * FIRING_DISTANCE);
-    return Math.abs(preferred - targetX) >= 12 ? preferred : clampX(targetX - side * FIRING_DISTANCE);
+    const lanes = laboratoryLanes(world.adventure);
+    let best = { x: clampX(targetX - FIRING_DISTANCE), score: Number.POSITIVE_INFINITY };
+    for (const distance of FIRING_DISTANCES) {
+      for (const side of [-1, 1]) {
+        const x = clampX(targetX + side * distance);
+        if (Math.abs(x - targetX) < 12) continue;
+        const inLane = lanes.some(lane => x >= lane.minX - 2 && x <= lane.maxX + 2);
+        const score = Math.abs(x - playerX) + (inLane ? 40 : 0);
+        if (score < best.score) best = { x, score };
+      }
+    }
+    return best.x;
   }
 
   /** Breadth-first search to the nearest room that is unvisited or has untried interactions. */
@@ -469,21 +525,30 @@ export class RouteBot implements BotPolicy {
     return undefined;
   }
 
-  /** Keeps the goal action unless the lookahead sees damage, then picks the safest escape. */
+  /**
+   * Keeps the goal action unless the lookahead sees damage (dodging bots) or
+   * sees that walking makes no progress (e.g. inverted controls), then picks
+   * the best alternative by simulating each one.
+   */
   private choose(world: BotWorld, goal: Goal): BotAction {
     const intended = goalAction(world, goal);
-    if (this.horizonSteps <= 0) return intended;
-    const direct = this.rollout(world, goal, intended, 'goal');
-    if (direct.loss === 0) return intended;
+    const dodges = this.horizonSteps > 0;
+    const horizon = Math.max(this.horizonSteps, NAVIGATION_STEPS);
+    const direct = this.rollout(world, goal, intended, 'goal', horizon);
+    const distance = Math.abs(world.session.player.x - goal.x);
+    // Turning in place to aim is not walking, so only check progress while walking.
+    const progressing = distance <= ARRIVE_DISTANCE || Math.abs(direct.finalX - goal.x) < distance - 0.5;
+    if ((!dodges || direct.loss === 0) && progressing) return intended;
 
-    let best = { action: intended, score: direct.loss * 1000 + Math.abs(direct.finalX - goal.x) * 0.05 };
+    const score = (result: { loss: number; finalX: number }, jump: boolean) =>
+      (dodges ? result.loss * 1000 : 0) + Math.abs(result.finalX - goal.x) * 0.05 + (jump ? 0.2 : 0);
+    let best = { action: intended, score: score(direct, false) };
     for (const move of [-1, 0, 1] as const) {
       for (const jump of [false, true]) {
         const candidate: BotAction = { move, jump, attack: false, interact: false };
         for (const continuation of CONTINUATIONS) {
-          const result = this.rollout(world, goal, candidate, continuation);
-          const score = result.loss * 1000 + Math.abs(result.finalX - goal.x) * 0.05 + (jump ? 0.2 : 0);
-          if (score < best.score) best = { action: candidate, score };
+          const candidateScore = score(this.rollout(world, goal, candidate, continuation, horizon), jump);
+          if (candidateScore < best.score) best = { action: candidate, score: candidateScore };
         }
       }
     }
@@ -496,11 +561,12 @@ export class RouteBot implements BotPolicy {
     goal: Goal,
     first: BotAction,
     continuation: (typeof CONTINUATIONS)[number],
+    horizon: number,
   ): { loss: number; finalX: number } {
     let session = world.session;
     let adventure = world.adventure;
     let loss = 0;
-    for (let index = 0; index < this.horizonSteps; index += 1) {
+    for (let index = 0; index < horizon; index += 1) {
       let action: BotAction;
       if (index < DECISION_STEPS) action = { ...first, jump: first.jump && index === 0, attack: false, interact: false };
       else if (continuation === 'idle') action = IDLE_ACTION;
@@ -508,10 +574,11 @@ export class RouteBot implements BotPolicy {
       else action = { ...goalAction({ session, adventure }, goal), attack: false, interact: false };
 
       const stepped = stepAdventureExploration({ ...session, input: toInput(action) }, adventure, BOT_STEP_MS);
-      loss += Math.max(0, session.combat.hp - stepped.session.combat.hp);
+      const seen = index < this.horizonSteps;
+      if (seen) loss += Math.max(0, session.combat.hp - stepped.session.combat.hp);
       session = stepped.session;
       adventure = stepped.adventure;
-      if (session.objective.phase === 'failed') return { loss: loss + 100, finalX: session.player.x };
+      if (session.objective.phase === 'failed') return { loss: seen ? loss + 100 : loss, finalX: session.player.x };
     }
     return { loss, finalX: session.player.x };
   }
