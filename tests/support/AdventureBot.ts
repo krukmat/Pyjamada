@@ -224,6 +224,8 @@ export type BotRunOptions = {
   maxGameMs: number;
   /** Fail as stuck when the adventure state does not change for this long. */
   stallMs?: number;
+  /** End the run (outcome 'completed') as soon as Wally leaves the starting room. */
+  stopOnRoomExit?: boolean;
 };
 
 function progressSignature(adventure: AdventureState): string {
@@ -284,6 +286,7 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
     if (step.outcome === 'died') return finish('died', `died (${describeWorld(world)}; ${policy.describe()})`);
     if (step.outcome === 'completed') return finish('completed', `ending complete (${describeWorld(world)})`);
     if (step.outcome === 'transition' || step.outcome === 'ending-started') {
+      if (options.stopOnRoomExit) return finish('completed', `left ${room} (${describeWorld(world)})`);
       roomEntries[world.adventure.currentRoom] ??= world;
     }
 

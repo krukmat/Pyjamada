@@ -51,6 +51,22 @@ for (const room of ACTIVE_ROOM_IDS) {
 }
 
 const seedRun: BotRunResult = routes[0].result;
+const THREAT_ROOMS = ['hallway', 'living-room', 'kitchen', 'bathroom', 'attic'] as const;
+console.log('\n## Room threats in isolation (each room entered with full HP, until Wally leaves it)\n');
+console.log(`| Room | ${REACTIONS_MS.map(routeLabel).join(' | ')} |`);
+console.log(`|---|${REACTIONS_MS.map(() => '---:').join('|')}|`);
+for (const room of THREAT_ROOMS) {
+  const start = seedRun.roomEntries[room];
+  if (!start) continue;
+  const full = { ...start, session: { ...start.session, combat: { ...start.session.combat, hp: start.session.combat.maxHp } } };
+  const cells = REACTIONS_MS.map(reactionMs => {
+    const result = runBot(full, new RouteBot(reactionMs), { maxGameMs: 5 * 60_000, stallMs: 120_000, stopOnRoomExit: true });
+    const suffix = result.outcome === 'completed' ? '' : ` (${result.outcome})`;
+    return `${result.hits} hits${suffix}`;
+  });
+  console.log(`| ${room} | ${cells.join(' | ')} |`);
+}
+
 console.log(`\n## Random fuzz (${FUZZ_SEEDS} seeded runs x ${FUZZ_MS / 1000}s from each room entry)\n`);
 console.log('| Start room | Died | Hits/min | Rooms reached | Violations |');
 console.log('|---|---:|---:|---:|---:|');
