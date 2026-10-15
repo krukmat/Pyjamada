@@ -43,7 +43,7 @@ import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { roomInteractionTarget } from '../game/render/RoomPresentation';
-import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
+import { stageDimensionsForScreen } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
@@ -87,8 +87,8 @@ export function HauntedGameScreen({
   onFinishEnding,
   onExit,
 }: Props) {
-  const { width } = useWindowDimensions();
-  const viewport = stageDimensionsForScreenWidth(width);
+  const { width, height } = useWindowDimensions();
+  const viewport = stageDimensionsForScreen(width, height - SCREEN_CHROME_HEIGHT);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
@@ -414,29 +414,36 @@ const ARCADE = {
   muted: '#9585c9',
 } as const;
 
+// Everything on the screen but the stage, at its minimum: status bar and
+// container padding, marquee, message panel, control deck, menu link, the
+// container gaps and the cabinet's padding, border and inner gaps.
+const DECK_MIN_HEIGHT = 140;
+const SCREEN_CHROME_HEIGHT = (StatusBar.currentHeight ?? 0) + 14 + 52 + 86 + DECK_MIN_HEIGHT + 30 + 20 + 26;
+
 const styles = StyleSheet.create({
   // Android draws edge-to-edge: keep the marquee clear of the status bar.
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: ARCADE.cabinet, paddingTop: (StatusBar.currentHeight ?? 0) + 8, paddingBottom: 6 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 10, backgroundColor: ARCADE.cabinet, paddingTop: (StatusBar.currentHeight ?? 0) + 8, paddingBottom: 6 },
   cabinet: { alignItems: 'center', gap: 6, padding: 4, borderWidth: 3, borderColor: ARCADE.bezel, borderRadius: 4, backgroundColor: ARCADE.screen },
   marquee: { alignSelf: 'stretch', minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 2, borderColor: ARCADE.bezelLight },
   marqueeMission: { flexShrink: 1 },
-  kicker: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  objective: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  kicker: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  objective: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
   stats: { alignItems: 'flex-end', gap: 3 },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  time: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
-  hp: { color: '#ff5277', fontFamily: 'monospace', fontSize: 10, fontWeight: '900' },
+  time: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 12, fontWeight: '900' },
+  hp: { color: '#ff5277', fontFamily: 'monospace', fontSize: 13, fontWeight: '900' },
   meter: { width: 46 },
   label: { color: ARCADE.muted, fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
   gameFrame: { position: 'relative', overflow: 'hidden', backgroundColor: SCENE_TOKENS.skyDeep },
-  messagePanel: { alignSelf: 'stretch', minHeight: 70, alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 2, borderColor: ARCADE.bezelLight },
+  messagePanel: { alignSelf: 'stretch', minHeight: 84, alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 2, borderColor: ARCADE.bezelLight },
   prompt: { minHeight: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderWidth: 1, borderColor: VISUAL_TOKENS.ui.yellow, borderRadius: 2 },
   promptIdle: { borderColor: ARCADE.bezel },
-  promptText: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  reaction: { alignSelf: 'stretch', color: ARCADE.ink, fontFamily: 'monospace', fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  promptText: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  reaction: { alignSelf: 'stretch', color: ARCADE.ink, fontFamily: 'monospace', fontSize: 12, fontWeight: '800', lineHeight: 16, textAlign: 'center' },
   outcome: { minWidth: '70%', minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 2, backgroundColor: ARCADE.cabinet },
   outcomeText: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  deck: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, minHeight: 132 },
+  // The deck takes all the height the stage leaves, so the screen has no dead band.
+  deck: { flex: 1, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, minHeight: DECK_MIN_HEIGHT },
   roundButton: { width: 58, height: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 29, backgroundColor: '#1f8fa8' },
   accentButton: { borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   dangerButton: { width: 66, height: 66, borderRadius: 33, borderColor: '#ff9aa8', backgroundColor: '#d23a5a' },
@@ -444,6 +451,6 @@ const styles = StyleSheet.create({
   wideButton: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 4, borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   wideText: { color: ARCADE.cabinet, fontFamily: 'monospace', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
   pressed: { opacity: 0.7, transform: [{ translateY: 2 }] },
-  exitButton: { minHeight: 24, justifyContent: 'center', paddingHorizontal: 12 },
-  exitText: { color: ARCADE.muted, fontFamily: 'monospace', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  exitButton: { minHeight: 30, justifyContent: 'center', paddingHorizontal: 16 },
+  exitText: { color: ARCADE.muted, fontFamily: 'monospace', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
 });

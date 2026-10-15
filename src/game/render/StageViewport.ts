@@ -22,6 +22,23 @@ export function stageDimensionsForScreenWidth(screenWidth: number): StageDimensi
   };
 }
 
+/**
+ * Stage for the haunted game screen: the 128-unit room fills the width (the
+ * decorative side margins crop first) unless `availableHeight` is the tighter
+ * bound; wider screens show more of the margins.
+ */
+export function stageDimensionsForScreen(screenWidth: number, availableHeight: number): StageDimensions {
+  const availableWidth = Math.max(LOGICAL_SIZE, Math.floor(screenWidth - 20));
+  const fit = Math.min(availableWidth / LOGICAL_SIZE, availableHeight / STAGE_LOGICAL_HEIGHT);
+  const height = Math.floor(STAGE_LOGICAL_HEIGHT * Math.max(1, fit));
+  const scale = height / STAGE_LOGICAL_HEIGHT;
+  return {
+    width: Math.min(availableWidth, Math.floor(STAGE_LOGICAL_WIDTH * scale)),
+    height,
+    scale,
+  };
+}
+
 export function stageScale(pixelSize: number): number {
   return pixelSize / LOGICAL_SIZE;
 }

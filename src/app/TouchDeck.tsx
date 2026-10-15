@@ -108,16 +108,17 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction 
 }
 
 const styles = StyleSheet.create({
-  deck: { alignSelf: 'stretch', flexDirection: 'row', minHeight: 132 },
+  // flex: 1 so the deck fills its row; without it the halves collapse to zero width.
+  deck: { flex: 1, alignSelf: 'stretch', flexDirection: 'row', minHeight: 132 },
   half: { flex: 1, flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  padKey: { width: 64, height: 76, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#6b5aa0', borderRadius: 8, backgroundColor: '#352a5a' },
-  padText: { color: '#f4f1de', fontSize: 24, fontWeight: '900' },
-  button: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 30, backgroundColor: '#1f8fa8' },
+  padKey: { width: 76, height: 96, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#6b5aa0', borderRadius: 8, backgroundColor: '#352a5a' },
+  padText: { color: '#f4f1de', fontSize: 30, fontWeight: '900' },
+  button: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 36, backgroundColor: '#1f8fa8' },
   attackButton: { borderColor: '#ff9aa8', backgroundColor: '#d23a5a' },
   useButton: { borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   disabled: { opacity: 0.25 },
-  buttonText: { color: '#f4f1de', fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  targetText: { maxWidth: 54, color: '#0b0a12', fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
+  buttonText: { color: '#f4f1de', fontFamily: 'monospace', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  targetText: { maxWidth: 64, color: '#0b0a12', fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },
   pressed: { opacity: 0.7, transform: [{ translateY: 2 }] },
 });
