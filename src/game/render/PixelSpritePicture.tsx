@@ -28,10 +28,12 @@ type Props = {
   x: number;
   y: number;
   px: (value: number) => number;
+  /** Stage units per sprite pixel. */
+  scale?: number;
 };
 
-export function PixelSpritePicture({ sprite, x, y, px }: Props) {
-  const unit = px(1000) / 1000;
+export function PixelSpritePicture({ sprite, x, y, px, scale = 1 }: Props) {
+  const unit = (px(1000) / 1000) * scale;
   return (
     <Group transform={[{ translateX: px(x) }, { translateY: px(y) }, { scale: unit }]}>
       <Picture picture={pictureFor(sprite)} />

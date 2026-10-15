@@ -441,12 +441,14 @@ function isVisible(adventure: AdventureState, roomId: RoomId, interaction: RoomI
   return !hiddenBy || getRoomState(adventure, roomId).switches[hiddenBy] !== true;
 }
 
-function roomSignature(adventure: AdventureState, roomId: RoomId, ignoreHazardClocks = false): string {
+function roomSignature(adventure: AdventureState, roomId: RoomId, human = false): string {
   const room = adventure.rooms[roomId] ?? null;
-  if (!ignoreHazardClocks || !room) return JSON.stringify([adventure.storyFlags, room]);
-  // A hazard arming its clock ('*-armed') or a room boss fight ('*-boss-*') is not news a player would re-read objects for.
+  if (!human || !room) return JSON.stringify([adventure.storyFlags, room]);
+  // A hazard arming its clock ('*-armed'), a room boss fight ('*-boss-*') or which object was looked at
+  // last ('*-focused') is not news a player would re-read objects for.
   const interactions = room.interactions.filter(interaction => !interaction.endsWith('-armed') && !interaction.includes('-boss-'));
-  return JSON.stringify([adventure.storyFlags, { ...room, interactions }]);
+  const switches = Object.fromEntries(Object.entries(room.switches).filter(([id]) => !id.endsWith('-focused')));
+  return JSON.stringify([adventure.storyFlags, { ...room, interactions, switches }]);
 }
 
 /**
@@ -534,22 +536,26 @@ export function interactsWith(world: BotWorld, goal: Goal): boolean {
  */
 export class RoutePlanner {
   private readonly attempted = new Set<string>();
+  /** `room|interaction` read at least once, whatever the room state was. */
+  private readonly everAttempted = new Set<string>();
   /** Interactions reached but not selectable because another target wins at that spot. */
   readonly shadowed = new Set<string>();
 
   /**
-   * Objects are retried whenever their room state changes. `ignoreHazardClocks`
-   * (human model) does not count a hazard arming its clock as such a change.
+   * Objects are retried whenever their room state changes. The `human` model
+   * does not count hazard clocks, boss fights or object focus as such a change,
+   * and heads for a newly opened room before walking back to re-read old ones.
    */
-  constructor(private readonly ignoreHazardClocks = false) {}
+  constructor(private readonly human = false) {}
 
   private signature(adventure: AdventureState, roomId: RoomId): string {
-    return roomSignature(adventure, roomId, this.ignoreHazardClocks);
+    return roomSignature(adventure, roomId, this.human);
   }
 
   markAttempted(adventure: AdventureState, interactionId: string): void {
     const room = adventure.currentRoom;
     this.attempted.add(`${room}|${interactionId}|${this.signature(adventure, room)}`);
+    this.everAttempted.add(`${room}|${interactionId}`);
   }
 
   markShadowed(adventure: AdventureState, interactionId: string): void {
@@ -562,11 +568,16 @@ export class RoutePlanner {
     const { adventure, session } = world;
     const playerX = session.player.x;
     const room = adventure.currentRoom;
+    // A player who has read everything here once takes a newly opened way forward first.
+    const forward = this.human && this.untriedEffects(adventure, room).every(effect => this.everAttempted.has(`${room}|${effect.id}`))
+      ? this.nextExit(adventure, true)
+      : undefined;
+    if (forward) return { x: clampX(forward.x), interactionId: forward.id, label: `${room}:${forward.id}` };
     const effects = this.untriedEffects(adventure, room)
       .sort((a, b) => Math.abs(a.x - playerX) - Math.abs(b.x - playerX));
     if (effects[0]) return { x: clampX(effects[0].x), interactionId: effects[0].id, label: `${room}:${effects[0].id}` };
 
-    const exit = this.nextExit(adventure);
+    const exit = this.nextExit(adventure, false);
     if (exit) return { x: clampX(exit.x), interactionId: exit.id, label: `${room}:${exit.id}` };
     return undefined;
   }
@@ -581,8 +592,8 @@ export class RoutePlanner {
       && !this.attempted.has(`${roomId}|${interaction.id}|${signature}`));
   }
 
-  /** Breadth-first search to the nearest room that is unvisited or has untried interactions. */
-  private nextExit(adventure: AdventureState): RoomInteractionDefinition | undefined {
+  /** Breadth-first search to the nearest room that is unvisited or (unless `unvisitedOnly`) has untried interactions. */
+  private nextExit(adventure: AdventureState, unvisitedOnly: boolean): RoomInteractionDefinition | undefined {
     const start = adventure.currentRoom;
     const seen = new Set<RoomId>([start]);
     const queue: { room: RoomId; first?: RoomInteractionDefinition }[] = [{ room: start }];
@@ -595,7 +606,7 @@ export class RoutePlanner {
         seen.add(exit.targetRoom);
         const firstHop = first ?? interaction;
         const wanted = !adventure.visitedRooms.includes(exit.targetRoom)
-          || this.untriedEffects(adventure, exit.targetRoom).length > 0;
+          || (!unvisitedOnly && this.untriedEffects(adventure, exit.targetRoom).length > 0);
         if (wanted) return firstHop;
         queue.push({ room: exit.targetRoom, first: firstHop });
       }

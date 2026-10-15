@@ -66,13 +66,15 @@ The same room must support efficient, near-miss and chaos runs without random be
 
 ## Room bosses
 
-Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then four attack cycles:
+Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then one shielded attack cycle (it shows its pattern and blocks Dream Sparks, but still hurts) and three vulnerable ones. Bosses are drawn at twice the pixel size, with a health bar across the top of the room, a white flash and a jolt on each wound, and a burst when dispelled:
 
-- Hallway, **Dust Moth** (2 hits): flutters across the room; shoot from the doorway.
+- Hallway, **Dust Moth** (3 hits): flutters across the room; shoot from the doorway.
 - Living Room, **Static Wraith** (3 hits): blinks between three spots; hittable only once solid.
 - Kitchen, **Giant Roach** (3 hits): waits at a wall, then charges along the floor; jump it.
 
 The Hallway pendulum starts only after the Moth is dispelled.
+
+The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.
 
 ## Persistence
 

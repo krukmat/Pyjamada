@@ -64,20 +64,21 @@ function buildWraith(flicker: boolean): PixelSprite {
 }
 
 function buildRoach(stride: boolean): PixelSprite {
-  const s = new PixelSpriteBuilder(30, 14, ROACH_MATERIALS);
+  // Low and long, so a jumping Wally visibly clears it.
+  const s = new PixelSpriteBuilder(30, 9, ROACH_MATERIALS);
   const legs = stride ? [[-2, 1, 2], [1, -1, 1]] : [[1, -1, 1], [-2, 1, 2]];
-  for (const [index, baseX] of [8, 14, 20].entries()) {
+  for (const [index, baseX] of [7, 13, 19].entries()) {
     const swing = legs[index % 2]![0]!;
-    s.paint(pixelLine([baseX, 9], [baseX + swing, 13], 1), 'leg');
-    s.paint(pixelLine([baseX + 1, 9], [baseX + 1 - swing, 13], 1), 'leg');
+    s.paint(pixelLine([baseX, 6], [baseX + swing, 8], 1), 'leg');
+    s.paint(pixelLine([baseX + 1, 6], [baseX + 1 - swing, 8], 1), 'leg');
   }
-  s.paint(pixelEllipse(14, 7, 11, 4.5), 'shell');
-  s.paint(pixelLine([5, 6], [22, 6], 1), 'head');
-  s.paint(pixelEllipse(25, 8, 3.5, 3), 'head');
-  s.paint(pixelLine([27, 6], [29, stride ? 0 : 1], 1), 'leg');
-  s.paint(pixelLine([26, 6], [27, stride ? 1 : 0], 1), 'leg');
-  s.paint(pixelRect(11, 1, 17, 2).filter(([x, y]) => y === 2 || x % 2 === 1), 'crown');
-  return s.dot(WHITE, [[26, 7]]).dot(RED, [[27, 8]]).build();
+  s.paint(pixelEllipse(13, 4.5, 11, 3), 'shell');
+  s.paint(pixelLine([4, 4], [21, 4], 1), 'head');
+  s.paint(pixelEllipse(25, 5.5, 3.5, 2.5), 'head');
+  s.paint(pixelLine([27, 4], [29, stride ? 0 : 1], 1), 'leg');
+  s.paint(pixelLine([26, 3], [27, stride ? 1 : 0], 1), 'leg');
+  s.paint(pixelRect(22, 1, 26, 2).filter(([x, y]) => y === 2 || x % 2 === 0), 'crown');
+  return s.dot(WHITE, [[26, 5]]).dot(RED, [[27, 6]]).build();
 }
 
 const FRAMES: Record<RoomBossKind, readonly [PixelSprite, PixelSprite]> = {
@@ -85,6 +86,9 @@ const FRAMES: Record<RoomBossKind, readonly [PixelSprite, PixelSprite]> = {
   wraith: [buildWraith(false), buildWraith(true)],
   roach: [buildRoach(false), buildRoach(true)],
 };
+
+/** Sprites are drawn this many stage units per sprite pixel: bosses tower over Wally. */
+export const ROOM_BOSS_SCALE = 2;
 
 /** Animation frame for a boss; `fast` (charging, fluttering) doubles the frame rate. */
 export function roomBossFrame(kind: RoomBossKind, nowMs: number, fast: boolean): PixelSprite {

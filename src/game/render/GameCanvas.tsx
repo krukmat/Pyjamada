@@ -10,8 +10,8 @@ import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import type { SystemicRunState } from '../systemic/SystemicState';
 import { bathroomTwinX, isBathroomTwinActive, isBathroomTwinWounded } from '../adventure/BathroomTwinHazard';
-import { resolveRoomBoss } from '../adventure/RoomBossHazard';
-import { RoomBossLayer } from './RoomBossLayer';
+import { isRoomBossDispelled, resolveRoomBoss } from '../adventure/RoomBossHazard';
+import { RoomBossLayer, useRoomBossFx } from './RoomBossLayer';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
@@ -65,7 +65,16 @@ export function GameCanvas({
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
   const domesticShake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
   const impactShake = resolveCombatImpactShake(hauntedSession, nowMs);
-  const shake = { x: domesticShake.x + impactShake.x, y: domesticShake.y + impactShake.y };
+  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs) : undefined;
+  const bossFx = useRoomBossFx(
+    roomBoss,
+    (room) => Boolean(adventure && adventure.currentRoom === room && isRoomBossDispelled(adventure, room)),
+    nowMs,
+  );
+  const shake = {
+    x: domesticShake.x + impactShake.x + bossFx.shake.x,
+    y: domesticShake.y + impactShake.y + bossFx.shake.y,
+  };
   const playerInvulnerable = Boolean(
     hauntedSession
     // Exploration clamps stale invulnerability when a room's threat clock stops.
@@ -74,7 +83,6 @@ export function GameCanvas({
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
   const laboratoryPhase = roomId === 'laboratory' && adventure ? getLaboratoryEncounterPhase(adventure) : undefined;
   const twinActive = Boolean(adventure && isBathroomTwinActive(adventure));
-  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs) : undefined;
   const twinFlicker = Boolean(adventure && isBathroomTwinWounded(adventure)) && Math.floor(nowMs / 90) % 3 === 0;
   const combat = Boolean(
     (hauntedSession && !exploration && hauntedSession.threats.ghosts.some((ghost) => ghost.phase !== 'dying'))
@@ -115,7 +123,10 @@ export function GameCanvas({
             />
           )}
 
-          {roomBoss && <RoomBossLayer boss={roomBoss} nowMs={nowMs} px={px} />}
+          {roomBoss && <RoomBossLayer boss={roomBoss} nowMs={nowMs} px={px} flash={bossFx.flash} />}
+          {!roomBoss && bossFx.dispelling && (
+            <RoomBossLayer boss={bossFx.dispelling.boss} nowMs={nowMs} px={px} dispelProgress={bossFx.dispelling.progress} />
+          )}
 
           {twinActive && hauntedSession && (
             // The reflection: Wally's own pose, mirrored across the glass, tinted cyan.

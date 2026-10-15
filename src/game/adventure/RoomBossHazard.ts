@@ -13,7 +13,8 @@ import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } f
  *   the other one; jump it, shoot it while it waits.
  *
  * A fight runs in rounds: a harmless rise (long enough to finish reading the
- * object that woke it) and then four attack cycles, after which the boss
+ * object that woke it), one shielded attack cycle that shows the pattern, and
+ * then three vulnerable ones, after which the boss
  * catches its breath where it started. Positions are a pure function of the
  * room clock, aligned to a round start when the boss wakes, so only the
  * arm/hit/dispelled marks are stored, as room interactions.
@@ -37,27 +38,35 @@ export type RoomBossConfig = {
 export const ROOM_BOSSES: Record<RoomBossRoom, RoomBossConfig> = {
   hallway: {
     kind: 'moth', room: 'hallway', name: 'DUST MOTH', guardSwitch: 'living-room-unlocked',
-    exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_800, contactHalfWidth: 7, sparkHitRadius: 7,
+    exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 11, sparkHitRadius: 12,
   },
   'living-room': {
     kind: 'wraith', room: 'living-room', name: 'STATIC WRAITH', guardSwitch: 'source-hum-traced',
-    exitId: 'living-room-to-kitchen', hp: 3, cycleMs: 4_500, contactHalfWidth: 7, sparkHitRadius: 7,
+    exitId: 'living-room-to-kitchen', hp: 3, cycleMs: 4_500, contactHalfWidth: 11, sparkHitRadius: 12,
   },
   kitchen: {
     kind: 'roach', room: 'kitchen', name: 'GIANT ROACH', guardSwitch: 'power-rerouted',
-    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 8, sparkHitRadius: 7,
+    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 13, sparkHitRadius: 14,
   },
 };
 
 /** Moth: x = center + amplitude * cos(phase); it starts beside the forward exit. */
 export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
-/** Wraith: one blink per spot; faint and harmless for telegraphMs, then solid. */
-export const WRAITH_BLINK = { spots: [92, 36, 64], blinkMs: 1_500, telegraphMs: 450 } as const;
+/**
+ * Wraith: one blink per spot; faint and harmless for telegraphMs, then solid.
+ * It rises far from the television that wakes it and never blinks onto it.
+ */
+export const WRAITH_BLINK = { spots: [28, 68, 46], blinkMs: 1_500, telegraphMs: 450 } as const;
 /** Roach: waits at a wall (the last telegraphMs twitching), then charges to the other one. */
-export const ROACH_CHARGE = { leftX: 16, rightX: 112, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
+export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
 
 /** Harmless, untouchable rise at the start of every round. */
 export const ROOM_BOSS_RISE_MS = 3_000;
+/**
+ * The first attack cycle of every round is shielded: the boss shows its attack
+ * once (it still hurts) and blocks Dream Sparks before it can be wounded.
+ */
+const SHIELDED_CYCLES = 1;
 const CYCLES_PER_ROUND = 4;
 
 export function roomBossRoundMs(config: RoomBossConfig): number {
@@ -77,6 +86,8 @@ export type RoomBossSnapshot = {
   dangerous: boolean;
   /** Dream Sparks can land. */
   hittable: boolean;
+  /** Attacking behind a shield that blocks Dream Sparks. */
+  shielded: boolean;
   hits: number;
 };
 
@@ -135,9 +146,14 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number): R
     const start = config.kind === 'moth' ? MOTH_PATH.centerX + MOTH_PATH.amplitude
       : config.kind === 'wraith' ? WRAITH_BLINK.spots[0] : ROACH_CHARGE.leftX;
     const lift = config.kind === 'moth' ? 26 : config.kind === 'wraith' ? 14 : 0;
-    return { config, pose: 'rise', hits, dangerous: false, hittable: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
+    return { config, pose: 'rise', hits, dangerous: false, hittable: false, shielded: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
   }
-  const t = (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs;
+  const shielded = roundT - ROOM_BOSS_RISE_MS < SHIELDED_CYCLES * config.cycleMs;
+  const pose = poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs);
+  return { ...pose, shielded, hittable: pose.hittable && !shielded };
+}
+
+function poseAt(config: RoomBossConfig, hits: number, t: number): Omit<RoomBossSnapshot, 'shielded'> {
   if (config.kind === 'moth') {
     const phase = (2 * Math.PI * t) / config.cycleMs;
     return {
@@ -179,15 +195,17 @@ export type RoomBossEvent =
   | { type: 'ROOM_BOSS_HIT'; room: RoomBossRoom }
   | { type: 'ROOM_BOSS_DISPELLED'; room: RoomBossRoom };
 
-/** Consumes a Dream Spark that reaches the boss; the last one needed dispels it. */
+/** Consumes a Dream Spark that reaches the boss (or its shield); the last wound needed dispels it. */
 export function resolveRoomBossSparks(
   adventure: AdventureState,
   combat: HauntedCombatState,
   boss: RoomBossSnapshot | undefined,
 ): { adventure: AdventureState; combat: HauntedCombatState; events: RoomBossEvent[] } {
-  if (!boss?.hittable || combat.projectiles.length === 0) return { adventure, combat, events: [] };
+  if (!boss || !(boss.hittable || boss.shielded) || combat.projectiles.length === 0) return { adventure, combat, events: [] };
   const hit = combat.projectiles.find(projectile => Math.abs(projectile.x - boss.x) <= boss.config.sparkHitRadius);
   if (!hit) return { adventure, combat, events: [] };
+  // The shield swallows the spark without a wound.
+  if (!boss.hittable) return { adventure, combat: { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) }, events: [] };
   const room = boss.config.room;
   const remaining = { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) };
   const hits = boss.hits + 1;

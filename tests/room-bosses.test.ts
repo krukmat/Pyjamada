@@ -54,7 +54,7 @@ void test('every round opens with a harmless, untouchable rise', () => {
 void test('Dream Sparks wound the boss and the last one needed dispels it', () => {
   const { adventure, startMs } = awake('hallway');
   let state = adventure;
-  const fightMs = startMs + ROOM_BOSS_RISE_MS;
+  const fightMs = startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES.hallway.cycleMs;
   for (let hit = 1; hit <= ROOM_BOSSES.hallway.hp; hit += 1) {
     const boss = resolveRoomBoss(state, fightMs)!;
     const result = resolveRoomBossSparks(state, sparkAt(boss.x), boss);
@@ -67,13 +67,28 @@ void test('Dream Sparks wound the boss and the last one needed dispels it', () =
   equal(missed.events.length, 0, 'a spark far from the boss flies on');
 });
 
+void test('the first attack cycle is shielded: it hurts, and sparks vanish on the shield', () => {
+  for (const room of Object.keys(ROOM_BOSSES) as RoomBossRoom[]) {
+    const { adventure, startMs } = awake(room);
+    const config = ROOM_BOSSES[room];
+    for (const t of [ROOM_BOSS_RISE_MS, ROOM_BOSS_RISE_MS + config.cycleMs - 1]) {
+      const boss = resolveRoomBoss(adventure, startMs + t)!;
+      equal(boss.shielded && !boss.hittable, true, `${room} +${t}ms: shielded`);
+      const result = resolveRoomBossSparks(adventure, sparkAt(boss.x), boss);
+      equal(result.events.length + result.combat.projectiles.length, 0, `${room} +${t}ms: the spark is blocked without a wound`);
+    }
+    equal(resolveRoomBoss(adventure, startMs + ROOM_BOSS_RISE_MS + config.cycleMs)!.shielded, false, `${room}: the shield drops after one cycle`);
+  }
+});
+
 void test('the Wraith can be hit only once solid, and the Roach only reaches grounded players', () => {
   const wraith = awake('living-room');
-  const faint = resolveRoomBoss(wraith.adventure, wraith.startMs + ROOM_BOSS_RISE_MS)!;
+  const vulnerableMs = wraith.startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES['living-room'].cycleMs;
+  const faint = resolveRoomBoss(wraith.adventure, vulnerableMs)!;
   equal(faint.pose, 'telegraph', 'each blink starts faint');
   equal(resolveRoomBossSparks(wraith.adventure, sparkAt(faint.x), faint).events.length, 0, 'sparks pass through a faint Wraith');
   equal(isPlayerTouchingRoomBoss({ x: faint.x, grounded: true }, faint), false, 'a faint Wraith does not hurt');
-  const solid = resolveRoomBoss(wraith.adventure, wraith.startMs + ROOM_BOSS_RISE_MS + WRAITH_BLINK.telegraphMs)!;
+  const solid = resolveRoomBoss(wraith.adventure, vulnerableMs + WRAITH_BLINK.telegraphMs)!;
   equal(solid.hittable && solid.dangerous, true, 'a solid Wraith hurts and can be hit');
 
   const roach = awake('kitchen');
