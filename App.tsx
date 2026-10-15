@@ -580,7 +580,7 @@ export default function App() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#0b0a12' }}>
       <StatusBar barStyle="light-content" />
       {view === 'menu' && (
         <MainMenu

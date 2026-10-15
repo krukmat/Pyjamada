@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "android": {
-      "package": "com.krukmat.pyjamada"
-    }
+      "package": "com.krukmat.pyjamada",
+      "backgroundColor": "#0b0a12"
+    },
+    "backgroundColor": "#0b0a12"
   }
 }
