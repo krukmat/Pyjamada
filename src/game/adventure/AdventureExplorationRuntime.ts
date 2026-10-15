@@ -334,7 +334,7 @@ export function stepAdventureExploration(
     elapsedMs = armed.elapsedMs;
   } else if (adventure.currentRoom === 'hallway' && isHallwayPendulumLive(adventure)) {
     elapsedMs += dtMs;
-    const armed = armHallwayPendulum(nextAdventure, elapsedMs);
+    const armed = armHallwayPendulum(nextAdventure, elapsedMs, session.player.x);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
   } else if (adventure.currentRoom === 'attic' && isAtticCratesLive(adventure)) {

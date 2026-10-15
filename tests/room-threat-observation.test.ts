@@ -74,15 +74,16 @@ void test('floor waves are the only jumpable threats, and their fronts stay insi
 
 void test('while the pendulum drops, a smaller warning marks the end its swing starts from', () => {
   const { adventure, elapsedMs } = HALLWAY_PENDULUM_ARMED;
-  // Armed on the door side: raised for 200 ms, then dropping for 500 ms before the sweep.
-  const dropping = observeAt(adventure, elapsedMs + 400);
+  // Armed on the door side: raised, then dropping for dropMs before the sweep.
+  const sweepAt = elapsedMs + HALLWAY_PENDULUM.firstWarningMs;
+  const dropping = observeAt(adventure, sweepAt - HALLWAY_PENDULUM.dropMs / 2);
   equal(dropping.length, 2, 'arc and bob warnings');
   const [arc, bob] = [...dropping].sort((a, b) => (b.maxX - b.minX) - (a.maxX - a.minX));
   equal(arc.minX, HALLWAY_PENDULUM.leftX - HALLWAY_PENDULUM.halfWidth, 'the arc starts at the left end of the swing');
   equal(arc.maxX, HALLWAY_PENDULUM.rightX + HALLWAY_PENDULUM.halfWidth, 'the arc ends at the right end of the swing');
   equal(bob.minX, HALLWAY_PENDULUM.rightX - HALLWAY_PENDULUM.halfWidth, 'the bob drops at the door end');
   ok(dropping.every(observation => observation.phase === 'warning'), 'nothing is dangerous yet');
-  const sweeping = observeAt(adventure, elapsedMs + 900);
+  const sweeping = observeAt(adventure, sweepAt + 200);
   equal(sweeping.filter(observation => observation.phase === 'warning').length, 1, 'only the arc stays warned during the swing');
 });
 

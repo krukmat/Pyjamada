@@ -83,18 +83,18 @@ void test('exposes three deterministic telegraph, attack and recovery patterns',
   equal(leftTelegraph.attack, 'left-slam', 'first pattern is left slam');
   equal(leftTelegraph.phase, 'telegraph', 'left slam telegraphs before damage');
 
-  const leftAttack = resolveVesperNightmareState(base.adventure, 600);
+  const leftAttack = resolveVesperNightmareState(base.adventure, 1_000);
   equal(leftAttack.phase, 'active', 'left slam becomes active');
 
-  const leftRecovery = resolveVesperNightmareState(base.adventure, 1_100);
+  const leftRecovery = resolveVesperNightmareState(base.adventure, 1_500);
   equal(leftRecovery.phase, 'recovery', 'left slam has explicit recovery');
   equal(leftRecovery.vulnerable, true, 'first recovery is the first valid vulnerability window');
 
-  const center = resolveVesperNightmareState(base.adventure, 2_000);
+  const center = resolveVesperNightmareState(base.adventure, 3_000);
   equal(center.attack, 'center-rift', 'second deterministic pattern is center rift');
   equal(center.phase, 'active', 'center rift has an active damage phase');
 
-  const right = resolveVesperNightmareState(base.adventure, 3_400);
+  const right = resolveVesperNightmareState(base.adventure, 5_000);
   equal(right.attack, 'right-slam', 'third deterministic pattern is right slam');
   equal(right.phase, 'active', 'right slam has an active damage phase');
 });
@@ -104,7 +104,7 @@ void test('active Nightmare attack damages only its telegraphed zone', () => {
 
   const exposed: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 500,
+    elapsedMs: 1_000,
     player: { ...base.session.player, x: 40, vx: 0, vy: 0, grounded: true },
     domestic: { ...base.session.domestic, player: { x: 40, facing: 'right' } },
   };
@@ -114,7 +114,7 @@ void test('active Nightmare attack damages only its telegraphed zone', () => {
 
   const safe: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 500,
+    elapsedMs: 1_000,
     player: { ...base.session.player, x: 90, vx: 0, vy: 0, grounded: true },
     domestic: { ...base.session.domestic, player: { x: 90, facing: 'right' } },
   };
@@ -124,7 +124,7 @@ void test('active Nightmare attack damages only its telegraphed zone', () => {
 
 void test('blocks Dream Sparks outside the correct recovery window', () => {
   const base = setupNightmare('blocked');
-  const attackShot = withProjectile(base.session, 600);
+  const attackShot = withProjectile(base.session, 1_100);
   const blocked = stepAdventureExploration(attackShot, base.adventure, 33);
 
   equal(getVesperNightmareHitCount(blocked.adventure), 0, 'active attack window cannot damage Nightmare');
@@ -135,12 +135,12 @@ void test('blocks Dream Sparks outside the correct recovery window', () => {
 void test('accepts exactly one meaningful hit per ordered recovery and hands off to shutdown', () => {
   const base = setupNightmare('complete');
 
-  const first = stepAdventureExploration(withProjectile(base.session, 1_000), base.adventure, 33);
+  const first = stepAdventureExploration(withProjectile(base.session, 1_400), base.adventure, 33);
   equal(getVesperNightmareHitCount(first.adventure), 1, 'first recovery persists first meaningful hit');
   equal(first.events.some(event => event.type === 'LABORATORY_NIGHTMARE_HIT_ACCEPTED' && event.hit === 1), true, 'first hit emits ordered milestone');
 
   const duplicate = stepAdventureExploration(
-    withProjectile({ ...first.session, combat: { ...first.session.combat, projectiles: [] } }, 1_100),
+    withProjectile({ ...first.session, combat: { ...first.session.combat, projectiles: [] } }, 1_500),
     first.adventure,
     33,
   );
@@ -148,14 +148,14 @@ void test('accepts exactly one meaningful hit per ordered recovery and hands off
   equal(duplicate.events.some(event => event.type === 'LABORATORY_NIGHTMARE_HIT_BLOCKED'), true, 'duplicate same-window shot is rejected');
 
   const second = stepAdventureExploration(
-    withProjectile({ ...duplicate.session, combat: { ...duplicate.session.combat, projectiles: [] } }, 2_400),
+    withProjectile({ ...duplicate.session, combat: { ...duplicate.session.combat, projectiles: [] } }, 3_400),
     duplicate.adventure,
     33,
   );
   equal(getVesperNightmareHitCount(second.adventure), 2, 'second recovery persists second meaningful hit');
 
   const third = stepAdventureExploration(
-    withProjectile({ ...second.session, combat: { ...second.session.combat, projectiles: [] } }, 3_800),
+    withProjectile({ ...second.session, combat: { ...second.session.combat, projectiles: [] } }, 5_400),
     second.adventure,
     33,
   );

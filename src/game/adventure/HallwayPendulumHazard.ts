@@ -14,18 +14,23 @@ export type HallwayPendulumSnapshot = {
  * first reaches the Living Room, a phantom pendulum hangs from the clock. It
  * waits raised at one end of its arc, drops (the warning), sweeps the middle
  * of the corridor at body height, then rises at the other end. Jumping does
- * not clear it; the counterplay is crossing while it is raised. It arms raised
- * on the door side, so its first swing comes back at a Wally heading for the
- * Living Room after only `firstWarningMs`; stepping back toward the Bedroom
- * escapes it. Both room entries sit outside its reach.
+ * not clear it; the counterplay is crossing while it is raised. It only arms
+ * once Wally has stepped away from the clock (`clockReach`), so reading the
+ * clock the first time is always safe (once armed, the sweep crosses the clock
+ * like any other spot, with its telegraph). It arms raised on the door side and swings back toward
+ * the clock after `firstWarningMs`, long enough to see it drop and walk clear.
+ * Both room entries sit outside its reach.
  */
 export const HALLWAY_PENDULUM = {
   cycleMs: 6_000,
   holdMs: 2_000,
   sweepMs: 1_000,
-  dropMs: 500,
+  dropMs: 700,
   /** Raised time left plus the drop when the pendulum arms on the door side. */
-  firstWarningMs: 700,
+  firstWarningMs: 1_800,
+  /** Clock x and the distance from it inside which the pendulum waits to arm (clock reach plus the bob's width). */
+  clockX: 64,
+  clockReach: 14,
   pivotX: 64,
   pivotY: 43,
   leftX: 39,
@@ -49,10 +54,12 @@ export function isHallwayPendulumArmed(adventure: AdventureState): boolean {
 export function armHallwayPendulum(
   adventure: AdventureState,
   elapsedMs: number,
+  playerX: number,
 ): { adventure: AdventureState; elapsedMs: number } {
   if (adventure.currentRoom !== 'hallway' || !isHallwayPendulumLive(adventure) || isHallwayPendulumArmed(adventure)) {
     return { adventure, elapsedMs };
   }
+  if (Math.abs(playerX - HALLWAY_PENDULUM.clockX) <= HALLWAY_PENDULUM.clockReach) return { adventure, elapsedMs };
   // Start raised at the door end with `firstWarningMs` left before the sweep
   // back toward the clock; the clock only moves forward.
   const { cycleMs, holdMs, sweepMs, firstWarningMs } = HALLWAY_PENDULUM;

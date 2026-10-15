@@ -146,29 +146,29 @@ function completeLaboratoryEncounterFlow(runId: string): { session: HauntedSessi
   equal(getLaboratoryEncounterPhase(leftControl.adventure), 'resonator', 'Vesper control phase hands integration to Resonator');
 
   const leftNode = stepAdventureExploration(
-    withProjectile(leftControl.session, 500, RESONATOR_WEAK_POINTS.left.x, RESONATOR_WEAK_POINTS.left.y, 40),
+    withProjectile(leftControl.session, 1_200, RESONATOR_WEAK_POINTS.left.x, RESONATOR_WEAK_POINTS.left.y, 40),
     leftControl.adventure,
     33,
   );
   const rightNode = stepAdventureExploration(
-    withProjectile(leftNode.session, 2_300, RESONATOR_WEAK_POINTS.right.x, RESONATOR_WEAK_POINTS.right.y, 40),
+    withProjectile(leftNode.session, 3_400, RESONATOR_WEAK_POINTS.right.x, RESONATOR_WEAK_POINTS.right.y, 40),
     leftNode.adventure,
     33,
   );
   equal(getLaboratoryEncounterPhase(rightNode.adventure), 'nightmare', 'Resonator phase hands integration to Nightmare');
 
   const hit1 = stepAdventureExploration(
-    withProjectile(rightNode.session, 1_000, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
+    withProjectile(rightNode.session, 1_400, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
     rightNode.adventure,
     33,
   );
   const hit2 = stepAdventureExploration(
-    withProjectile(hit1.session, 2_400, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
+    withProjectile(hit1.session, 3_400, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
     hit1.adventure,
     33,
   );
   const hit3 = stepAdventureExploration(
-    withProjectile(hit2.session, 3_800, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
+    withProjectile(hit2.session, 5_400, VESPER_NIGHTMARE_TARGET.x, VESPER_NIGHTMARE_TARGET.y, 70),
     hit2.adventure,
     33,
   );

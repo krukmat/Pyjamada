@@ -175,6 +175,20 @@ void test('the haunted bedroom is played for real: HumanBot escapes and every po
   }
 });
 
+void test('room threats are fair to the human model: no deaths, at most one hit per visit, reading spots safe (W1-3)', () => {
+  for (const room of ACTIVE_ROOM_IDS) {
+    if (room === 'bedroom') continue;
+    const entry = withFullHp(route.roomEntries[room]!);
+    for (const startDelayMs of [0, 1_000, 2_000]) {
+      const human = runBot(entry, new HumanBot({ startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
+      equal(human.deaths, 0, `${room} +${startDelayMs}ms: HumanBot never dies in a room entered at full HP`);
+      ok(human.hits <= 1, `${room} +${startDelayMs}ms: HumanBot takes at most one hit (${human.hits})`);
+      const reader = runBot(entry, new HumanBot({ threatResponse: 'not-while-reading', startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
+      equal(reader.hitsAtObjects, 0, `${room} +${startDelayMs}ms: standing at an object to read it is safe`);
+    }
+  }
+});
+
 /** Shortest span in which `maxHp` consecutive hearts were lost. */
 function fastestKillChainMs(result: BotRunResult): number {
   const needed = result.world.session.combat.maxHp;

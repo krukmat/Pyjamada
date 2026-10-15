@@ -602,7 +602,7 @@ export class RouteBot implements BotPolicy {
   private current: BotAction = IDLE_ACTION;
   private stepsUntilDecision = 0;
   private goal: Goal | undefined = { x: 0, label: 'start' };
-  private firing: { key: string; x: number } | undefined;
+  private firing: { key: string; target: number; x: number } | undefined;
 
   /**
    * `reactionMs` is how far ahead the bot sees danger; 0 never dodges.
@@ -653,11 +653,15 @@ export class RouteBot implements BotPolicy {
     const playerX = world.session.player.x;
     const targets = combatTargets(world);
     if (targets.length > 0) {
-      const target = targets.reduce((best, x) => (Math.abs(x - playerX) < Math.abs(best - playerX) ? x : best));
+      // Stick to the current target while it stands: a firing spot can lie nearer another target,
+      // and re-picking the nearest one then flips between them without ever firing.
+      const target = this.firing && targets.includes(this.firing.target)
+        ? this.firing.target
+        : targets.reduce((best, x) => (Math.abs(x - playerX) < Math.abs(best - playerX) ? x : best));
       // Keep one firing spot per target: recomputing the nearest spot every decision made Wally
       // oscillate between two equally near spots without ever turning to fire.
       const key = isBathroomTwinActive(world.adventure) ? 'bathroom-twin' : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
-      if (this.firing?.key !== key) this.firing = { key, x: this.firingPosition(world, target) };
+      if (this.firing?.key !== key) this.firing = { key, target, x: this.firingPosition(world, target) };
       return { x: this.firing.x, aimX: target, label: `fight target@${Math.round(target)}` };
     }
     this.firing = undefined;

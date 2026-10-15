@@ -22,7 +22,13 @@ export type VesperNightmareEvent =
   | { type: 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'; hit: 1 | 2 | 3 }
   | { type: 'LABORATORY_VESPER_NIGHTMARE_DEFEATED' };
 
-export const VESPER_NIGHTMARE_CYCLE_MS = 4_800;
+/**
+ * Each attack is telegraphed for 900 ms, strikes for 450 ms, then leaves a
+ * 600 ms recovery in which Vesper is open to the next Dream Spark.
+ */
+export const VESPER_NIGHTMARE_ATTACK = { slotMs: 2_000, telegraphMs: 900, activeMs: 450, recoveryMs: 600 } as const;
+export const VESPER_NIGHTMARE_ATTACK_ORDER: readonly VesperNightmareAttackId[] = ['left-slam', 'center-rift', 'right-slam'];
+export const VESPER_NIGHTMARE_CYCLE_MS = 6_300;
 
 export const VESPER_NIGHTMARE_TARGET = {
   x: 108,
@@ -72,17 +78,16 @@ export function resolveVesperNightmareState(
     };
   }
 
-  if (cycleMs < 400) return attackState(cycleMs, 'left-slam', 'telegraph', 1, hits);
-  if (cycleMs < 900) return attackState(cycleMs, 'left-slam', 'active', 1, hits);
-  if (cycleMs < 1_400) return attackState(cycleMs, 'left-slam', 'recovery', 1, hits);
-
-  if (cycleMs < 1_800) return attackState(cycleMs, 'center-rift', 'telegraph', 2, hits);
-  if (cycleMs < 2_300) return attackState(cycleMs, 'center-rift', 'active', 2, hits);
-  if (cycleMs < 2_800) return attackState(cycleMs, 'center-rift', 'recovery', 2, hits);
-
-  if (cycleMs < 3_200) return attackState(cycleMs, 'right-slam', 'telegraph', 3, hits);
-  if (cycleMs < 3_700) return attackState(cycleMs, 'right-slam', 'active', 3, hits);
-  if (cycleMs < 4_200) return attackState(cycleMs, 'right-slam', 'recovery', 3, hits);
+  const attackIndex = Math.floor(cycleMs / VESPER_NIGHTMARE_ATTACK.slotMs);
+  const attack = VESPER_NIGHTMARE_ATTACK_ORDER[attackIndex];
+  if (attack) {
+    const t = cycleMs - attackIndex * VESPER_NIGHTMARE_ATTACK.slotMs;
+    const slot = (attackIndex + 1) as 1 | 2 | 3;
+    const { telegraphMs, activeMs, recoveryMs } = VESPER_NIGHTMARE_ATTACK;
+    if (t < telegraphMs) return attackState(cycleMs, attack, 'telegraph', slot, hits);
+    if (t < telegraphMs + activeMs) return attackState(cycleMs, attack, 'active', slot, hits);
+    if (t < telegraphMs + activeMs + recoveryMs) return attackState(cycleMs, attack, 'recovery', slot, hits);
+  }
 
   return {
     active: true,

@@ -27,8 +27,13 @@ export const BASEMENT_ELECTRICAL_HAZARD = {
   safeLeadMs: 400,
   telegraphMs: 1_200,
   dischargeMs: 360,
-  zoneMinX: 100,
-  zoneMaxX: 116,
+  /**
+   * The corridor between the isolation relay (reach ends at 102) and the
+   * terminal and Laboratory hatch (reach starts at 109), so every object can
+   * be read outside the discharge lane.
+   */
+  zoneMinX: 103,
+  zoneMaxX: 108,
 } as const;
 
 const ARMED_INTERACTION = 'basement-electrical-hazard-armed';

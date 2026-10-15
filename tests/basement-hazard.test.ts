@@ -12,8 +12,11 @@ import {
 import {
   BASEMENT_ELECTRICAL_HAZARD,
   isBasementElectricalHazardArmed,
+  isInsideBasementElectricalHazard,
   resolveBasementElectricalHazard,
 } from '../src/game/adventure/BasementElectricalHazard';
+import { findActiveRoom } from '../src/game/adventure/RoomRegistry';
+import { HAUNTED_PLAYER_BOUNDS } from '../src/game/haunted/PlayerPhysics';
 import { createHauntedInputState } from '../src/game/haunted/HauntedInput';
 import { createHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
 
@@ -107,14 +110,14 @@ void test('lets the player clear the unsafe control-feed lane before discharge',
 void test('discharge damages and knocks Wally away without repeated same-window hits', () => {
   const setup = basementSetup('hazard-hit', true);
   const armed = stepAdventureExploration(setup.session, setup.adventure, 16);
-  const discharge = stepAdventureExploration(moveTo(armed.session, 110), armed.adventure, 1_600);
+  const discharge = stepAdventureExploration(moveTo(armed.session, 105), armed.adventure, 1_600);
 
   equal(resolveBasementElectricalHazard(discharge.adventure, discharge.session.elapsedMs).phase, 'discharge', 'test reaches active discharge');
   equal(discharge.session.combat.hp, 2, 'unsafe lane costs one existing HP');
   equal(discharge.session.player.vx < 0, true, 'electrical hit knocks Wally away from the control area');
   equal(discharge.events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT'), true, 'accepted contact emits one hazard hit event');
 
-  const repeated = stepAdventureExploration(moveTo(discharge.session, 110), discharge.adventure, 100);
+  const repeated = stepAdventureExploration(moveTo(discharge.session, 105), discharge.adventure, 100);
   equal(repeated.session.combat.hp, 2, 'existing invulnerability prevents repeated damage in the same discharge');
   equal(repeated.events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT'), false, 'invulnerable overlap emits no duplicate hit event');
 });
@@ -123,11 +126,21 @@ void test('can fail the run if the player repeatedly ignores the unsafe lane', (
   const setup = basementSetup('hazard-fatal', true);
   const oneHp = { ...setup.session, combat: { ...setup.session.combat, hp: 1 } };
   const armed = stepAdventureExploration(oneHp, setup.adventure, 16);
-  const discharge = stepAdventureExploration(moveTo(armed.session, 110), armed.adventure, 1_600);
+  const discharge = stepAdventureExploration(moveTo(armed.session, 105), armed.adventure, 1_600);
 
   equal(discharge.session.combat.hp, 0, 'discharge uses the existing combat damage contract');
   equal(discharge.session.objective.phase, 'failed', 'zero HP remains a real gameplay failure');
   equal(discharge.session.objective.reason, 'haunted', 'hazard failure reuses the existing haunted failure reason');
+});
+
+void test('every basement object can be used from outside the discharge lane', () => {
+  for (const interaction of findActiveRoom('basement')!.interactions) {
+    const reachMin = Math.max(HAUNTED_PLAYER_BOUNDS.minX, interaction.x - interaction.radius);
+    const reachMax = Math.min(HAUNTED_PLAYER_BOUNDS.maxX, interaction.x + interaction.radius);
+    for (let x = Math.ceil(reachMin); x <= reachMax; x += 1) {
+      equal(isInsideBasementElectricalHazard(x), false, `${interaction.id} is usable at x ${x}, outside the lane`);
+    }
+  }
 });
 
 console.log('Basement hazard tests passed');

@@ -61,7 +61,7 @@ function moveTo(session: HauntedSessionState, x: number, grounded = true): Haunt
 /** Elapsed time at which the surge front sits on x during the first armed cycle. */
 function frontAt(armedAtMs: number, x: number): number {
   const progress = (KITCHEN_SURGE.sourceX - x) / (KITCHEN_SURGE.sourceX - KITCHEN_SURGE.targetX);
-  return armedAtMs + KITCHEN_SURGE.telegraphMs + Math.round(progress * KITCHEN_SURGE.travelMs);
+  return armedAtMs + KITCHEN_SURGE.safeMs + KITCHEN_SURGE.telegraphMs + Math.round(progress * KITCHEN_SURGE.travelMs);
 }
 
 void test('stays calm before the overload and after the reroute', () => {
@@ -74,46 +74,46 @@ void test('stays calm before the overload and after the reroute', () => {
   }
 });
 
-void test('arms straight into the warning, moving the clock forward only', () => {
+void test('arms into its quiet window, moving the clock forward only', () => {
   const setup = kitchenSetup('surge-arm', true);
   const armed = stepAdventureExploration(setup.session, setup.adventure, 16);
   equal(isKitchenSurgeArmed(armed.adventure), true, 'overload arms the surge');
   equal(armed.session.elapsedMs >= setup.session.elapsedMs, true, 'arming never moves the clock backward');
-  equal(armed.session.elapsedMs % KITCHEN_SURGE.cycleMs, KITCHEN_SURGE.safeMs, 'arming skips the quiet window');
-  equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs).phase, 'telegraph', 'the warning starts at once');
-  for (let t = 0; t < KITCHEN_SURGE.telegraphMs; t += 50) {
+  equal(armed.session.elapsedMs % KITCHEN_SURGE.cycleMs, 0, 'the first cycle opens with its quiet window');
+  equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs).phase, 'safe', 'no warning yet');
+  for (let t = 0; t < KITCHEN_SURGE.safeMs + KITCHEN_SURGE.telegraphMs; t += 50) {
     equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs + t).dangerous, false, `no danger ${t}ms after arming`);
   }
-  equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs + KITCHEN_SURGE.telegraphMs + 1).dangerous, true, 'the surge follows its warning');
+  equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs + KITCHEN_SURGE.safeMs).phase, 'telegraph', 'every surge is telegraphed');
+  equal(resolveKitchenSurge(armed.adventure, armed.session.elapsedMs + KITCHEN_SURGE.safeMs + KITCHEN_SURGE.telegraphMs + 1).dangerous, true, 'the surge follows its warning');
 });
 
-void test('the first surge meets a Wally who walks from the microwave to the breaker without jumping', () => {
-  // The overload can fire anywhere inside the microwave's reach (x 54..74).
+void test('reading the microwave text that overloads the circuit is safe', () => {
+  // The overload can fire anywhere inside the microwave's reach (x 54..74);
+  // reading its text and looking up takes about 1.6 s.
   for (let triggerX = 54; triggerX <= 74; triggerX += 2) {
-    const setup = kitchenSetup(`surge-walk-${triggerX}`, true);
+    const setup = kitchenSetup(`surge-read-${triggerX}`, true);
     let session = moveTo(setup.session, triggerX);
     let adventure = setup.adventure;
-    let hit = false;
-    for (let step = 0; step < 120 && session.player.x < 99 && !hit; step += 1) {
-      const stepped = stepAdventureExploration({ ...session, input: { ...createHauntedInputState(), right: true } }, adventure, 1000 / 30);
-      hit = stepped.session.combat.hp < session.combat.hp;
+    for (let t = 0; t < 1_800; t += 1000 / 30) {
+      const stepped = stepAdventureExploration(session, adventure, 1000 / 30);
+      equal(stepped.session.combat.hp, session.combat.hp, `Wally reading at x ${triggerX} is safe ${Math.round(t)}ms after the overload`);
       session = stepped.session;
       adventure = stepped.adventure;
     }
-    equal(hit, true, `surge hits a Wally walking right from x ${triggerX} before he reaches the breaker`);
   }
 });
 
 void test('a grounded Wally is hit, a jumping Wally clears the surge', () => {
   const setup = kitchenSetup('surge-hit', true);
   const armed = stepAdventureExploration(setup.session, setup.adventure, 16);
-  const atFront = frontAt(armed.session.elapsedMs, 64);
+  const atFront = frontAt(armed.session.elapsedMs, 86);
 
-  const grounded = stepAdventureExploration(moveTo({ ...armed.session, elapsedMs: atFront }, 64), armed.adventure, 0);
+  const grounded = stepAdventureExploration(moveTo({ ...armed.session, elapsedMs: atFront }, 86), armed.adventure, 0);
   equal(grounded.session.combat.hp, setup.session.combat.hp - 1, 'grounded Wally loses one heart');
   equal(grounded.events.some(event => event.type === 'KITCHEN_SURGE_HIT'), true, 'hit is reported for persistence');
 
-  const airborne = stepAdventureExploration(moveTo({ ...armed.session, elapsedMs: atFront }, 64, false), armed.adventure, 0);
+  const airborne = stepAdventureExploration(moveTo({ ...armed.session, elapsedMs: atFront }, 86, false), armed.adventure, 0);
   equal(airborne.session.combat.hp, setup.session.combat.hp, 'jumping over the surge avoids damage');
 });
 
@@ -123,7 +123,11 @@ void test('never reaches the entry spawn or the breaker', () => {
   for (let t = 0; t < KITCHEN_SURGE.cycleMs; t += 10) {
     const surge = resolveKitchenSurge(armed.adventure, armed.session.elapsedMs + t);
     equal(isPlayerHitByKitchenSurge({ x: 14, grounded: true }, surge), false, `entry spawn is safe at ${t}ms`);
-    equal(isPlayerHitByKitchenSurge({ x: 108, grounded: true }, surge), false, `breaker is safe at ${t}ms`);
+    for (const [from, to] of [[54, 74], [99, 116]]) {
+      for (let x = from; x <= to; x += 1) {
+        equal(isPlayerHitByKitchenSurge({ x, grounded: true }, surge), false, `microwave/breaker reach x ${x} is safe at ${t}ms`);
+      }
+    }
   }
 });
 

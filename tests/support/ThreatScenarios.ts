@@ -85,7 +85,7 @@ export type ThreatScenario = {
   hit: (elapsedMs: number) => (x: number, grounded: boolean) => boolean;
 };
 
-const hallway = armHallwayPendulum(markRoomInspected(explorationIn('hallway'), 'hallway', 'backward-clock'), 1_000);
+const hallway = armHallwayPendulum(markRoomInspected(explorationIn('hallway'), 'hallway', 'backward-clock'), 1_000, 0);
 const livingRoom = armLivingRoomStatic(setRoomSwitch(explorationIn('living-room'), 'living-room', 'tv-on', true), 1_000);
 const kitchen = armKitchenSurge(setRoomSwitch(explorationIn('kitchen'), 'kitchen', 'circuit-overloaded', true), 1_000);
 const attic = armAtticCrates(explorationIn('attic'), 1_000);

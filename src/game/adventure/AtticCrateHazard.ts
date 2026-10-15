@@ -17,20 +17,21 @@ export type AtticCrateSnapshot = { active: boolean; drops: AtticCrateDrop[] };
  * arrival until the recording reveals the experiment), crates shake loose
  * from the rafters. Each drop is announced by a growing shadow on the floor,
  * then the crate falls and breaks. Jumping does not help; stepping out of the
- * shadow does. Drop positions rotate deterministically and never include the
- * Bathroom stair entry.
+ * shadow does. Crates only fall in the gaps between the clues (log reach ends
+ * at 51, sensor crate reach is 61..79, recorder reach starts at 88) and right
+ * of the Bathroom stair, so standing at a clue to read it is always safe.
  */
 export const ATTIC_CRATES = {
   cycleMs: 4_800,
   dropOffsetsMs: [600, 2_000, 3_400],
-  positions: [36, 64, 90, 50, 78, 100, 30, 70],
+  positions: [26, 56, 83.5, 56, 83.5, 26],
   shadowMs: 700,
   fallMs: 250,
   impactMs: 150,
   debrisMs: 400,
   /** The last part of the fall already hits whoever is underneath. */
   dangerLeadMs: 100,
-  halfWidth: 6,
+  halfWidth: 3.5,
   rafterY: 34,
   floorY: 100,
 } as const;

@@ -202,23 +202,28 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
             color={hazardDischarge ? 'rgba(255,92,105,0.38)' : fastPulse === 0 ? 'rgba(248,218,118,0.18)' : 'rgba(248,218,118,0.30)'}
           />
           <Line
-            p1={vec(px(96), px(84))}
-            p2={vec(px(118), px(84))}
+            p1={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX - 2), px(84))}
+            p2={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX + 2), px(84))}
             color={hazardDischarge ? '#fff0b8' : fastPulse === 0 ? '#f8da76' : '#ff9f73'}
             strokeWidth={px(hazardDischarge ? 2 : 1.2)}
           />
-          <Circle cx={px(104)} cy={px(84)} r={px(hazardDischarge ? 10 : 7 + fastPulse)} color={hazardDischarge ? 'rgba(255,92,105,0.12)' : 'rgba(248,218,118,0.08)'} />
-          <Circle cx={px(116)} cy={px(84)} r={px(hazardDischarge ? 13 : 8 + fastPulse)} color={hazardDischarge ? 'rgba(121,232,255,0.12)' : 'rgba(255,159,115,0.07)'} />
+          <Circle cx={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(255,92,105,0.12)' : 'rgba(248,218,118,0.08)'} />
+          <Circle cx={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX)} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(121,232,255,0.12)' : 'rgba(255,159,115,0.07)'} />
         </>
       )}
       {hazardDischarge && (
         <>
-          <Line p1={vec(px(96), px(84))} p2={vec(px(102), px(75))} color="#fff4c4" strokeWidth={px(1.2)} />
-          <Line p1={vec(px(102), px(75))} p2={vec(px(108), px(88))} color="#9ff3ff" strokeWidth={px(1.4)} />
-          <Line p1={vec(px(108), px(88))} p2={vec(px(113), px(72))} color="#fff4c4" strokeWidth={px(1.3)} />
-          <Line p1={vec(px(113), px(72))} p2={vec(px(119), px(86))} color="#9ff3ff" strokeWidth={px(1.5)} />
-          <Line p1={vec(px(119), px(86))} p2={vec(px(124), px(67))} color="#ff7b82" strokeWidth={px(1.1)} />
-          <Rect x={px(100)} y={px(37)} width={px(28)} height={px(64)} color="rgba(255,92,105,0.045)" />
+          {/* The bolt zigzags only over the discharge lane, so safe reading spots never look electrified. */}
+          {[[0, 84, 0.2, 75], [0.2, 75, 0.45, 88], [0.45, 88, 0.7, 72], [0.7, 72, 1, 86]].map(([from, fromY, to, toY], index) => (
+            <Line
+              key={`basement-bolt-${index}`}
+              p1={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + from * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)), px(fromY))}
+              p2={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + to * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)), px(toY))}
+              color={index % 2 === 0 ? '#fff4c4' : '#9ff3ff'}
+              strokeWidth={px(1.3)}
+            />
+          ))}
+          <Rect x={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} y={px(37)} width={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} height={px(64)} color="rgba(255,92,105,0.08)" />
         </>
       )}
 

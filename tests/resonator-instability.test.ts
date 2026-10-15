@@ -95,19 +95,19 @@ void test('exposes deterministic weak-point, distortion and electrical windows',
   equal(leftTelegraph.weakPoints.left, 'telegraph', 'left node telegraphs first');
   equal(leftTelegraph.distortion.phase, 'telegraph', 'central distortion telegraphs with the left node');
 
-  const leftWindow = resolveResonatorInstabilityState(base.adventure, 600);
+  const leftWindow = resolveResonatorInstabilityState(base.adventure, 1_200);
   equal(leftWindow.weakPoints.left, 'vulnerable', 'left node opens during first window');
   equal(leftWindow.distortion.phase, 'active', 'central control inversion is active during weak-point window');
 
-  const leftSurge = resolveResonatorInstabilityState(base.adventure, 1_500);
+  const leftSurge = resolveResonatorInstabilityState(base.adventure, 1_800);
   equal(leftSurge.electrical.phase, 'active', 'left electrical lane becomes dangerous after first weak-point window');
   equal(leftSurge.electrical.lane, 'left', 'first electrical surge is on the left');
 
-  const rightWindow = resolveResonatorInstabilityState(base.adventure, 2_400);
+  const rightWindow = resolveResonatorInstabilityState(base.adventure, 3_400);
   equal(rightWindow.weakPoints.right, 'vulnerable', 'right node opens during second window');
   equal(rightWindow.distortion.phase, 'active', 'distortion returns during second weak-point window');
 
-  const rightSurge = resolveResonatorInstabilityState(base.adventure, 3_300);
+  const rightSurge = resolveResonatorInstabilityState(base.adventure, 4_000);
   equal(rightSurge.electrical.phase, 'active', 'right electrical lane becomes dangerous after second weak-point window');
   equal(rightSurge.electrical.lane, 'right', 'second electrical surge is on the right');
 });
@@ -118,7 +118,7 @@ void test('spatial distortion reverses horizontal control only inside the active
 
   const inside: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 500,
+    elapsedMs: 1_200,
     player: { ...base.session.player, x: 76, vx: 0 },
     domestic: { ...base.session.domestic, player: { x: 76, facing: 'right' } },
     input,
@@ -128,7 +128,7 @@ void test('spatial distortion reverses horizontal control only inside the active
 
   const outside: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 500,
+    elapsedMs: 1_200,
     player: { ...base.session.player, x: 40, vx: 0 },
     domestic: { ...base.session.domestic, player: { x: 40, facing: 'right' } },
     input,
@@ -139,7 +139,7 @@ void test('spatial distortion reverses horizontal control only inside the active
 
 void test('blocks sealed weak-point hits and consumes the projectile', () => {
   const base = setupResonator('blocked');
-  const shot = withProjectile(base.session, 1_100, RESONATOR_WEAK_POINTS.left.x);
+  const shot = withProjectile(base.session, 1_800, RESONATOR_WEAK_POINTS.left.x);
   const stepped = stepAdventureExploration(shot, base.adventure, 33);
 
   equal(isResonatorWeakPointDisabled(stepped.adventure, 'left'), false, 'sealed Resonator node ignores damage');
@@ -154,14 +154,14 @@ void test('blocks sealed weak-point hits and consumes the projectile', () => {
 void test('disables both nodes in valid windows and advances exactly to Nightmare', () => {
   const base = setupResonator('complete');
 
-  const leftShot = withProjectile(base.session, 500, RESONATOR_WEAK_POINTS.left.x);
+  const leftShot = withProjectile(base.session, 1_200, RESONATOR_WEAK_POINTS.left.x);
   const left = stepAdventureExploration(leftShot, base.adventure, 33);
   equal(isResonatorWeakPointDisabled(left.adventure, 'left'), true, 'left node disables during its vulnerability window');
   equal(getLaboratoryEncounterPhase(left.adventure), 'resonator', 'one node keeps encounter in Resonator phase');
 
   const rightShot = withProjectile(
     { ...left.session, combat: { ...left.session.combat, projectiles: [] } },
-    2_300,
+    3_400,
     RESONATOR_WEAK_POINTS.right.x,
   );
   const right = stepAdventureExploration(rightShot, left.adventure, 33);
@@ -178,7 +178,7 @@ void test('electrical surge damages only the active lane', () => {
 
   const exposed: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 1_400,
+    elapsedMs: 1_800,
     player: { ...base.session.player, x: 40, y: 104, vx: 0, vy: 0, grounded: true },
     domestic: { ...base.session.domestic, player: { x: 40, facing: 'right' } },
   };
@@ -188,7 +188,7 @@ void test('electrical surge damages only the active lane', () => {
 
   const safe: HauntedSessionState = {
     ...base.session,
-    elapsedMs: 1_400,
+    elapsedMs: 1_800,
     player: { ...base.session.player, x: 90, y: 104, vx: 0, vy: 0, grounded: true },
     domestic: { ...base.session.domestic, player: { x: 90, facing: 'right' } },
   };

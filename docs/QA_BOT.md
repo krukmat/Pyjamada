@@ -115,12 +115,15 @@ or while the policy is reading (including the 367 ms it takes to look up).
   into the nearest Ghost, never shoots) cannot lose three hearts in under 3 s, an
   idle player survives at least 25 s, and a player who never shoots survives at
   least 20 s (3 start delays).
+- Room threats are fair (W1-3), from every room entry at full HP and 3 start
+  delays: HumanBot never dies and takes at most one hit, and the reader probe
+  takes no hit while standing at an object to read it.
 - HumanBot plays from a new game without softlocks, deterministically.
 
 A stuck or failing run reports the room, Wally's position, HP and the bot's
 current intent and goal.
 
-## Pending balance gates (W1-3)
+## Balance gates
 
 These are the targets for retuning. They fail on the current tuning, so they are
 documented and reported by `npm run qa:bot`, not enforced. Promote each one into
@@ -131,14 +134,14 @@ hazard uses, so room hits after W1-2 can be lower than the column below.
 
 | Target | Value before W1-2 |
 |---|---|
-| HumanBot never dies in a single room entered at full HP | dies in the Laboratory in 3 of 11 entries |
-| HumanBot takes at most 1 hit per room visit | up to 3 hits in the Laboratory (1 in every kitchen visit) |
-| Reader probe takes 0 hits at objects (reading spots are safe) | hit at the hallway clock, kitchen microwave, attic clues and basement terminal; dies in every basement visit |
-| No-dodge walker never dies in a room entered at full HP | dies in the Laboratory in 1 of 11 entries |
+| ~~HumanBot never dies in a single room entered at full HP~~ | dies in the Laboratory in 3 of 11 entries; enforced since W1-3 |
+| ~~HumanBot takes at most 1 hit per room visit~~ | up to 3 hits in the Laboratory (1 in every kitchen visit); enforced since W1-3 |
+| ~~Reader probe takes 0 hits at objects (reading spots are safe)~~ | hit at the hallway clock, kitchen microwave, attic clues and basement terminal; dies in every basement visit; enforced since W1-3 |
+| No-dodge walker never dies in a room entered at full HP | dies in the Laboratory in 1 of 11 entries; still 1 of 11 after W1-3 (open: the final fight may punish a player who never dodges) |
 | ~~A ghost contact costs one heart (no 3-heart chain under 3 s)~~ | 1.8 s chain; enforced since W1-2 (8.3 s) |
 | ~~An idle player survives the haunted bedroom for at least 25 s~~ | 18.0 s; enforced since W1-2 (30.9 s) |
 | ~~A player who never shoots survives the bedroom for at least 20 s~~ | 7.3 s; enforced since W1-2 (survives) |
-| Every telegraphed threat warns for at least 600 ms | Resonator lanes 300 ms, nightmare attacks 400 ms, pendulum drop 500 ms |
+| Every telegraphed threat warns for at least 600 ms | Resonator lanes 300 ms, nightmare attacks 400 ms, pendulum drop 500 ms; met since W1-3 (shortest 600 ms), reported only |
 
 ## Limits
 

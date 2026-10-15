@@ -19,21 +19,20 @@ export type KitchenSurgeSnapshot = {
 
 /**
  * Kitchen room threat: while the circuit is overloaded and not yet rerouted,
- * a floor surge leaves the outlet beside the breaker and runs toward the Living
- * Room door. Grounded players in its path take a hit; jumping clears it. The
- * first surge starts with its warning as soon as the circuit overloads, so it
- * meets Wally on his way from the microwave to the breaker. The surge dies
- * before the door, and starts left of the breaker, so the entry spawn and the
- * breaker are never inside its path.
+ * a floor surge leaves the outlet beside the breaker and runs toward the
+ * microwave. Grounded players in its path take a hit; jumping clears it. Its
+ * path lies between the microwave's reach (54..74) and the breaker's (99..116),
+ * so both can be read safely and the surge is crossed on the way between them.
+ * The first cycle opens with its quiet window.
  */
 export const KITCHEN_SURGE = {
   cycleMs: 2_600,
   safeMs: 900,
   telegraphMs: 700,
-  travelMs: 1_000,
+  travelMs: 600,
   waveOffsetsMs: [0],
-  sourceX: 102,
-  targetX: 22,
+  sourceX: 94,
+  targetX: 79,
   halfWidth: 4,
 } as const satisfies FloorWaveConfig;
 
@@ -55,7 +54,7 @@ export function armKitchenSurge(
   if (adventure.currentRoom !== 'kitchen' || !isKitchenSurgeLive(adventure) || isKitchenSurgeArmed(adventure)) {
     return { adventure, elapsedMs };
   }
-  return { adventure: markRoomInteraction(adventure, 'kitchen', ARMED_INTERACTION), elapsedMs: alignFloorWaveStart(KITCHEN_SURGE, elapsedMs, 'telegraph') };
+  return { adventure: markRoomInteraction(adventure, 'kitchen', ARMED_INTERACTION), elapsedMs: alignFloorWaveStart(KITCHEN_SURGE, elapsedMs) };
 }
 
 export function resolveKitchenSurge(adventure: AdventureState, elapsedMs: number): KitchenSurgeSnapshot {

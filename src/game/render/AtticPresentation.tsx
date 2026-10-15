@@ -117,7 +117,8 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
       {crates?.drops.map((drop, index) => {
         const { rafterY, floorY } = ATTIC_CRATES;
         const crateY = drop.stage === 'falling' ? rafterY + (floorY - 9 - rafterY) * drop.progress * drop.progress : floorY - 9;
-        const shadowWidth = drop.stage === 'shadow' ? 4 + drop.progress * 10 : 14;
+        // The shadow grows to the hit width (plus a pixel), never over the clues' reading spots.
+        const shadowWidth = (drop.stage === 'shadow' ? 0.4 + drop.progress * 0.6 : 1) * (2 * ATTIC_CRATES.halfWidth + 1);
         return (
           <React.Fragment key={`crate-${index}`}>
             {drop.stage !== 'debris' && (

@@ -40,7 +40,7 @@ export type ResonatorInstabilityEvent =
   | { type: 'LABORATORY_RESONATOR_NODE_DISABLED'; nodeId: ResonatorWeakPointId }
   | { type: 'LABORATORY_RESONATOR_DESTABILIZED' };
 
-export const RESONATOR_INSTABILITY_CYCLE_MS = 3_600;
+export const RESONATOR_INSTABILITY_CYCLE_MS = 4_400;
 
 export const RESONATOR_WEAK_POINTS: Readonly<Record<ResonatorWeakPointId, ResonatorWeakPoint>> = {
   left: {
@@ -201,46 +201,44 @@ function findProjectileNodeHit(
     .sort((a, b) => Math.abs(projectile.x - a.x) - Math.abs(projectile.x - b.x))[0];
 }
 
+/**
+ * One resonator cycle. Every threat is telegraphed for `RESONATOR_TELEGRAPH_MS`
+ * (at least as long as a person needs to see it and step clear): each node
+ * opens with a distortion telegraph, then its vulnerable window runs with the
+ * distortion field active while the next electrical lane is already
+ * telegraphed; the lane fires as the window closes.
+ */
+export const RESONATOR_TELEGRAPH_MS = 900;
+export const RESONATOR_SCHEDULE = {
+  left: { nodeTelegraphAt: 0, vulnerableAt: 900, sealedAt: 1_600, laneTelegraphAt: 700, laneActiveAt: 1_600, laneEndAt: 2_050 },
+  right: { nodeTelegraphAt: 2_200, vulnerableAt: 3_100, sealedAt: 3_800, laneTelegraphAt: 2_900, laneActiveAt: 3_800, laneEndAt: 4_250 },
+} as const;
+
 function resolveWeakPointState(
   adventure: AdventureState,
   nodeId: ResonatorWeakPointId,
   cycleMs: number,
 ): ResonatorWeakPointState {
   if (isResonatorWeakPointDisabled(adventure, nodeId)) return 'disabled';
-
-  if (nodeId === 'left') {
-    if (cycleMs < 300) return 'telegraph';
-    if (cycleMs < 1_000) return 'vulnerable';
-    return 'sealed';
-  }
-
-  if (cycleMs >= 1_800 && cycleMs < 2_100) return 'telegraph';
-  if (cycleMs >= 2_100 && cycleMs < 2_800) return 'vulnerable';
+  const slot = RESONATOR_SCHEDULE[nodeId];
+  if (cycleMs >= slot.nodeTelegraphAt && cycleMs < slot.vulnerableAt) return 'telegraph';
+  if (cycleMs >= slot.vulnerableAt && cycleMs < slot.sealedAt) return 'vulnerable';
   return 'sealed';
 }
 
 function resolveDistortionState(cycleMs: number): ResonatorDistortionState {
-  if (cycleMs < 300 || (cycleMs >= 1_800 && cycleMs < 2_100)) {
-    return { phase: 'telegraph', ...RESONATOR_DISTORTION_ZONE };
-  }
-  if ((cycleMs >= 300 && cycleMs < 1_000) || (cycleMs >= 2_100 && cycleMs < 2_800)) {
-    return { phase: 'active', ...RESONATOR_DISTORTION_ZONE };
+  for (const slot of Object.values(RESONATOR_SCHEDULE)) {
+    if (cycleMs >= slot.nodeTelegraphAt && cycleMs < slot.vulnerableAt) return { phase: 'telegraph', ...RESONATOR_DISTORTION_ZONE };
+    if (cycleMs >= slot.vulnerableAt && cycleMs < slot.sealedAt) return { phase: 'active', ...RESONATOR_DISTORTION_ZONE };
   }
   return { phase: 'idle' };
 }
 
 function resolveElectricalState(cycleMs: number): ResonatorElectricalState {
-  if (cycleMs >= 1_000 && cycleMs < 1_300) {
-    return { phase: 'telegraph', lane: 'left', ...RESONATOR_ELECTRICAL_LANES.left };
-  }
-  if (cycleMs >= 1_300 && cycleMs < 1_750) {
-    return { phase: 'active', lane: 'left', ...RESONATOR_ELECTRICAL_LANES.left };
-  }
-  if (cycleMs >= 2_800 && cycleMs < 3_100) {
-    return { phase: 'telegraph', lane: 'right', ...RESONATOR_ELECTRICAL_LANES.right };
-  }
-  if (cycleMs >= 3_100 && cycleMs < 3_550) {
-    return { phase: 'active', lane: 'right', ...RESONATOR_ELECTRICAL_LANES.right };
+  for (const lane of ['left', 'right'] as const) {
+    const slot = RESONATOR_SCHEDULE[lane];
+    if (cycleMs >= slot.laneTelegraphAt && cycleMs < slot.laneActiveAt) return { phase: 'telegraph', lane, ...RESONATOR_ELECTRICAL_LANES[lane] };
+    if (cycleMs >= slot.laneActiveAt && cycleMs < slot.laneEndAt) return { phase: 'active', lane, ...RESONATOR_ELECTRICAL_LANES[lane] };
   }
   return { phase: 'idle' };
 }

@@ -501,8 +501,8 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
   if (scenario === 'basement-control-reveal') return { ...positioned, elapsedMs: 1_000 };
   if (scenario === 'laboratory-boundary') return { ...positioned, elapsedMs: 1_720 };
   if (scenario === 'vesper-control') return { ...positioned, elapsedMs: 700 };
-  if (scenario === 'resonator-runaway') return { ...positioned, elapsedMs: 2_400 };
-  if (scenario === 'vesper-nightmare') return { ...positioned, elapsedMs: 600 };
+  if (scenario === 'resonator-runaway') return { ...positioned, elapsedMs: 3_400 };
+  if (scenario === 'vesper-nightmare') return { ...positioned, elapsedMs: 1_000 };
   return positioned;
 }
 
