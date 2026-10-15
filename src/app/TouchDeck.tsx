@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import {
-  ACTION_SLOT_ORDER,
   layoutControlZones,
   updateDeckTouches,
   type ActionZoneId,
+  type ControlZone,
+  type DeckColumns,
   type DeckTouchState,
   type DirectionZoneId,
 } from './TouchControlZones';
@@ -17,6 +18,9 @@ type Props = {
   useTarget?: string;
   onHeldControl: (control: DirectionZoneId, pressed: boolean) => void;
   onAction: (action: ActionZoneId) => void;
+  /** Landscape: controls in the side columns around the stage (see layoutControlZones). */
+  columns?: DeckColumns;
+  style?: StyleProp<ViewStyle>;
 };
 
 const SLOT_LABEL: Record<ActionZoneId, string> = { jump: 'JUMP', attack: 'ATTACK', interact: 'USE' };
@@ -27,10 +31,13 @@ const SLOT_TEST_ID: Record<ActionZoneId, string> = { jump: 'jump-button', attack
  * number of fingers, directions held, actions fired on touch-down. Children
  * draw the controls but never take touches, so every finger lands here.
  */
-export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction }: Props) {
+export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction, columns, style }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [pressed, setPressed] = useState<ReadonlySet<string>>(new Set());
-  const zones = useMemo(() => layoutControlZones(size.width, size.height, layout, enabled), [size, layout, enabled]);
+  const zones = useMemo(
+    () => layoutControlZones(size.width, size.height, layout, enabled, columns),
+    [size, layout, enabled, columns?.centerWidth, columns?.top],
+  );
   const touches = useRef<DeckTouchState>({});
   const held = useRef<Record<DirectionZoneId, boolean>>({ left: false, right: false });
   const callbacks = useRef({ onHeldControl, onAction });
@@ -58,51 +65,45 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction 
     setPressed(next);
   }
 
-  const pad = (
-    <View style={styles.half} pointerEvents="none">
-      {(['left', 'right'] as const).map(control => (
-        <View key={control} style={styles.cell}>
-          <View testID={`move-${control}-button`} style={[styles.padKey, pressed.has(control) && styles.pressed]}>
-            <Text style={styles.padText}>{control === 'left' ? '◀' : '▶'}</Text>
+  // Each control is drawn centred in its own touch zone, so what you see is what you touch.
+  const control = (zone: ControlZone) => {
+    const isPad = zone.id === 'left' || zone.id === 'right';
+    return (
+      <View key={zone.id} style={[styles.cell, { left: zone.x, top: zone.y, width: zone.width, height: zone.height }]} pointerEvents="none">
+        {isPad ? (
+          <View testID={`move-${zone.id}-button`} style={[styles.padKey, pressed.has(zone.id) && styles.pressed]}>
+            <Text style={styles.padText}>{zone.id === 'left' ? '◀' : '▶'}</Text>
           </View>
-        </View>
-      ))}
-    </View>
-  );
-  const actions = (
-    <View style={styles.half} pointerEvents="none">
-      {ACTION_SLOT_ORDER.map(action => (
-        <View key={action} style={styles.cell}>
+        ) : (
           <View
-            testID={SLOT_TEST_ID[action]}
+            testID={SLOT_TEST_ID[zone.id as ActionZoneId]}
             style={[
               styles.button,
-              action === 'attack' && styles.attackButton,
-              action === 'interact' && styles.useButton,
-              !enabled[action] && styles.disabled,
-              pressed.has(action) && styles.pressed,
+              zone.id === 'attack' && styles.attackButton,
+              zone.id === 'interact' && styles.useButton,
+              !zone.enabled && styles.disabled,
+              pressed.has(zone.id) && styles.pressed,
             ]}
           >
-            <Text style={styles.buttonText}>{SLOT_LABEL[action]}</Text>
-            {action === 'interact' && useTarget && <Text numberOfLines={1} style={styles.targetText}>{useTarget}</Text>}
+            <Text style={styles.buttonText}>{SLOT_LABEL[zone.id as ActionZoneId]}</Text>
+            {zone.id === 'interact' && useTarget && <Text numberOfLines={1} style={styles.targetText}>{useTarget}</Text>}
           </View>
-        </View>
-      ))}
-    </View>
-  );
+        )}
+      </View>
+    );
+  };
 
   return (
     <View
       testID="touch-deck"
-      style={styles.deck}
+      style={[styles.deck, style]}
       onLayout={(event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
       onTouchStart={handleTouches}
       onTouchMove={handleTouches}
       onTouchEnd={handleTouches}
       onTouchCancel={handleTouches}
     >
-      {layout === 'standard' ? pad : actions}
-      {layout === 'standard' ? actions : pad}
+      {zones.map(control)}
     </View>
   );
 }
@@ -110,11 +111,10 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction 
 const styles = StyleSheet.create({
   // flex: 1 so the deck fills its row; without it the halves collapse to zero width.
   deck: { flex: 1, alignSelf: 'stretch', flexDirection: 'row', minHeight: 132 },
-  half: { flex: 1, flexDirection: 'row' },
-  cell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  padKey: { width: 76, height: 96, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#6b5aa0', borderRadius: 8, backgroundColor: '#352a5a' },
+  cell: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  padKey: { width: 60, height: 104, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#6b5aa0', borderRadius: 8, backgroundColor: '#352a5a' },
   padText: { color: '#f4f1de', fontSize: 30, fontWeight: '900' },
-  button: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 36, backgroundColor: '#1f8fa8' },
+  button: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 34, backgroundColor: '#1f8fa8' },
   attackButton: { borderColor: '#ff9aa8', backgroundColor: '#d23a5a' },
   useButton: { borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   disabled: { opacity: 0.25 },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 
 type Props = {
@@ -9,7 +9,8 @@ type Props = {
 
 export function EndingScreen({ onPlayAgain, onMenu }: Props) {
   return (
-    <View testID="ending-screen" style={styles.container}>
+    // Scrolls when the landscape screen is shorter than the panel.
+    <ScrollView testID="ending-screen" style={styles.scroll} contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <Text style={styles.kicker}>NIGHT COMPLETE</Text>
         <Text style={styles.title}>GOOD MORNING, WALLY.</Text>
@@ -42,13 +43,14 @@ export function EndingScreen({ onPlayAgain, onMenu }: Props) {
           <Text style={styles.buttonText}>BACK TO MENU</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1, backgroundColor: VISUAL_TOKENS.environment.void },
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,

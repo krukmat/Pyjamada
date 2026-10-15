@@ -41,3 +41,15 @@ void test('pad fingers slide between directions; action fingers never steer; dis
   deepEqual(updateDeckTouches({}, [{ id: 'c', x: 280, y: 50 }], noAttack).taps, [], 'a disabled slot ignores taps');
   deepEqual(updateDeckTouches(update.state, [], zones).state, {}, 'lifted fingers are forgotten');
 });
+
+void test('landscape columns: pad left, actions stacked right, nothing over the stage or above the controls', () => {
+  const columns = layoutControlZones(800, 400, 'standard', ALL, { centerWidth: 500, top: 100 });
+  equal(zoneAt(columns, 30, 300)?.id, 'left', 'outer pad steers left');
+  equal(zoneAt(columns, 120, 300)?.id, 'right', 'inner pad steers right');
+  equal(zoneAt(columns, 400, 300), undefined, 'the stage takes no touches');
+  equal(zoneAt(columns, 30, 50), undefined, 'the column top (menu, objective) takes no touches');
+  deepEqual([150, 250, 350].map(y => zoneAt(columns, 720, y)?.id), ['interact', 'attack', 'jump'], 'actions stacked, JUMP at the bottom');
+  const mirrored = layoutControlZones(800, 400, 'mirrored', ALL, { centerWidth: 500, top: 100 });
+  equal(zoneAt(mirrored, 30, 350)?.id, 'jump', 'mirrored puts the actions on the left');
+  equal(zoneAt(mirrored, 770, 300)?.id, 'right', 'and the pad on the right');
+});

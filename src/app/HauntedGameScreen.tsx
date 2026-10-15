@@ -43,7 +43,7 @@ import { HAUNTED_GHOST_ATLAS_SOURCE, HAUNTED_WALLY_ATLAS_SOURCE } from '../game/
 import type { PresentationRuntime } from '../game/presentation/PresentationRuntime';
 import { GameCanvas } from '../game/render/GameCanvas';
 import { roomInteractionTarget } from '../game/render/RoomPresentation';
-import { stageDimensionsForScreen } from '../game/render/StageViewport';
+import { stageDimensionsForLandscape } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
@@ -88,7 +88,7 @@ export function HauntedGameScreen({
   onExit,
 }: Props) {
   const { width, height } = useWindowDimensions();
-  const viewport = stageDimensionsForScreen(width, height - SCREEN_CHROME_HEIGHT);
+  const viewport = stageDimensionsForLandscape(width, height, MIN_SIDE_COLUMN, CABINET_CHROME + SCREEN_PADDING * 2);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const hauntedWallyImage = useImage(HAUNTED_WALLY_ATLAS_SOURCE);
   const hauntedGhostImage = useImage(HAUNTED_GHOST_ATLAS_SOURCE);
@@ -117,26 +117,37 @@ export function HauntedGameScreen({
 
   const useTarget = exitTarget ? 'EXIT' : adventureTarget?.displayLabel ?? domesticTarget?.label;
 
+  const deckVisible = !done && endingPhase !== 'ghost-sting';
+  const hp = `HP ${'♥'.repeat(session.combat.hp)}${'·'.repeat(session.combat.maxHp - session.combat.hp)}`;
+
   return (
     <View testID="game-screen" style={styles.container}>
-      <View style={[styles.cabinet, { width: viewport.width + 8 }]}>
-        <View style={styles.marquee}>
-          <View style={styles.marqueeMission}>
-            <Text testID={demo ? 'demo-banner' : undefined} style={styles.kicker}>{demo ? 'DEMO · BOT PLAYING · BACK TO MENU TO STOP' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
-            {demoMoment && <Text testID="demo-moment" style={styles.kicker}>{demoMoment}</Text>}
-            <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
-          </View>
-          {exploration && !endingActive && (
-            <View style={styles.stats}>
-              <Text testID="exploration-hp" style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
-            </View>
-          )}
+      <StatusBar hidden />
+      {deckVisible && (
+        <TouchDeck
+          style={StyleSheet.absoluteFill}
+          columns={{ centerWidth: viewport.width + CABINET_CHROME, top: COLUMN_TOP }}
+          layout={touchControlLayout}
+          enabled={{ jump: !endingActive, attack: !endingActive && (!exploration || explorationCombat), interact: true }}
+          useTarget={useTarget}
+          onHeldControl={onHeldControl}
+          onAction={onAction}
+        />
+      )}
+
+      {/* Left column: menu link, then what to do and how Wally is doing. */}
+      <View style={styles.sideColumn} pointerEvents="box-none">
+        <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
+          <Text style={styles.exitText}>◀ MENU</Text>
+        </Pressable>
+        <View style={styles.info} pointerEvents="none">
+          <Text testID={demo ? 'demo-banner' : undefined} style={styles.kicker}>{demo ? 'DEMO · BOT PLAYING' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
+          {demoMoment && <Text testID="demo-moment" style={styles.kicker}>{demoMoment}</Text>}
+          <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
+          {exploration && !endingActive && <Text testID="exploration-hp" style={styles.hp}>{hp}</Text>}
           {!exploration && (
             <View style={styles.stats}>
-              <View style={styles.statRow}>
-                <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}</Text>
-                <Text style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
-              </View>
+              <Text style={styles.time}>TIME {String(remainingSeconds).padStart(2, '0')}  <Text style={styles.hp}>{hp}</Text></Text>
               <View style={styles.statRow}>
                 <View style={styles.meter}><Text style={styles.label}>ENERGY</Text><PixelMeter value={state.energy / 100} segments={5} accent={VISUAL_TOKENS.feedback.energy} /></View>
                 <View style={styles.meter}><Text style={styles.label}>NOISE</Text><PixelMeter value={state.noise / 100} segments={5} accent={VISUAL_TOKENS.feedback.noise} /></View>
@@ -144,7 +155,9 @@ export function HauntedGameScreen({
             </View>
           )}
         </View>
+      </View>
 
+      <View style={[styles.cabinet, { width: viewport.width + CABINET_CHROME }]} pointerEvents="none">
         <View style={[styles.gameFrame, { width: viewport.width, height: viewport.height }]}>
           <GameCanvas
             state={state}
@@ -161,39 +174,29 @@ export function HauntedGameScreen({
             hauntedGhostImage={hauntedGhostImage}
           />
           <RoomTransitionOverlay phase={transitionPhase} />
+          {/* The story line sits over the floor strip, below Wally's feet. */}
+          <View style={styles.messageOverlay}>
+            <Text testID="game-reaction" numberOfLines={3} style={styles.reaction}>{reactionFor(session, adventure)}</Text>
+          </View>
         </View>
+      </View>
 
-        <View style={styles.messagePanel}>
+      {/* Right column: what USE would do, or how the run ended. */}
+      <View style={styles.sideColumn} pointerEvents="box-none">
+        <View style={styles.info} pointerEvents="none">
           {done ? <Outcome session={session} /> : (
             <View style={[styles.prompt, !prompt && styles.promptIdle]}>
               <Text style={styles.promptText}>{prompt ?? '· · ·'}</Text>
             </View>
           )}
-          <Text testID="game-reaction" style={styles.reaction}>{reactionFor(session, adventure)}</Text>
         </View>
-      </View>
-
-      <View style={styles.deck}>
-        {!done ? (
-          endingPhase === 'ghost-sting' ? (
-            <TapControl testID="ending-finish-button" label="END NIGHT" wide accent onPress={onFinishEnding} />
-          ) : (
-            <TouchDeck
-              layout={touchControlLayout}
-              enabled={{ jump: !endingActive, attack: !endingActive && (!exploration || explorationCombat), interact: true }}
-              useTarget={useTarget}
-              onHeldControl={onHeldControl}
-              onAction={onAction}
-            />
-          )
-        ) : (
+        {done && (
           <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : roomRetry ? 'RETRY ROOM' : 'TRY AGAIN'} wide accent onPress={onRestart} />
         )}
+        {!done && endingPhase === 'ghost-sting' && (
+          <TapControl testID="ending-finish-button" label="END NIGHT" wide accent onPress={onFinishEnding} />
+        )}
       </View>
-
-      <Pressable testID="exit-button" onPress={onExit} style={({ pressed }) => [styles.exitButton, pressed && styles.pressed]}>
-        <Text style={styles.exitText}>BACK TO MENU</Text>
-      </Pressable>
 
       {testHooksEnabled && (
         <HauntedRenderReadyProbe scenarioKey={session.runId} assetsReady={hauntedAssetsReady} />
@@ -414,18 +417,19 @@ const ARCADE = {
   muted: '#9585c9',
 } as const;
 
-// Everything on the screen but the stage, at its minimum: status bar and
-// container padding, marquee, message panel, control deck, menu link, the
-// container gaps and the cabinet's padding, border and inner gaps.
-const DECK_MIN_HEIGHT = 140;
-const SCREEN_CHROME_HEIGHT = (StatusBar.currentHeight ?? 0) + 14 + 52 + 86 + DECK_MIN_HEIGHT + 30 + 20 + 26;
+// Landscape: controls in the side columns, the stage as tall as the screen.
+const SCREEN_PADDING = 8;
+/** Cabinet padding (4) and border (3) on both sides. */
+const CABINET_CHROME = 14;
+const MIN_SIDE_COLUMN = 132;
+/** Height of the column tops (menu, objective, prompt); the touch controls sit below. */
+const COLUMN_TOP = 150;
 
 const styles = StyleSheet.create({
-  // Android draws edge-to-edge: keep the marquee clear of the status bar.
-  container: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 10, backgroundColor: ARCADE.cabinet, paddingTop: (StatusBar.currentHeight ?? 0) + 8, paddingBottom: 6 },
-  cabinet: { alignItems: 'center', gap: 6, padding: 4, borderWidth: 3, borderColor: ARCADE.bezel, borderRadius: 4, backgroundColor: ARCADE.screen },
-  marquee: { alignSelf: 'stretch', minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 2, borderColor: ARCADE.bezelLight },
-  marqueeMission: { flexShrink: 1 },
+  container: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: ARCADE.cabinet, padding: SCREEN_PADDING },
+  sideColumn: { flex: 1, alignSelf: 'stretch', gap: 8, paddingHorizontal: 6 },
+  info: { gap: 4 },
+  cabinet: { alignItems: 'center', padding: 4, borderWidth: 3, borderColor: ARCADE.bezel, borderRadius: 4, backgroundColor: ARCADE.screen },
   kicker: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   objective: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
   stats: { alignItems: 'flex-end', gap: 3 },
@@ -435,22 +439,20 @@ const styles = StyleSheet.create({
   meter: { width: 46 },
   label: { color: ARCADE.muted, fontFamily: 'monospace', fontSize: 6, fontWeight: '900' },
   gameFrame: { position: 'relative', overflow: 'hidden', backgroundColor: SCENE_TOKENS.skyDeep },
-  messagePanel: { alignSelf: 'stretch', minHeight: 84, alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 2, borderColor: ARCADE.bezelLight },
+  messageOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(11, 10, 18, 0.72)' },
   prompt: { minHeight: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderWidth: 1, borderColor: VISUAL_TOKENS.ui.yellow, borderRadius: 2 },
   promptIdle: { borderColor: ARCADE.bezel },
   promptText: { color: VISUAL_TOKENS.ui.yellow, fontFamily: 'monospace', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
-  reaction: { alignSelf: 'stretch', color: ARCADE.ink, fontFamily: 'monospace', fontSize: 12, fontWeight: '800', lineHeight: 16, textAlign: 'center' },
-  outcome: { minWidth: '70%', minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 2, backgroundColor: ARCADE.cabinet },
-  outcomeText: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  // The deck takes all the height the stage leaves, so the screen has no dead band.
-  deck: { flex: 1, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, minHeight: DECK_MIN_HEIGHT },
+  reaction: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 11, fontWeight: '800', lineHeight: 14, textAlign: 'center' },
+  outcome: { alignSelf: 'stretch', minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 2, backgroundColor: ARCADE.cabinet },
+  outcomeText: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
   roundButton: { width: 58, height: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 29, backgroundColor: '#1f8fa8' },
   accentButton: { borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   dangerButton: { width: 66, height: 66, borderRadius: 33, borderColor: '#ff9aa8', backgroundColor: '#d23a5a' },
   roundText: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
-  wideButton: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 4, borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
+  wideButton: { minHeight: 56, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 4, borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   wideText: { color: ARCADE.cabinet, fontFamily: 'monospace', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
   pressed: { opacity: 0.7, transform: [{ translateY: 2 }] },
-  exitButton: { minHeight: 30, justifyContent: 'center', paddingHorizontal: 16 },
+  exitButton: { alignSelf: 'flex-start', minHeight: 30, justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: ARCADE.bezel, borderRadius: 2 },
   exitText: { color: ARCADE.muted, fontFamily: 'monospace', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
 });

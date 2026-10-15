@@ -23,17 +23,24 @@ export function stageDimensionsForScreenWidth(screenWidth: number): StageDimensi
 }
 
 /**
- * Stage for the haunted game screen: the 128-unit room fills the width (the
- * decorative side margins crop first) unless `availableHeight` is the tighter
- * bound; wider screens show more of the margins.
+ * Stage for the landscape game screen: as tall as the screen allows while
+ * leaving `minSideColumn` on each side for the controls. The 128-unit room
+ * always fits; leftover width shows the decorative side margins.
+ * `chrome` is the space the cabinet frame and paddings take on each axis.
  */
-export function stageDimensionsForScreen(screenWidth: number, availableHeight: number): StageDimensions {
-  const availableWidth = Math.max(LOGICAL_SIZE, Math.floor(screenWidth - 20));
+export function stageDimensionsForLandscape(
+  screenWidth: number,
+  screenHeight: number,
+  minSideColumn: number,
+  chrome: number,
+): StageDimensions {
+  const availableWidth = Math.max(LOGICAL_SIZE, screenWidth - 2 * minSideColumn - chrome);
+  const availableHeight = Math.max(STAGE_LOGICAL_HEIGHT, screenHeight - chrome);
   const fit = Math.min(availableWidth / LOGICAL_SIZE, availableHeight / STAGE_LOGICAL_HEIGHT);
-  const height = Math.floor(STAGE_LOGICAL_HEIGHT * Math.max(1, fit));
+  const height = Math.floor(STAGE_LOGICAL_HEIGHT * fit);
   const scale = height / STAGE_LOGICAL_HEIGHT;
   return {
-    width: Math.min(availableWidth, Math.floor(STAGE_LOGICAL_WIDTH * scale)),
+    width: Math.min(Math.floor(availableWidth), Math.floor(STAGE_LOGICAL_WIDTH * scale)),
     height,
     scale,
   };

@@ -26,13 +26,35 @@ export type DeckUpdate = { state: DeckTouchState; held: Record<DirectionZoneId, 
 
 export const ACTION_SLOT_ORDER: readonly ActionZoneId[] = ['jump', 'attack', 'interact'];
 
-/** Half the deck is the pad (left, right), the other half three equal action slots. Mirrored swaps the halves. */
+/** Landscape: a dead centre (the stage) between two side columns whose controls start `top` below the top edge. */
+export type DeckColumns = { centerWidth: number; top: number };
+
+/** Top to bottom in a landscape action column: the thumb rests on JUMP. */
+export const COLUMN_ACTION_ORDER: readonly ActionZoneId[] = ['interact', 'attack', 'jump'];
+
+/**
+ * Half the deck is the pad (left, right), the other half three equal action slots. Mirrored swaps the halves.
+ * With `columns`, the pad and the actions take the two side columns instead, the actions stacked.
+ */
 export function layoutControlZones(
   width: number,
   height: number,
   layout: TouchControlLayout,
   enabled: Readonly<Record<ActionZoneId, boolean>>,
+  columns?: DeckColumns,
 ): ControlZone[] {
+  if (columns) {
+    const side = Math.max(0, (width - columns.centerWidth) / 2);
+    const padX = layout === 'standard' ? 0 : width - side;
+    const actionsX = layout === 'standard' ? width - side : 0;
+    const top = Math.min(columns.top, height);
+    const slot = (height - top) / COLUMN_ACTION_ORDER.length;
+    return [
+      { id: 'left', x: padX, y: top, width: side / 2, height: height - top, enabled: true },
+      { id: 'right', x: padX + side / 2, y: top, width: side / 2, height: height - top, enabled: true },
+      ...COLUMN_ACTION_ORDER.map((id, index) => ({ id, x: actionsX, y: top + index * slot, width: side, height: slot, enabled: enabled[id] })),
+    ];
+  }
   const half = width / 2;
   const padX = layout === 'standard' ? 0 : half;
   const actionsX = layout === 'standard' ? half : 0;

@@ -30,38 +30,43 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
       <View style={styles.backdropStripeA} />
       <View style={styles.backdropStripeB} />
       <View style={styles.poster}>
-        <View style={styles.topRail}>
-          <Text style={styles.topRailText}>NIGHT OPS // 05:12</Text>
-          <View style={styles.liveDot} />
-        </View>
+        {/* Landscape: the title card on the left, the run choices on the right. */}
+        <View style={styles.column}>
+          <View style={styles.topRail}>
+            <Text style={styles.topRailText}>NIGHT OPS // 05:12</Text>
+            <View style={styles.liveDot} />
+          </View>
 
-        <View style={styles.heroRow}>
-          <WallyBadge />
-          <View style={styles.titleBlock}>
-            <Text style={styles.eyebrow}>DOMESTIC ARCADE ADVENTURE</Text>
-            <Text style={styles.title}>PYJAMADA</Text>
-            <Text style={styles.subtitle}>ONE HOUSE. BAD DREAMS. NO SLEEP.</Text>
+          <View style={styles.heroRow}>
+            <WallyBadge />
+            <View style={styles.titleBlock}>
+              <Text style={styles.eyebrow}>DOMESTIC ARCADE ADVENTURE</Text>
+              <Text style={styles.title}>PYJAMADA</Text>
+              <Text style={styles.subtitle}>ONE HOUSE. BAD DREAMS. NO SLEEP.</Text>
+            </View>
+          </View>
+
+          <View style={styles.missionCard}>
+            <Text style={styles.missionKicker}>{completedRun ? 'LAST RUN' : "TONIGHT'S MISSION"}</Text>
+            <Text style={styles.missionText}>
+              {completedRun ? 'RESONATOR SHUT DOWN · NIGHT COMPLETE' : 'BAD DREAMS AGAIN. DRESS · GRAB THE KEYS · SLIP OUT QUIETLY'}
+            </Text>
+          </View>
+
+          <View style={styles.footerRail}>
+            <Text style={styles.footer}>8 ROOMS</Text>
+            <Text style={styles.footerAccent}>1 MAD SCIENTIST</Text>
+            <Text style={styles.footer}>0 SLEEP</Text>
           </View>
         </View>
 
-        <View style={styles.missionCard}>
-          <Text style={styles.missionKicker}>{completedRun ? 'LAST RUN' : "TONIGHT'S MISSION"}</Text>
-          <Text style={styles.missionText}>
-            {completedRun ? 'RESONATOR SHUT DOWN · NIGHT COMPLETE' : 'BAD DREAMS AGAIN. DRESS · GRAB THE KEYS · SLIP OUT QUIETLY'}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionLabel}>SELECT RUN</Text>
-        <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
-        {!canContinue && !busy && <Text style={styles.disabledHint}>NO SAVE YET — START SOMETHING MESSY</Text>}
-        <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={onNewGame} />
-        <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={onDemo} />
-        <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
-
-        <View style={styles.footerRail}>
-          <Text style={styles.footer}>8 ROOMS</Text>
-          <Text style={styles.footerAccent}>1 MAD SCIENTIST</Text>
-          <Text style={styles.footer}>0 SLEEP</Text>
+        <View style={styles.column}>
+          <Text style={styles.sectionLabel}>SELECT RUN</Text>
+          <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
+          {!canContinue && !busy && <Text style={styles.disabledHint}>NO SAVE YET — START SOMETHING MESSY</Text>}
+          <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={onNewGame} />
+          <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={onDemo} />
+          <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
         </View>
       </View>
     </View>
@@ -96,10 +101,11 @@ function MenuButton({ testID, label, disabled, onPress, tier }: { testID: string
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: VISUAL_TOKENS.environment.void, padding: 20, overflow: 'hidden' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: VISUAL_TOKENS.environment.void, paddingHorizontal: 24, paddingVertical: 12, overflow: 'hidden' },
   backdropStripeA: { position: 'absolute', width: '140%', height: 26, transform: [{ rotate: '-12deg' }], backgroundColor: VISUAL_TOKENS.environment.wallDeep, top: '22%' },
   backdropStripeB: { position: 'absolute', width: '140%', height: 12, transform: [{ rotate: '-12deg' }], backgroundColor: VISUAL_TOKENS.environment.floorDeep, bottom: '22%' },
-  poster: { width: '100%', maxWidth: 440, padding: 20, gap: 10, borderWidth: 4, borderRightWidth: 8, borderBottomWidth: 8, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
+  poster: { width: '100%', maxWidth: 780, flexDirection: 'row', padding: 16, gap: 18, borderWidth: 4, borderRightWidth: 8, borderBottomWidth: 8, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
+  column: { flex: 1, gap: 9, justifyContent: 'center' },
   topRail: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 7, borderBottomWidth: 2, borderBottomColor: VISUAL_TOKENS.ui.panelEdge },
   topRailText: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
   liveDot: { width: 7, height: 7, backgroundColor: VISUAL_TOKENS.feedback.noise },
@@ -113,7 +119,7 @@ const styles = StyleSheet.create({
   missionCard: { padding: 10, gap: 3, borderWidth: 2, borderColor: VISUAL_TOKENS.interactive.shadow, backgroundColor: VISUAL_TOKENS.ui.panelRaised },
   missionKicker: { color: VISUAL_TOKENS.interactive.focus, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', letterSpacing: 1.5 },
   missionText: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 8, fontWeight: '900' },
-  sectionLabel: { color: VISUAL_TOKENS.ui.cyanDark, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 2, marginTop: 2 },
+  sectionLabel: { color: VISUAL_TOKENS.ui.cyanDark, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 2 },
   button: { width: '100%', minHeight: 46, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 3, borderRightWidth: 6, borderBottomWidth: 6, backgroundColor: VISUAL_TOKENS.ui.panelRaised, position: 'relative', overflow: 'hidden' },
   buttonPrimary: { borderColor: VISUAL_TOKENS.ui.yellowDark },
   buttonSecondary: { minHeight: 42, borderColor: VISUAL_TOKENS.ui.cyanDark },

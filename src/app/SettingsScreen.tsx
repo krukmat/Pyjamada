@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { GameSettings } from '../settings/core/GameSettings';
 import { PixelMeter, SectionLabel } from './RetroUiKit';
@@ -15,7 +15,8 @@ type Props = {
 
 export function SettingsScreen({ settings, onBack, onToggleAudio, onMusicVolumeStep, onSfxVolumeStep, onToggleControlLayout }: Props) {
   return (
-    <View testID="settings-screen" style={styles.container}>
+    // Scrolls when the landscape screen is shorter than the panel.
+    <ScrollView testID="settings-screen" style={styles.scroll} contentContainerStyle={styles.container}>
       <View style={styles.panel}>
         <View style={styles.headerRail}>
           <Text style={styles.kicker}>PYJAMADA // SYSTEM PANEL</Text>
@@ -39,7 +40,7 @@ export function SettingsScreen({ settings, onBack, onToggleAudio, onMusicVolumeS
 
         <Text style={styles.note}>VALUES ARE PERSISTED · AUDIO PLAYBACK REMAINS DEFERRED</Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -92,7 +93,8 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: VISUAL_TOKENS.environment.void, padding: 20 },
+  scroll: { flex: 1, backgroundColor: VISUAL_TOKENS.environment.void },
+  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: VISUAL_TOKENS.environment.void, padding: 20 },
   panel: { width: '100%', maxWidth: 440, padding: 18, gap: 9, borderWidth: 4, borderRightWidth: 8, borderBottomWidth: 8, borderColor: VISUAL_TOKENS.ui.panelEdge, backgroundColor: VISUAL_TOKENS.ui.panel },
   headerRail: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: VISUAL_TOKENS.ui.panelEdge },
   kicker: { color: VISUAL_TOKENS.ui.cyan, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
