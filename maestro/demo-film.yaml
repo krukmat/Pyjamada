@@ -28,7 +28,7 @@ tags:
     commands:
       - copyTextFrom:
           id: demo-moment
-        optional: true
+          optional: true
       - runFlow:
           when:
             true: ${maestro.copiedText && maestro.copiedText != output.last}
