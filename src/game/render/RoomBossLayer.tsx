@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { BlendColor, Circle, Group, Oval, Paint, Rect } from '@shopify/react-native-skia';
+import { BlendColor, Group, Oval, Paint, Rect } from '@shopify/react-native-skia';
 import { LOGICAL_SIZE, PLAYER_GROUND_Y } from '../core/World';
 import type { RoomBossSnapshot } from '../adventure/RoomBossHazard';
 import { PixelSpritePicture } from './PixelSpritePicture';
@@ -83,6 +83,7 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   const twitch = boss.config.kind === 'roach' && boss.pose === 'telegraph' && blink ? 1 : 0;
   const shadowWidth = width * (boss.lift > 0 ? 0.5 : 0.8);
   const white = flash || dispelling;
+  const ring = 3 + (blink ? 1 : 0);
 
   return (
     <Group>
@@ -102,10 +103,11 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
         <PixelSpritePicture sprite={sprite} x={left + twitch} y={top} px={px} scale={ROOM_BOSS_SCALE} />
       </Group>
       {boss.shielded && !dispelling && (
-        <Circle
-          cx={px(boss.x)}
-          cy={px(top + height / 2)}
-          r={px(Math.max(width, height) / 2 + 3 + (blink ? 1 : 0))}
+        <Oval
+          x={px(left - ring)}
+          y={px(top - ring)}
+          width={px(width + 2 * ring)}
+          height={px(height + 2 * ring)}
           color="#9ff6ff"
           style="stroke"
           strokeWidth={px(1)}
