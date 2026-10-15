@@ -10,7 +10,7 @@ import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import type { SystemicRunState } from '../systemic/SystemicState';
 import { bathroomTwinX, isBathroomTwinActive, isBathroomTwinWounded } from '../adventure/BathroomTwinHazard';
-import { isRoomBossDispelled, resolveRoomBoss } from '../adventure/RoomBossHazard';
+import { isBossDispelled, resolveRoomBoss } from '../adventure/RoomBossHazard';
 import { RoomBossLayer, useRoomBossFx } from './RoomBossLayer';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
@@ -72,7 +72,7 @@ export function GameCanvas({
   const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX) : undefined;
   const bossFx = useRoomBossFx(
     roomBoss,
-    (room) => Boolean(adventure && adventure.currentRoom === room && isRoomBossDispelled(adventure, room)),
+    (config) => Boolean(adventure && adventure.currentRoom === config.room && isBossDispelled(adventure, config)),
     nowMs,
   );
   const shake = {
@@ -128,7 +128,7 @@ export function GameCanvas({
           )}
 
           {roomBoss && <RoomBossLayer boss={roomBoss} nowMs={nowMs} px={px} flash={bossFx.flash} />}
-          {!roomBoss && bossFx.dispelling && (
+          {bossFx.dispelling && bossFx.dispelling.boss.config !== roomBoss?.config && (
             <RoomBossLayer boss={bossFx.dispelling.boss} nowMs={nowMs} px={px} dispelProgress={bossFx.dispelling.progress} />
           )}
 

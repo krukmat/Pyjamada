@@ -213,7 +213,6 @@ export function stepBotWorld(world: BotWorld, action: BotAction): BotStep {
 
 /** Exploration hit events and the observed threat zone each one must come from. */
 const HIT_EVENT_THREATS: Partial<Record<BotEvent['type'], ThreatKind>> = {
-  HALLWAY_PENDULUM_HIT: 'hallway-pendulum',
   LIVING_ROOM_STATIC_HIT: 'living-room-static',
   KITCHEN_SURGE_HIT: 'kitchen-surge',
   ATTIC_CRATE_HIT: 'attic-crate',
@@ -453,14 +452,15 @@ function roomSignature(adventure: AdventureState, roomId: RoomId, human = false)
 
 /**
  * Where to stand against a room boss: beyond the reach of the Moth's flight or
- * the Wraith's blink spots (any spark fired across their range meets them), and
- * between the microwave and the breaker against the Roach, which has no safe
- * spot and must be jumped.
+ * the Wraith's blink spots (any spark fired across their range meets them), by
+ * the bedroom door against the Cuckoo too (its landing leans toward Wally, so a
+ * wounded one hops into pecking range), and between the microwave and the
+ * breaker against the Roach, which has no safe spot and must be jumped.
  */
 export function roomBossFiringSpot(boss: RoomBossConfig): number {
   // The Moth rises by the Living Room door and the Wraith's first blink is
   // left of the television: each spot lies away from where the boss starts.
-  if (boss.kind === 'moth') return 12;
+  if (boss.kind === 'moth' || boss.kind === 'cuckoo') return 12;
   if (boss.kind === 'wraith') return 114;
   return 86;
 }
@@ -693,7 +693,7 @@ export class RouteBot implements BotPolicy {
       const boss = activeRoomBoss(world.adventure);
       const key = isBathroomTwinActive(world.adventure)
         ? 'bathroom-twin'
-        : boss ? `boss:${boss.room}` : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
+        : boss ? `boss:${boss.kind}` : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
       if (this.firing?.key !== key) this.firing = { key, target, x: this.firingPosition(world, target) };
       return { x: this.firing.x, aimX: target, label: `fight target@${Math.round(target)}` };
     }

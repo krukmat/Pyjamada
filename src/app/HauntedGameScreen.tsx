@@ -221,6 +221,7 @@ const BOSS_TAUNTS: Record<RoomBossKind, string> = {
   moth: 'A moth the size of a pillow beats dust off the walls. It guards the door.',
   wraith: 'The static took a shape. It blinks from spot to spot. Hit it when it is solid.',
   roach: 'A giant cockroach skitters out from under the fridge. Jump it when it charges.',
+  cuckoo: 'The clock strikes thirteen. Its bird wants a word. Shoot it while it hops.',
 };
 
 function objectiveFor(session: HauntedSessionState, adventure?: AdventureState): string {
@@ -233,7 +234,7 @@ function objectiveFor(session: HauntedSessionState, adventure?: AdventureState):
   if (adventure && isAdventureExplorationActive(adventure)) {
     if (adventure.currentRoom === 'bedroom') return 'FIND ANOTHER WAY OUT';
     const boss = activeRoomBoss(adventure);
-    if (boss) return `DEFEAT THE ${boss.name} ${roomBossHits(adventure, boss.room)}/${boss.hp}`;
+    if (boss) return `DEFEAT THE ${boss.name} ${roomBossHits(adventure, boss)}/${boss.hp}`;
     if (adventure.currentRoom === 'living-room') {
       if (!isLivingRoomTvActivated(adventure)) return 'CHECK THE LIVING ROOM';
       if (!hasLabTransmissionBeenSeen(adventure)) return 'CHECK THE SIGNAL';

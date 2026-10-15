@@ -5,7 +5,6 @@ import { ATTIC_CRATES, resolveAtticCrates } from './AtticCrateHazard';
 import { BASEMENT_ELECTRICAL_HAZARD, resolveBasementElectricalHazard } from './BasementElectricalHazard';
 import { BATHROOM_TWIN, isBathroomTwinActive } from './BathroomTwinHazard';
 import type { FloorWaveConfig } from './FloorWaveHazard';
-import { HALLWAY_PENDULUM, resolveHallwayPendulum } from './HallwayPendulumHazard';
 import { KITCHEN_SURGE, resolveKitchenSurge } from './KitchenSurgeHazard';
 import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstability';
 import { resolveVesperControlState } from './LaboratoryVesperControl';
@@ -19,7 +18,6 @@ const ROACH_TWITCH_LANE_MS = 400;
 export type ThreatPhase = 'warning' | 'danger';
 
 export type ThreatKind =
-  | 'hallway-pendulum'
   | 'living-room-static'
   | 'kitchen-surge'
   | 'attic-crate'
@@ -53,7 +51,6 @@ export type ThreatObservation = {
 
 /** Threat kinds whose dangers are always announced by a warning on the same floor zone first. */
 export const TELEGRAPHED_THREAT_KINDS: readonly ThreatKind[] = [
-  'hallway-pendulum',
   'living-room-static',
   'kitchen-surge',
   'attic-crate',
@@ -89,18 +86,6 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
   }
 
   switch (adventure.currentRoom) {
-    case 'hallway': {
-      const pendulum = resolveHallwayPendulum(adventure, elapsedMs);
-      const { leftX, rightX, halfWidth } = HALLWAY_PENDULUM;
-      // The whole arc is live from the drop until the bob rises again; while the bob drops, its
-      // own spot is a second, smaller warning that shows which end the swing starts from.
-      if (pendulum.phase === 'dropping' || pendulum.phase === 'sweep') {
-        push('hallway-pendulum', 'warning', leftX - halfWidth, rightX + halfWidth);
-      }
-      if (pendulum.phase === 'dropping') push('hallway-pendulum', 'warning', pendulum.bobX - halfWidth, pendulum.bobX + halfWidth);
-      if (pendulum.dangerous) push('hallway-pendulum', 'danger', pendulum.bobX - halfWidth, pendulum.bobX + halfWidth);
-      break;
-    }
     case 'living-room': {
       const wave = resolveLivingRoomStatic(adventure, elapsedMs);
       observeFloorWave(push, 'living-room-static', LIVING_ROOM_STATIC, wave.phase === 'telegraph' || wave.phase === 'wave', wave.dangerous ? wave.fronts : []);

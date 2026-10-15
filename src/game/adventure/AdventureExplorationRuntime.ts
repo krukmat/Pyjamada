@@ -50,12 +50,6 @@ import {
   resolveLivingRoomStatic,
 } from './LivingRoomStaticHazard';
 import {
-  armHallwayPendulum,
-  isHallwayPendulumLive,
-  isPlayerHitByHallwayPendulum,
-  resolveHallwayPendulum,
-} from './HallwayPendulumHazard';
-import {
   armAtticCrates,
   isAtticCratesLive,
   isPlayerHitByAtticCrate,
@@ -93,7 +87,6 @@ export type AdventureExplorationEvent =
   | { type: 'BASEMENT_DISCHARGE_HIT' }
   | { type: 'KITCHEN_SURGE_HIT' }
   | { type: 'LIVING_ROOM_STATIC_HIT' }
-  | { type: 'HALLWAY_PENDULUM_HIT' }
   | { type: 'ATTIC_CRATE_HIT' }
   | { type: 'BATHROOM_TWIN_HIT' }
   | { type: 'BATHROOM_TWIN_DISPELLED' }
@@ -349,11 +342,6 @@ export function stepAdventureExploration(
     const armed = armLivingRoomStatic(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
     elapsedMs = armed.elapsedMs;
-  } else if (adventure.currentRoom === 'hallway' && isHallwayPendulumLive(adventure)) {
-    elapsedMs += dtMs;
-    const armed = armHallwayPendulum(nextAdventure, elapsedMs, session.player.x);
-    nextAdventure = armed.adventure;
-    elapsedMs = armed.elapsedMs;
   } else if (adventure.currentRoom === 'attic' && isAtticCratesLive(adventure)) {
     elapsedMs += dtMs;
     const armed = armAtticCrates(nextAdventure, elapsedMs);
@@ -521,17 +509,6 @@ export function stepAdventureExploration(
     if (hit.accepted) {
       player = applyHauntedKnockback(player, -1);
       events.push({ type: 'LIVING_ROOM_STATIC_HIT' });
-      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
-    }
-  }
-
-  const pendulum = resolveHallwayPendulum(nextAdventure, elapsedMs);
-  if (isPlayerHitByHallwayPendulum(player, pendulum) && objective.phase !== 'failed') {
-    const hit = applyHauntedPlayerHit(combat, elapsedMs);
-    combat = hit.combat;
-    if (hit.accepted) {
-      player = applyHauntedKnockback(player, player.x < pendulum.bobX ? -1 : 1);
-      events.push({ type: 'HALLWAY_PENDULUM_HIT' });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }

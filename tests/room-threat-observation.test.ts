@@ -1,12 +1,10 @@
 import { equal, test } from './assert';
 import { createAdventureState, setRoomSwitch } from '../src/game/adventure/AdventureState';
 import { isInsideObservedDanger, observeRoomThreats, TELEGRAPHED_THREAT_KINDS } from '../src/game/adventure/RoomThreatObservation';
-import { HALLWAY_PENDULUM } from '../src/game/adventure/HallwayPendulumHazard';
 import { createHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
 import {
   BATHROOM_TWIN_LIVE,
   explorationIn,
-  HALLWAY_PENDULUM_ARMED,
   isTelegraphed,
   laboratoryIn,
   measureWarningLead,
@@ -72,21 +70,6 @@ void test('floor waves are the only jumpable threats, and their fronts stay insi
   }
 });
 
-void test('while the pendulum drops, a smaller warning marks the end its swing starts from', () => {
-  const { adventure, elapsedMs } = HALLWAY_PENDULUM_ARMED;
-  // Armed on the door side: raised, then dropping for dropMs before the sweep.
-  const sweepAt = elapsedMs + HALLWAY_PENDULUM.firstWarningMs;
-  const dropping = observeAt(adventure, sweepAt - HALLWAY_PENDULUM.dropMs / 2);
-  equal(dropping.length, 2, 'arc and bob warnings');
-  const [arc, bob] = [...dropping].sort((a, b) => (b.maxX - b.minX) - (a.maxX - a.minX));
-  equal(arc.minX, HALLWAY_PENDULUM.leftX - HALLWAY_PENDULUM.halfWidth, 'the arc starts at the left end of the swing');
-  equal(arc.maxX, HALLWAY_PENDULUM.rightX + HALLWAY_PENDULUM.halfWidth, 'the arc ends at the right end of the swing');
-  equal(bob.minX, HALLWAY_PENDULUM.rightX - HALLWAY_PENDULUM.halfWidth, 'the bob drops at the door end');
-  ok(dropping.every(observation => observation.phase === 'warning'), 'nothing is dangerous yet');
-  const sweeping = observeAt(adventure, sweepAt + 200);
-  equal(sweeping.filter(observation => observation.phase === 'warning').length, 1, 'only the arc stays warned during the swing');
-});
-
 void test('the bathroom reflection zone is the mirror contact band and needs no telegraph', () => {
   const observations = observeAt(BATHROOM_TWIN_LIVE, 0);
   equal(observations.length, 1, 'one zone while the reflection is out');
@@ -100,8 +83,6 @@ void test('the bathroom reflection zone is the mirror contact band and needs no 
 void test('calm rooms and the haunted bedroom run expose no threats', () => {
   equal(observeRoomThreats(createHauntedSession('calm'), createAdventureState()).length, 0, 'haunted bedroom run has no room threats');
   equal(observeAt(explorationIn('hallway'), 5_000).length, 0, 'hallway before the clock is calm');
-  const { adventure, elapsedMs } = HALLWAY_PENDULUM_ARMED;
-  equal(observeAt({ ...adventure, visitedRooms: [...adventure.visitedRooms, 'living-room'] }, elapsedMs + 600).length, 0, 'the pendulum stops once the Living Room is reached');
   const unarmed = setRoomSwitch(explorationIn('kitchen'), 'kitchen', 'circuit-overloaded', true);
   equal(observeAt(unarmed, 5_000).length, 0, 'an unarmed hazard shows nothing');
   equal(observeAt(laboratoryIn('vesper-control'), 1_300).length, 0, 'the idle beat between Vesper lanes is clear');

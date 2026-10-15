@@ -30,7 +30,7 @@ import { LivingRoomPresentation } from './LivingRoomPresentation';
 import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
-import { HALLWAY_PENDULUM, resolveHallwayPendulum } from '../adventure/HallwayPendulumHazard';
+import { resolveRoomBoss } from '../adventure/RoomBossHazard';
 import { ROOM_SPREAD, STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, acrossRoom, spreadX } from './StageViewport';
 import { Spread } from './RoomSpread';
 
@@ -228,12 +228,15 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
   const hallway = adventure ? getRoomState(adventure, 'hallway') : undefined;
   const clockInspected = hallway?.inspected.includes('backward-clock') === true;
   const livingUnlocked = hallway?.switches['living-room-unlocked'] === true;
-  const pendulum = adventure && hauntedSession ? resolveHallwayPendulum(adventure, hauntedSession.elapsedMs) : undefined;
+  const boss = adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX) : undefined;
+  const cuckooOut = boss?.config.kind === 'cuckoo' && boss.pose !== 'hide';
   const clockStep = Math.floor(nowMs / 260) % 12;
   const minuteAngle = (-clockStep / 12) * Math.PI * 2 - Math.PI / 2;
   const hourAngle = (-(clockStep / 3) / 12) * Math.PI * 2 - Math.PI / 2;
-  const minuteEnd = vec(px(64 + Math.cos(minuteAngle) * 4), px(43 + Math.sin(minuteAngle) * 4));
-  const hourEnd = vec(px(64 + Math.cos(hourAngle) * 2.7), px(43 + Math.sin(hourAngle) * 2.7));
+  const face = { x: 64, y: 47 };
+  const minuteEnd = vec(px(face.x + Math.cos(minuteAngle) * 4), px(face.y + Math.sin(minuteAngle) * 4));
+  const hourEnd = vec(px(face.x + Math.cos(hourAngle) * 2.7), px(face.y + Math.sin(hourAngle) * 2.7));
+  const swing = Math.sin(nowMs / 420) * 3;
 
   return (
     <>
@@ -264,17 +267,34 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
         <Circle cx={px(91.5)} cy={px(39)} r={px(3)} color="#6d8890" />
       </Spread>
 
+      {/* Cuckoo clock: carved roof, a door the bird bursts from, a face that runs backward, weights and a pendulum. */}
       <Spread at={64} px={px}>
-      {clockInspected && <Circle cx={px(64)} cy={px(43)} r={px(10)} color="rgba(91,238,255,0.10)" />}
-      <Circle cx={px(64)} cy={px(43)} r={px(7)} color="#17172d" />
-      <Circle cx={px(64)} cy={px(43)} r={px(5.6)} color="#393653" />
-      <Circle cx={px(64)} cy={px(43)} r={px(0.8)} color="#f8da76" />
-      <Line p1={vec(px(64), px(43))} p2={minuteEnd} color="#79e8ff" strokeWidth={px(0.7)} />
-      <Line p1={vec(px(64), px(43))} p2={hourEnd} color="#f8da76" strokeWidth={px(0.9)} />
+      {clockInspected && <Circle cx={px(64)} cy={px(42)} r={px(14)} color="rgba(91,238,255,0.10)" />}
+      {[0, 1, 2, 3].map((step) => (
+        <Rect key={`roof-${step}`} x={px(53 + step * 2.5)} y={px(30 - step * 2.5)} width={px(22 - step * 5)} height={px(2.5)} color={step === 3 ? '#8a5a34' : '#5a3a20'} />
+      ))}
+      <Rect x={px(52)} y={px(31)} width={px(24)} height={px(1.5)} color="#b47c4c" />
+      <RoundedRect x={px(55)} y={px(32)} width={px(18)} height={px(24)} r={px(1)} color="#3a2416" />
+      <Rect x={px(56.5)} y={px(33.5)} width={px(15)} height={px(21)} color="#5a3a20" />
+      <Rect x={px(60.5)} y={px(34)} width={px(7)} height={px(6)} color={cuckooOut ? '#0b0a12' : '#2a1a10'} />
+      {cuckooOut
+        ? <Rect x={px(67.5)} y={px(34)} width={px(2)} height={px(6)} color="#8a5a34" />
+        : <Rect x={px(61.5)} y={px(35)} width={px(5)} height={px(4)} color="#6b4426" />}
+      <Circle cx={px(face.x)} cy={px(face.y)} r={px(6)} color="#17172d" />
+      <Circle cx={px(face.x)} cy={px(face.y)} r={px(5)} color="#e8d3a6" />
+      <Circle cx={px(face.x)} cy={px(face.y)} r={px(0.8)} color="#5a3a20" />
+      <Line p1={vec(px(face.x), px(face.y))} p2={minuteEnd} color="#24160b" strokeWidth={px(0.7)} />
+      <Line p1={vec(px(face.x), px(face.y))} p2={hourEnd} color="#b04fd1" strokeWidth={px(0.9)} />
       {[0, 3, 6, 9].map((tick) => {
         const angle = (tick / 12) * Math.PI * 2 - Math.PI / 2;
-        return <Circle key={`tick-${tick}`} cx={px(64 + Math.cos(angle) * 4.7)} cy={px(43 + Math.sin(angle) * 4.7)} r={px(0.45)} color="#b6abc9" />;
+        return <Circle key={`tick-${tick}`} cx={px(face.x + Math.cos(angle) * 4.1)} cy={px(face.y + Math.sin(angle) * 4.1)} r={px(0.45)} color="#5a3a20" />;
       })}
+      <Line p1={vec(px(64), px(56))} p2={vec(px(64 + swing), px(66))} color="#c99a1a" strokeWidth={px(0.6)} />
+      <Circle cx={px(64 + swing)} cy={px(67)} r={px(2)} color="#ffd84a" />
+      <Line p1={vec(px(59), px(56))} p2={vec(px(59), px(64))} color="#8e8a9e" strokeWidth={px(0.4)} />
+      <Line p1={vec(px(69), px(56))} p2={vec(px(69), px(70))} color="#8e8a9e" strokeWidth={px(0.4)} />
+      <RoundedRect x={px(57.8)} y={px(64)} width={px(2.4)} height={px(5)} r={px(1)} color="#5a3a20" />
+      <RoundedRect x={px(67.8)} y={px(70)} width={px(2.4)} height={px(5)} r={px(1)} color="#5a3a20" />
       </Spread>
 
       <RoundedRect x={px(spreadX(25))} y={px(100)} width={px(spreadX(77))} height={px(4)} r={px(2)} color="rgba(91,238,255,0.08)" />
@@ -285,27 +305,6 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
         </Spread>
       )}
       {hauntedSession && <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />}
-      {/* Phantom pendulum: raised (safe), dropping (warning), sweeping (danger). */}
-      {pendulum && pendulum.phase !== 'inactive' && (
-        <>
-          <Line
-            p1={vec(px(spreadX(HALLWAY_PENDULUM.pivotX)), px(HALLWAY_PENDULUM.pivotY + 6))}
-            p2={vec(px(spreadX(pendulum.bobX)), px(pendulum.bobY))}
-            color={pendulum.dangerous ? '#f4f1de' : 'rgba(149,133,201,0.8)'}
-            strokeWidth={px(1)}
-          />
-          {pendulum.dangerous && (
-            <Circle cx={px(spreadX(pendulum.bobX))} cy={px(pendulum.bobY)} r={px(9)} color="rgba(176,79,209,0.30)" />
-          )}
-          <Circle
-            cx={px(spreadX(pendulum.bobX))}
-            cy={px(pendulum.bobY)}
-            r={px(5)}
-            color={pendulum.dangerous ? '#b04fd1' : pendulum.phase === 'dropping' ? '#ffd84a' : '#4c3d7a'}
-          />
-          <Circle cx={px(spreadX(pendulum.bobX) - 1)} cy={px(pendulum.bobY - 1)} r={px(2)} color={pendulum.dangerous ? '#f4f1de' : '#9585c9'} />
-        </>
-      )}
     </>
   );
 }

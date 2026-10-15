@@ -7,7 +7,9 @@ import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } f
  * moves differently, so each needs a different answer:
  *
  * - Hallway, Dust Moth: flutters across the room, leaning toward Wally;
- *   keep away and shoot.
+ *   keep away and shoot. Once it is dispelled the cuckoo clock's bird, a
+ *   mini boss, bursts out: it calls, dives at Wally and hops after him,
+ *   pecking; it can be hit only while it hops, then it flies back home.
  * - Living Room, Static Wraith: blinks between three spots and, once solid,
  *   drifts toward Wally; it can be hit only once solid.
  * - Kitchen, Giant Roach: waits at a wall, then charges along the floor to
@@ -25,13 +27,15 @@ import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } f
  * room clock, aligned to a round start when the boss wakes, so only the
  * arm/hit/dispelled marks are stored, as room interactions.
  */
-export type RoomBossKind = 'moth' | 'wraith' | 'roach';
+export type RoomBossKind = 'moth' | 'wraith' | 'roach' | 'cuckoo';
 export type RoomBossRoom = 'hallway' | 'living-room' | 'kitchen';
 
 export type RoomBossConfig = {
   kind: RoomBossKind;
   room: RoomBossRoom;
   name: string;
+  /** Prefix of the room interactions that record its arming, wounds and dispel. */
+  markPrefix: string;
   /** Room switch set by the puzzle that opens the forward exit; it also wakes the boss. */
   guardSwitch: string;
   exitId: string;
@@ -43,18 +47,51 @@ export type RoomBossConfig = {
 
 export const ROOM_BOSSES: Record<RoomBossRoom, RoomBossConfig> = {
   hallway: {
-    kind: 'moth', room: 'hallway', name: 'DUST MOTH', guardSwitch: 'living-room-unlocked',
+    kind: 'moth', room: 'hallway', name: 'DUST MOTH', markPrefix: 'hallway-boss', guardSwitch: 'living-room-unlocked',
     exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 11, sparkHitRadius: 12,
   },
   'living-room': {
-    kind: 'wraith', room: 'living-room', name: 'STATIC WRAITH', guardSwitch: 'source-hum-traced',
+    kind: 'wraith', room: 'living-room', name: 'STATIC WRAITH', markPrefix: 'living-room-boss', guardSwitch: 'source-hum-traced',
     exitId: 'living-room-to-kitchen', hp: 3, cycleMs: 4_500, contactHalfWidth: 11, sparkHitRadius: 12,
   },
   kitchen: {
-    kind: 'roach', room: 'kitchen', name: 'GIANT ROACH', guardSwitch: 'power-rerouted',
+    kind: 'roach', room: 'kitchen', name: 'GIANT ROACH', markPrefix: 'kitchen-boss', guardSwitch: 'power-rerouted',
     exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 13, sparkHitRadius: 14,
   },
 };
+
+/** The Hallway's mini boss, woken when the Dust Moth is dispelled. */
+export const CUCKOO_BOSS: RoomBossConfig = {
+  kind: 'cuckoo', room: 'hallway', name: 'CUCKOO', markPrefix: 'hallway-cuckoo', guardSwitch: 'living-room-unlocked',
+  exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_200, contactHalfWidth: 10, sparkHitRadius: 11,
+};
+
+/** Each room's bosses in the order they wake; the next one wakes when the previous is dispelled. */
+export const ROOM_BOSS_SEQUENCES: Record<RoomBossRoom, readonly RoomBossConfig[]> = {
+  hallway: [ROOM_BOSSES.hallway, CUCKOO_BOSS],
+  'living-room': [ROOM_BOSSES['living-room']],
+  kitchen: [ROOM_BOSSES.kitchen],
+};
+
+/**
+ * Cuckoo, one cycle: calls from the clock door (harmless), dives toward one of
+ * two landing spots bent toward Wally, hops after him pecking (the only time it
+ * can be hit), flies back up and hides. It hurts only when low enough to reach
+ * him (`reachLift`). Landing spots alternate between cycles.
+ */
+export const CUCKOO_FLIGHT = {
+  clockX: 64,
+  doorLift: 62,
+  reachLift: 16,
+  landX: [36, 92],
+  callMs: 700,
+  diveMs: 700,
+  hopMs: 1_000,
+  returnMs: 700,
+  /** Share of the gap to Wally its landing spot closes: leanBase plus leanPerHit per wound. */
+  leanBase: 0.4,
+  leanPerHit: 0.25,
+} as const;
 
 /** Moth: x = center + amplitude * cos(phase); it starts beside the forward exit. */
 export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
@@ -69,7 +106,7 @@ export const WRAITH_BLINK = { spots: [28, 68, 46], blinkMs: 1_500, telegraphMs: 
  */
 export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 12, maxX: 96 } as const;
 /** Share of the gap to Wally the Moth closes: leanBase plus leanPerHit per wound. */
-export const MOTH_HUNT = { leanBase: 0.12, leanPerHit: 0.12 } as const;
+export const MOTH_HUNT = { leanBase: 0.08, leanPerHit: 0.08 } as const;
 /** Roach: waits at a wall (the last telegraphMs twitching), then charges to the other one. */
 export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
 /** Each wound takes this off the Roach's charge and adds it to its wait, so the cycle keeps its length. */
@@ -93,7 +130,7 @@ export function roomBossRoundMs(config: RoomBossConfig): number {
   return ROOM_BOSS_RISE_MS + CYCLES_PER_ROUND * config.cycleMs;
 }
 
-export type RoomBossPose = 'rise' | 'fly' | 'telegraph' | 'solid' | 'wait' | 'charge';
+export type RoomBossPose = 'rise' | 'fly' | 'telegraph' | 'solid' | 'wait' | 'charge' | 'dive' | 'hop' | 'hide';
 
 export type RoomBossSnapshot = {
   config: RoomBossConfig;
@@ -111,35 +148,41 @@ export type RoomBossSnapshot = {
   hits: number;
 };
 
-const armedMark = (room: RoomBossRoom) => `${room}-boss-armed`;
-const hitMark = (room: RoomBossRoom, hit: number) => `${room}-boss-hit-${hit}`;
-const dispelledMark = (room: RoomBossRoom) => `${room}-boss-dispelled`;
+const armedMark = (config: RoomBossConfig) => `${config.markPrefix}-armed`;
+const hitMark = (config: RoomBossConfig, hit: number) => `${config.markPrefix}-hit-${hit}`;
+const dispelledMark = (config: RoomBossConfig) => `${config.markPrefix}-dispelled`;
 
+/** The room's first boss, if the room has any. */
 export function roomBossFor(room: RoomId): RoomBossConfig | undefined {
   return Object.prototype.hasOwnProperty.call(ROOM_BOSSES, room) ? ROOM_BOSSES[room as RoomBossRoom] : undefined;
 }
 
-export function isRoomBossDispelled(adventure: AdventureState, room: RoomBossRoom): boolean {
-  return getRoomState(adventure, room).interactions.includes(dispelledMark(room));
+export function isBossDispelled(adventure: AdventureState, config: RoomBossConfig): boolean {
+  return getRoomState(adventure, config.room).interactions.includes(dispelledMark(config));
 }
 
-export function roomBossHits(adventure: AdventureState, room: RoomBossRoom): number {
-  const interactions = getRoomState(adventure, room).interactions;
+/** Every boss of the room is dispelled. */
+export function isRoomBossDispelled(adventure: AdventureState, room: RoomBossRoom): boolean {
+  return ROOM_BOSS_SEQUENCES[room].every(config => isBossDispelled(adventure, config));
+}
+
+export function roomBossHits(adventure: AdventureState, config: RoomBossConfig): number {
+  const interactions = getRoomState(adventure, config.room).interactions;
   let hits = 0;
-  while (interactions.includes(hitMark(room, hits + 1))) hits += 1;
+  while (interactions.includes(hitMark(config, hits + 1))) hits += 1;
   return hits;
 }
 
-/** Awake and undefeated, wherever Wally currently is. */
+/** The room's bosses are awake and not all dispelled, wherever Wally currently is. */
 export function isRoomBossLive(adventure: AdventureState, room: RoomBossRoom): boolean {
-  const config = ROOM_BOSSES[room];
-  return getRoomState(adventure, room).switches[config.guardSwitch] === true && !isRoomBossDispelled(adventure, room);
+  return getRoomState(adventure, room).switches[ROOM_BOSSES[room].guardSwitch] === true && !isRoomBossDispelled(adventure, room);
 }
 
-/** The boss of the current room, if it is awake and undefeated. */
+/** The current room's awake boss: the first of its sequence not yet dispelled. */
 export function activeRoomBoss(adventure: AdventureState): RoomBossConfig | undefined {
-  const config = roomBossFor(adventure.currentRoom);
-  return config && isRoomBossLive(adventure, config.room) ? config : undefined;
+  const first = roomBossFor(adventure.currentRoom);
+  if (!first || !isRoomBossLive(adventure, first.room)) return undefined;
+  return ROOM_BOSS_SEQUENCES[first.room].find(config => !isBossDispelled(adventure, config));
 }
 
 export function isRoomBossGuardingExit(adventure: AdventureState, room: RoomId, exitId: string): boolean {
@@ -150,9 +193,9 @@ export function isRoomBossGuardingExit(adventure: AdventureState, room: RoomId, 
 /** Marks the boss awake and aligns the room clock so its pattern starts from the beginning. */
 export function armRoomBoss(adventure: AdventureState, elapsedMs: number): { adventure: AdventureState; elapsedMs: number } {
   const config = activeRoomBoss(adventure);
-  if (!config || getRoomState(adventure, config.room).interactions.includes(armedMark(config.room))) return { adventure, elapsedMs };
+  if (!config || getRoomState(adventure, config.room).interactions.includes(armedMark(config))) return { adventure, elapsedMs };
   return {
-    adventure: markRoomInteraction(adventure, config.room, armedMark(config.room)),
+    adventure: markRoomInteraction(adventure, config.room, armedMark(config)),
     elapsedMs: Math.ceil(Math.max(0, elapsedMs) / roomBossRoundMs(config)) * roomBossRoundMs(config),
   };
 }
@@ -160,21 +203,24 @@ export function armRoomBoss(adventure: AdventureState, elapsedMs: number): { adv
 /** `playerX` lets the boss hunt Wally; without it the pattern is the bare one. */
 export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, playerX?: number): RoomBossSnapshot | undefined {
   const config = activeRoomBoss(adventure);
-  if (!config || !getRoomState(adventure, config.room).interactions.includes(armedMark(config.room))) return undefined;
-  const hits = roomBossHits(adventure, config.room);
+  if (!config || !getRoomState(adventure, config.room).interactions.includes(armedMark(config))) return undefined;
+  const hits = roomBossHits(adventure, config);
   const roundT = Math.max(0, elapsedMs) % roomBossRoundMs(config);
   if (roundT < ROOM_BOSS_RISE_MS) {
     const start = config.kind === 'moth' ? MOTH_PATH.centerX + MOTH_PATH.amplitude
-      : config.kind === 'wraith' ? WRAITH_BLINK.spots[0] : ROACH_CHARGE.leftX;
-    const lift = config.kind === 'moth' ? 26 : config.kind === 'wraith' ? 14 : 0;
+      : config.kind === 'wraith' ? WRAITH_BLINK.spots[0] : config.kind === 'cuckoo' ? CUCKOO_FLIGHT.clockX : ROACH_CHARGE.leftX;
+    const lift = config.kind === 'moth' ? 26 : config.kind === 'wraith' ? 14 : config.kind === 'cuckoo' ? CUCKOO_FLIGHT.doorLift : 0;
     return { config, pose: 'rise', hits, dangerous: false, hittable: false, shielded: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
   }
   // Shielded through the opening cycle, and again after each wound until the
   // next cycle: one wound per vulnerable cycle (missed cycles can be caught up),
   // so a fight lasts several attacks instead of one burst of sparks.
-  const vulnerableCycle = Math.floor((roundT - ROOM_BOSS_RISE_MS) / config.cycleMs) - SHIELDED_CYCLES;
+  const cycle = Math.floor((roundT - ROOM_BOSS_RISE_MS) / config.cycleMs);
+  const vulnerableCycle = cycle - SHIELDED_CYCLES;
   const shielded = vulnerableCycle < 0 || hits > vulnerableCycle;
-  const pose = poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX);
+  const pose = config.kind === 'cuckoo'
+    ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX)
+    : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX);
   return { ...pose, shielded, hittable: pose.hittable && !shielded };
 }
 
@@ -222,11 +268,40 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   return { config, pose: 'charge', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing };
 }
 
+function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined): Omit<RoomBossSnapshot, 'shielded'> {
+  const { clockX, doorLift, reachLift, landX, callMs, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
+  const base = landX[cycle % landX.length];
+  const land = playerX === undefined ? base : base + (playerX - base) * (leanBase + leanPerHit * hits);
+  const facing: 1 | -1 = (playerX ?? base) >= land ? 1 : -1;
+  const outward: 1 | -1 = land < clockX ? -1 : 1;
+  const flight = (pose: RoomBossPose, x: number, lift: number, heading: 1 | -1) => ({
+    config, pose, hits, x, lift, facing: heading, dangerous: lift <= reachLift, hittable: false,
+  });
+  if (t < callMs) return { config, pose: 'telegraph', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
+  if (t < callMs + diveMs) {
+    const progress = (t - callMs) / diveMs;
+    return flight('dive', clockX + (land - clockX) * progress, doorLift * (1 - progress), outward);
+  }
+  if (t < callMs + diveMs + hopMs) {
+    // Hops after Wally on the floor, pecking: the window to shoot it.
+    const hop = Math.abs(Math.sin(((t - callMs - diveMs) / 260) * Math.PI)) * 3;
+    return { config, pose: 'hop', hits, dangerous: true, hittable: true, x: land, lift: hop, facing };
+  }
+  if (t < callMs + diveMs + hopMs + returnMs) {
+    const progress = (t - callMs - diveMs - hopMs) / returnMs;
+    return flight('fly', land + (clockX - land) * progress, doorLift * progress, outward === 1 ? -1 : 1);
+  }
+  return { config, pose: 'hide', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
+}
+
 export function isPlayerTouchingRoomBoss(player: { x: number; grounded: boolean }, boss: RoomBossSnapshot | undefined): boolean {
   if (!boss?.dangerous) return false;
   if (boss.config.kind === 'roach' && !player.grounded) return false;
   return Math.abs(player.x - boss.x) <= boss.config.contactHalfWidth;
 }
+
+/** Dream Sparks fly at Wally's chest height: a boss higher than this (the Cuckoo at its door) is out of reach. */
+const SPARK_REACH_LIFT = 36;
 
 export type RoomBossEvent =
   | { type: 'ROOM_BOSS_HIT'; room: RoomBossRoom }
@@ -238,25 +313,33 @@ export function resolveRoomBossSparks(
   combat: HauntedCombatState,
   boss: RoomBossSnapshot | undefined,
 ): { adventure: AdventureState; combat: HauntedCombatState; events: RoomBossEvent[] } {
-  if (!boss || !(boss.hittable || boss.shielded) || combat.projectiles.length === 0) return { adventure, combat, events: [] };
+  if (!boss || !(boss.hittable || boss.shielded) || boss.pose === 'hide' || boss.lift > SPARK_REACH_LIFT || combat.projectiles.length === 0) {
+    return { adventure, combat, events: [] };
+  }
   const hit = combat.projectiles.find(projectile => Math.abs(projectile.x - boss.x) <= boss.config.sparkHitRadius);
   if (!hit) return { adventure, combat, events: [] };
   // The shield swallows the spark without a wound.
   if (!boss.hittable) return { adventure, combat: { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) }, events: [] };
-  const room = boss.config.room;
+  const { config } = boss;
+  const room = config.room;
   const remaining = { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) };
   const hits = boss.hits + 1;
-  if (hits < boss.config.hp) {
-    return { adventure: markRoomInteraction(adventure, room, hitMark(room, hits)), combat: remaining, events: [{ type: 'ROOM_BOSS_HIT', room }] };
+  if (hits < config.hp) {
+    return { adventure: markRoomInteraction(adventure, room, hitMark(config, hits)), combat: remaining, events: [{ type: 'ROOM_BOSS_HIT', room }] };
   }
   return {
-    adventure: markRoomInteraction(markRoomInteraction(adventure, room, hitMark(room, hits)), room, dispelledMark(room)),
+    adventure: markRoomInteraction(markRoomInteraction(adventure, room, hitMark(config, hits)), room, dispelledMark(config)),
     combat: { ...remaining, projectiles: [] },
     events: [{ type: 'ROOM_BOSS_DISPELLED', room }],
   };
 }
 
-/** Staging helper (screenshots, tests): the boss of this room counts as already dispelled. */
+/** Staging helper (screenshots, tests): every boss of this room counts as already dispelled. */
 export function dispelRoomBoss(adventure: AdventureState, room: RoomBossRoom): AdventureState {
-  return markRoomInteraction(adventure, room, dispelledMark(room));
+  return ROOM_BOSS_SEQUENCES[room].reduce((state, config) => markRoomInteraction(state, room, dispelledMark(config)), adventure);
+}
+
+/** Staging helper (tests): this one boss counts as already dispelled. */
+export function dispelBoss(adventure: AdventureState, config: RoomBossConfig): AdventureState {
+  return markRoomInteraction(adventure, config.room, dispelledMark(config));
 }

@@ -2,7 +2,11 @@ import { equal, test } from './assert';
 import { createAdventureState, markRoomInteraction, setRoomSwitch, type AdventureState, type RoomId } from '../src/game/adventure/AdventureState';
 import { createHauntedCombatState, type HauntedCombatState } from '../src/game/haunted/HauntedCombat';
 import {
+  CUCKOO_BOSS,
+  CUCKOO_FLIGHT,
   ROACH_CHARGE,
+  activeRoomBoss,
+  dispelBoss,
   ROOM_BOSSES,
   ROOM_BOSS_RISE_MS,
   WRAITH_BLINK,
@@ -132,4 +136,18 @@ void test('bosses hunt Wally and get meaner with every wound', () => {
   const dashMs = roach.startMs + ROOM_BOSS_RISE_MS + ROACH_CHARGE.waitMs + 1;
   equal(resolveRoomBoss(roach.adventure, dashMs)!.pose, 'charge', 'a fresh Roach is already charging');
   equal(resolveRoomBoss(wounded('kitchen', roach.adventure, 1), dashMs)!.pose, 'telegraph', 'a wounded Roach still twitches, then dashes faster');
+});
+
+void test('the Cuckoo wakes once the Moth is dispelled and can be hit only while it hops', () => {
+  const { adventure } = awake('hallway');
+  const afterMoth = dispelBoss(adventure, ROOM_BOSSES.hallway);
+  equal(activeRoomBoss(afterMoth), CUCKOO_BOSS, 'the clock bird takes over');
+  equal(isRoomBossGuardingExit(afterMoth, 'hallway', CUCKOO_BOSS.exitId), true, 'the door stays sealed');
+  const armed = armRoomBoss(afterMoth, 50_000);
+  const cycleStart = armed.elapsedMs + ROOM_BOSS_RISE_MS + CUCKOO_BOSS.cycleMs;
+  const call = resolveRoomBoss(armed.adventure, cycleStart)!;
+  equal(call.pose === 'telegraph' && !call.dangerous && !call.hittable, true, 'it calls from the door, harmless');
+  const hop = resolveRoomBoss(armed.adventure, cycleStart + CUCKOO_FLIGHT.callMs + CUCKOO_FLIGHT.diveMs + 10)!;
+  equal(hop.pose === 'hop' && hop.hittable && hop.dangerous, true, 'it hops and pecks on the floor, and can be hit');
+  equal(isRoomBossGuardingExit(dispelBoss(armed.adventure, CUCKOO_BOSS), 'hallway', CUCKOO_BOSS.exitId), false, 'the door opens once it is dispelled');
 });

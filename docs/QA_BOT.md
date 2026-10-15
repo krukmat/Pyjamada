@@ -41,7 +41,7 @@ functions and hit widths:
 
 - `danger`: Wally standing in `minX..maxX` is hit right now (only when grounded
   if `jumpable`, i.e. the Kitchen surge and Living Room static fronts).
-- `warning`: the zone is telegraphed (pendulum arc from the drop to the end of
+- `warning`: the zone is telegraphed (static wave from its telegraph to the end of
   the swing, plus the bob's own spot while it drops so the starting end is
   visible; charged floor-wave path; crate shadow and fall; basement telegraph;
   Laboratory lane and attack telegraphs).
@@ -165,7 +165,7 @@ hazard uses, so room hits after W1-2 can be lower than the column below.
 | ~~A ghost contact costs one heart (no 3-heart chain under 3 s)~~ | 1.8 s chain; enforced since W1-2 (8.3 s) |
 | ~~An idle player survives the haunted bedroom for at least 25 s~~ | 18.0 s; enforced since W1-2 (30.9 s) |
 | ~~A player who never shoots survives the bedroom for at least 20 s~~ | 7.3 s; enforced since W1-2 (survives) |
-| Every telegraphed threat warns for at least 600 ms | Resonator lanes 300 ms, nightmare attacks 400 ms, pendulum drop 500 ms; met since W1-3 (shortest 600 ms), reported only |
+| Every telegraphed threat warns for at least 600 ms | Resonator lanes 300 ms, nightmare attacks 400 ms; met since W1-3 (shortest 600 ms), reported only |
 
 ## Limits
 

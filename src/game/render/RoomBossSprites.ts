@@ -9,7 +9,7 @@ import {
   type PixelSprite,
 } from './PixelSpriteBuilder';
 
-// The three room bosses before the Bathroom as procedural pixel sprites, all
+// The room bosses before the Bathroom as procedural pixel sprites, all
 // drawn facing right. Two frames each animate wings, static or legs.
 
 const MOTH_MATERIALS = {
@@ -30,6 +30,13 @@ const ROACH_MATERIALS = {
   head: ['#4a2210', '#2a1208', '#7a3b1c', '#0e0603'],
   leg: ['#d08a4a', '#d08a4a', '#d08a4a', '#1a0b04'],
   crown: ['#ffd84a', '#c99a1a', '#fff2a8', '#5a3e06'],
+} as const satisfies Record<string, PixelMaterial>;
+
+const CUCKOO_MATERIALS = {
+  feather: ['#8a5a34', '#5a3a20', '#b47c4c', '#24160b'],
+  breast: ['#e8d3a6', '#c4a878', '#fff1cf', '#5a3a20'],
+  wing: ['#6b4426', '#432a16', '#93643c', '#1c1008'],
+  beak: ['#ffb43a', '#d0801a', '#ffe08a', '#5a3306'],
 } as const satisfies Record<string, PixelMaterial>;
 
 const RED = '#ff5277';
@@ -90,7 +97,23 @@ function buildRoach(stride: boolean): PixelSprite {
     .build();
 }
 
+function buildCuckoo(wingsUp: boolean): PixelSprite {
+  // The clock's carved bird come alive: round body, cream breast, a fan tail,
+  // an open orange beak and one beating wing.
+  const s = new PixelSpriteBuilder(18, 14, CUCKOO_MATERIALS);
+  s.paint(pixelLine([1, 6], [5, 8], 2), 'feather');
+  s.paint(pixelEllipse(8, 8, 5, 4), 'feather');
+  s.paint(pixelEllipse(12, 4, 3, 3), 'feather');
+  s.paint(pixelEllipse(10, 9, 3, 2.5), 'breast');
+  s.paint(pixelRect(15, 3, 17, 3), 'beak');
+  s.paint(pixelRect(15, 5, 16, 5), 'beak');
+  s.paint(wingsUp ? pixelLine([5, 6], [8, 0], 2) : pixelLine([4, 9], [9, 12], 2), 'wing');
+  s.paint(pixelRect(8, 12, 8, 13).concat(pixelRect(11, 12, 11, 13)), 'beak');
+  return s.dot(INK, [[13, 3]]).dot(WHITE, [[12, 3]]).dot(RED, [[14, 5]]).build();
+}
+
 const FRAMES: Record<RoomBossKind, readonly [PixelSprite, PixelSprite]> = {
+  cuckoo: [buildCuckoo(true), buildCuckoo(false)],
   moth: [buildMoth(true), buildMoth(false)],
   wraith: [buildWraith(false), buildWraith(true)],
   roach: [buildRoach(false), buildRoach(true)],

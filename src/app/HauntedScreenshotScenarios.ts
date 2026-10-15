@@ -254,7 +254,6 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = markRoomInspected(adventure, 'hallway', 'backward-clock');
     adventure = setRoomSwitch(adventure, 'hallway', 'living-room-unlocked', true);
     adventure = dispelRoomBoss(adventure, 'hallway');
-    adventure = markRoomInteraction(adventure, 'hallway', 'hallway-pendulum-armed');
   }
   if (scenario === 'living-door') {
     adventure = markRoomInteraction(adventure, 'hallway', 'living-room-door');
@@ -494,10 +493,6 @@ function explorationScreenshotSession(scenario: AdventureScreenshotScenario): Ha
   // Attic: a crate shadow growing at x=36, then a crate mid-fall at x=36.
   if (scenario === 'attic-arrival') return { ...positioned, elapsedMs: 1_000 };
   if (scenario === 'attic-evidence') return { ...positioned, elapsedMs: 1_420 };
-  // Pendulum dropping at the left end (warning) while Wally reads the clock.
-  if (scenario === 'hallway-clock') return { ...positioned, elapsedMs: 1_750 };
-  // Pendulum mid-sweep across the corridor while Wally waits at the far door.
-  if (scenario === 'living-door') return { ...positioned, elapsedMs: 2_500 };
   // First static wave mid-room (x~60), clear of Wally beside the television.
   if (scenario === 'living-room-transmission') return { ...positioned, elapsedMs: 2_086 };
   // Mid-cycle surge front around x=70, well away from Wally at the breaker.

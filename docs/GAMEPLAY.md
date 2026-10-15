@@ -74,7 +74,7 @@ Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which
 
 Every wound makes a boss meaner: the Moth leans harder, the Wraith warns for 75 ms less and drifts further, the Roach holds longer and dashes 150 ms faster. Wally's position only bends the pattern (nothing extra is stored), so a boss never teleports when he moves.
 
-The Hallway pendulum starts only after the Moth is dispelled.
+The Hallway clock is a cuckoo clock. Once the Moth is dispelled its bird bursts out as a mini boss (**Cuckoo**, 2 hits) and keeps the door sealed: it calls from the clock door (harmless), dives toward a landing spot bent toward Wally, hops after him pecking (the only time it can be hit), then flies home and hides. Each attack can cost at most one heart. The old phantom pendulum is gone.
 
 The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.
 

@@ -25,7 +25,7 @@ export type RoomBossFx = {
  */
 export function useRoomBossFx(
   boss: RoomBossSnapshot | undefined,
-  isDispelledHere: (room: RoomBossSnapshot['config']['room']) => boolean,
+  isDispelledHere: (config: RoomBossSnapshot['config']) => boolean,
   nowMs: number,
 ): RoomBossFx {
   const memory = useRef<{ last?: RoomBossSnapshot; hitAtMs: number; gone?: RoomBossSnapshot; goneAtMs: number }>({
@@ -34,10 +34,14 @@ export function useRoomBossFx(
   });
   const m = memory.current;
   if (boss) {
-    if (m.last?.config.room === boss.config.room && boss.hits > m.last.hits) m.hitAtMs = nowMs;
+    if (m.last && m.last.config !== boss.config && isDispelledHere(m.last.config)) {
+      // The next boss of the room took over straight away (the Moth's Cuckoo).
+      m.gone = m.last;
+      m.goneAtMs = nowMs;
+    } else if (m.last?.config === boss.config && boss.hits > m.last.hits) m.hitAtMs = nowMs;
     m.last = boss;
   } else if (m.last) {
-    if (isDispelledHere(m.last.config.room)) {
+    if (isDispelledHere(m.last.config)) {
       m.gone = m.last;
       m.goneAtMs = nowMs;
     }
@@ -70,7 +74,8 @@ type Props = {
  */
 export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }: Props) {
   const dispelling = dispelProgress !== undefined;
-  const fast = boss.pose === 'charge' || boss.pose === 'fly' || boss.pose === 'telegraph';
+  if (boss.pose === 'hide') return <RoomBossHealthBar boss={boss} px={px} />;
+  const fast = boss.pose === 'charge' || boss.pose === 'fly' || boss.pose === 'telegraph' || boss.pose === 'dive' || boss.pose === 'hop';
   const sprite = roomBossFrame(boss.config.kind, nowMs, fast);
   const width = sprite.width * ROOM_BOSS_SCALE;
   const height = sprite.height * ROOM_BOSS_SCALE;

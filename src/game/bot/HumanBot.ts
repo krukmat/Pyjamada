@@ -256,7 +256,7 @@ export class HumanBot implements BotPolicy {
     if (canLeft && canRight) {
       direction = x - left <= right - x ? -1 : 1;
       // Never run through a visible danger, or through where a threat starts (a smaller warning
-      // inside a larger one of the same threat, e.g. the pendulum bob dropping at one end).
+      // inside a larger one of the same threat, e.g. a twitching Roach's lane beside its body).
       const edge = direction === -1 ? left : right;
       const blocking = zones.some(zone => (zone.phase === 'danger' || isOrigin(zone, zones)) && isBetween((zone.minX + zone.maxX) / 2, x, edge));
       if (blocking) direction = direction === -1 ? 1 : -1;
@@ -347,7 +347,7 @@ export class HumanBot implements BotPolicy {
     const x = world.session.player.x;
     const boss = activeRoomBoss(world.adventure);
     if (boss) {
-      const key = `${phaseKey(world)}:boss`;
+      const key = `${phaseKey(world)}:boss:${boss.kind}`;
       if (!this.firing || this.firing.key !== key) this.firing = { key, x: roomBossFiringSpot(boss) };
       return { x: this.firing.x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(this.firing.x)}` };
     }

@@ -19,7 +19,6 @@ import {
   resolveBasementElectricalHazard,
 } from '../../src/game/adventure/BasementElectricalHazard';
 import { isBathroomTwinActive, isPlayerTouchingBathroomTwin } from '../../src/game/adventure/BathroomTwinHazard';
-import { armHallwayPendulum, HALLWAY_PENDULUM, isPlayerHitByHallwayPendulum, resolveHallwayPendulum } from '../../src/game/adventure/HallwayPendulumHazard';
 import { armKitchenSurge, isPlayerHitByKitchenSurge, KITCHEN_SURGE, resolveKitchenSurge } from '../../src/game/adventure/KitchenSurgeHazard';
 import { LABORATORY_ENCOUNTER_SWITCHES } from '../../src/game/adventure/LaboratoryEncounter';
 import {
@@ -85,7 +84,6 @@ export type ThreatScenario = {
   hit: (elapsedMs: number) => (x: number, grounded: boolean) => boolean;
 };
 
-const hallway = armHallwayPendulum(markRoomInspected(explorationIn('hallway'), 'hallway', 'backward-clock'), 1_000, 0);
 const livingRoom = armLivingRoomStatic(setRoomSwitch(explorationIn('living-room'), 'living-room', 'tv-on', true), 1_000);
 const kitchen = armKitchenSurge(setRoomSwitch(explorationIn('kitchen'), 'kitchen', 'circuit-overloaded', true), 1_000);
 const attic = armAtticCrates(explorationIn('attic'), 1_000);
@@ -94,16 +92,8 @@ const vesperControl = laboratoryIn('vesper-control');
 const resonator = laboratoryIn('resonator');
 const nightmare = laboratoryIn('nightmare');
 export const BATHROOM_TWIN_LIVE = setRoomSwitch(explorationIn('bathroom'), 'bathroom', 'bathroom-light-off', true);
-export const HALLWAY_PENDULUM_ARMED = hallway;
 
 export const THREAT_SCENARIOS: readonly ThreatScenario[] = [
-  {
-    kind: 'hallway-pendulum',
-    adventure: hallway.adventure,
-    startMs: hallway.elapsedMs,
-    cycleMs: HALLWAY_PENDULUM.cycleMs,
-    hit: t => { const snapshot = resolveHallwayPendulum(hallway.adventure, t); return x => isPlayerHitByHallwayPendulum({ x }, snapshot); },
-  },
   {
     kind: 'living-room-static',
     adventure: livingRoom.adventure,
