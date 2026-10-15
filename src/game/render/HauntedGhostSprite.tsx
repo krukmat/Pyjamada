@@ -1,6 +1,6 @@
 import React from 'react';
 import { Group, type SkImage, BlendColor, Paint } from '@shopify/react-native-skia';
-import { GHOST_RULES, type HauntedGhostState } from '../haunted/HauntedThreats';
+import { GHOST_RULES, isGhostRecoiling, type HauntedGhostState } from '../haunted/HauntedThreats';
 import { AtlasSprite } from '../presentation/atlas/AtlasSprite';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../presentation/atlas/SpriteAtlas';
 import { HAUNTED_GHOST_ATLAS } from '../presentation/atlas/HauntedGhostAtlas';
@@ -24,6 +24,9 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
   const facing = ghost.x <= playerX ? 'right' : 'left';
   const telegraph = ghost.phase === 'telegraph';
   const dying = ghost.phase === 'dying';
+  // After landing a hit the Ghost is flung back and harmless for a moment:
+  // it flickers faintly so the player can see it cannot touch Wally yet.
+  const recoiling = isGhostRecoiling(ghost, nowMs);
   const frame = image ? requireAtlasFrame(INDEX, selectFrameId(ghost, nowMs, playerX)) : null;
   const pulse = Math.floor(nowMs / 90) % 2;
   const deathProgress = dying
@@ -39,7 +42,9 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
     ? 0.42
     : dying
       ? flash ? 1 : Math.max(0.05, 0.7 - deathProgress * 0.65)
-      : 1;
+      : recoiling
+        ? pulse === 0 ? 0.35 : 0.6
+        : 1;
 
   return (
     <Group>
@@ -66,6 +71,7 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
           x={x}
           y={y}
           scale={scale}
+          dying={recoiling}
         />
       )}
 
@@ -73,7 +79,7 @@ export function HauntedGhostSprite({ image, ghost, x, y, scale, nowMs, playerX }
         {image && frame ? (
           <AtlasSprite image={image} frame={frame} x={x + knockX} y={y + knockY} scale={scale} facing={facing} />
         ) : (
-          <HauntedGhostFallback ghost={ghost} x={x} y={y} scale={scale} playerX={playerX} />
+          <HauntedGhostFallback ghost={ghost} x={x} y={y} scale={scale} playerX={playerX} nowMs={nowMs} />
         )}
       </Group>
     </Group>
@@ -87,7 +93,7 @@ function selectFrameId(ghost: HauntedGhostState, nowMs: number, playerX: number)
     return `death_${3 - Math.min(3, Math.floor(remainingMs / 55))}`;
   }
 
-  const nearPlayer = Math.abs(ghost.x - playerX) <= 12;
+  const nearPlayer = !isGhostRecoiling(ghost, nowMs) && Math.abs(ghost.x - playerX) <= 12;
   if (nearPlayer) return `attack_${Math.floor(nowMs / 85) % 4}`;
   return `float_${Math.floor(nowMs / 120) % 3}`;
 }

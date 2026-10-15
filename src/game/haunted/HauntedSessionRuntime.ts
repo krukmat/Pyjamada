@@ -19,6 +19,7 @@ import { consumeTransientActions, createHauntedInputState, type HauntedInputStat
 import {
   applyHauntedKnockback,
   createHauntedPlayerPhysics,
+  GHOST_KNOCKBACK,
   stepHauntedPlayerPhysics,
   type HauntedPlayerPhysicsState,
 } from './PlayerPhysics';
@@ -71,7 +72,9 @@ export const HAUNTED_DEFAULT_DEADLINE_MS = 75_000;
 export const HAUNTED_EXIT = { x: 114, radius: 4 } as const;
 export const HAUNTED_ESCAPE_GHOST_X = 108;
 export const HAUNTED_PRESSURE = {
-  wakeSpawnDelayMs: 1_800,
+  // Waking only brings the first Ghost forward to about four seconds later, so
+  // the first one arrives after the player has had a moment to look around.
+  wakeSpawnDelayMs: 4_000,
   alarmSpawnDelayMs: 800,
 } as const;
 
@@ -143,7 +146,7 @@ export function stepHauntedSession(state: HauntedSessionState, deltaMs: number):
     const hit = applyHauntedPlayerHit(combat, elapsedMs);
     combat = hit.combat;
     if (hit.accepted) {
-      player = applyHauntedKnockback(player, threatStep.playerHitDirection);
+      player = applyHauntedKnockback(player, threatStep.playerHitDirection, GHOST_KNOCKBACK);
       domestic = syncDomesticPlayer(domestic, player.x, player.facing);
     }
   }

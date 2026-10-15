@@ -90,7 +90,7 @@ tags:
     id: screenshot-scenario-ghost-active
 - extendedWaitUntil:
     visible:
-      text: "Ghost active. Shoot or keep moving."
+      text: "Ghost! Face it and tap ATTACK."
     timeout: 5000
 - takeScreenshot:
     path: 06_ghost_active
@@ -113,7 +113,7 @@ tags:
     id: screenshot-scenario-attack
 - extendedWaitUntil:
     visible:
-      text: "Ghost active. Shoot or keep moving."
+      text: "Ghost! Face it and tap ATTACK."
     timeout: 5000
 - takeScreenshot:
     path: 08_dream_spark_attack
@@ -147,7 +147,7 @@ tags:
     id: screenshot-scenario-dressed
 - extendedWaitUntil:
     visible:
-      text: "Ghost active. Shoot or keep moving."
+      text: "Ghost! Face it and tap ATTACK."
     timeout: 5000
 - takeScreenshot:
     path: 11_dressed_under_pressure

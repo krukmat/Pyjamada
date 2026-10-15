@@ -1,3 +1,4 @@
+import { PLAYER_HIT_RULES } from '../haunted/HauntedCombat';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 
 export type HauntedWallyPose = 'idle' | 'guard' | 'walk' | 'advance' | 'jump' | 'attack' | 'hit' | 'interact' | 'sleepy' | 'startled' | 'success' | 'fail';
@@ -9,7 +10,7 @@ export function selectHauntedWallyPose(
   const honorTerminalObjective = options.honorTerminalObjective ?? true;
   if (honorTerminalObjective && session.objective.phase === 'completed') return 'success';
   if (honorTerminalObjective && session.objective.phase === 'failed') return 'fail';
-  if (session.combat.invulnerableUntilMs > session.elapsedMs) return 'hit';
+  if (isHauntedWallyStaggered(session)) return 'hit';
   if (hauntedWallyAttackDistance(session) !== undefined) return 'attack';
   if (!session.player.grounded) return 'jump';
   if (session.input.interactPressed) return 'interact';
@@ -17,6 +18,16 @@ export function selectHauntedWallyPose(
   if (session.domestic.wallyState === 'startled') return 'startled';
   if (Math.abs(session.player.vx) > 4) return options.combat ? 'advance' : 'walk';
   return options.combat ? 'guard' : 'idle';
+}
+
+// Wally flinches for the first part of the invulnerability window only; the
+// rest is shown by the blink, so he can visibly walk and attack again while
+// still protected. Derived from the combat timer, never stored.
+export const HAUNTED_HIT_POSE_MS = 600;
+
+export function isHauntedWallyStaggered(session: HauntedSessionState): boolean {
+  const remainingMs = session.combat.invulnerableUntilMs - session.elapsedMs;
+  return remainingMs > 0 && remainingMs > PLAYER_HIT_RULES.invulnerabilityMs - HAUNTED_HIT_POSE_MS;
 }
 
 // The punch is timed from the newest Dream Spark: it spawns 8 units ahead of

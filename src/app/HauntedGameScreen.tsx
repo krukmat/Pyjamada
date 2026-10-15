@@ -47,6 +47,7 @@ import { stageDimensionsForScreenWidth } from '../game/render/StageViewport';
 import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
+import { activeGhostHint } from './HauntedThreatHint';
 import { PixelMeter } from './RetroUiKit';
 import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
 import { isTestHooksEnabled } from './testHooks';
@@ -388,7 +389,8 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
     return 'Keys. Clothes. Clear the door.';
   }
   if (telegraphing) return 'Something is phasing into the room...';
-  if (activeGhosts > 0) return activeGhosts === 1 ? 'Ghost active. Shoot or keep moving.' : `${activeGhosts} ghosts active. Keep moving.`;
+  const ghostHint = activeGhostHint(activeGhosts);
+  if (ghostHint) return ghostHint;
 
   const id = session.domestic.objectStates;
   if (session.domestic.wallyState === 'sleepy') return 'Wake up first. Bed or alarm.';

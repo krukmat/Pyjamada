@@ -1,7 +1,7 @@
 import React from 'react';
 import { Group, Rect } from '@shopify/react-native-skia';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
-import type { HauntedGhostState } from '../haunted/HauntedThreats';
+import { isGhostRecoiling, type HauntedGhostState } from '../haunted/HauntedThreats';
 import { selectHauntedWallyPose } from './HauntedWallyVisual';
 
 type WallyProps = {
@@ -18,6 +18,7 @@ type GhostProps = {
   y: number;
   scale: number;
   playerX: number;
+  nowMs: number;
 };
 
 function scaled(scale: number, value: number): number {
@@ -87,16 +88,18 @@ export function HauntedWallyFallback({
  * footprint as the 32x40 atlas and remains readable in telegraph/active/dying
  * phases, so enemy gameplay never depends on asynchronous PNG decoding.
  */
-export function HauntedGhostFallback({ ghost, x, y, scale, playerX }: GhostProps) {
+export function HauntedGhostFallback({ ghost, x, y, scale, playerX, nowMs }: GhostProps) {
   const p = (value: number) => scaled(scale, value);
   const facing = ghost.x <= playerX ? 1 : -1;
   const dying = ghost.phase === 'dying';
   const telegraph = ghost.phase === 'telegraph';
+  // Same faint flicker as the atlas sprite while a Ghost recoils after a hit.
+  const recoiling = isGhostRecoiling(ghost, nowMs);
   const body = dying ? '#87a9bd' : '#bff7ff';
   const shade = dying ? '#53677f' : '#55cfe5';
 
   return (
-    <Group transform={[{ translateX: x }, { translateY: y }, { scaleX: facing }]} opacity={dying ? 0.58 : telegraph ? 0.8 : 1}>
+    <Group transform={[{ translateX: x }, { translateY: y }, { scaleX: facing }]} opacity={dying ? 0.58 : telegraph ? 0.8 : recoiling ? (Math.floor(nowMs / 90) % 2 === 0 ? 0.35 : 0.6) : 1}>
       <Rect x={p(-8)} y={p(-33)} width={p(16)} height={p(20)} color="#10223d" />
       <Rect x={p(-7)} y={p(-32)} width={p(14)} height={p(19)} color={body} />
       <Rect x={p(-5)} y={p(-29)} width={p(4)} height={p(4)} color="#18304d" />

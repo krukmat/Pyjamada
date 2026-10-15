@@ -180,8 +180,11 @@ export function createHauntedScreenshotScenario(scenario: HauntedScreenshotScena
         elapsedMs: 15_000,
         player: { ...next.player, x: 56, y: 92, vx: -24, vy: -18, grounded: false },
         domestic: { ...next.domestic, player: { ...next.domestic.player, x: 56, facing: 'right' } },
-        combat: { ...next.combat, hp: 2, invulnerableUntilMs: 15_700 },
-        threats: withGhost(base, ghost(1, 84, 82, 'active')),
+        // 300 ms after the hit at 14_700: Wally still flinches and blinks, and
+        // the Ghost that touched him has been flung 28 units away and is still
+        // recoiling (invulnerability 1_500 ms, recoil 1_200 ms from the hit).
+        combat: { ...next.combat, hp: 2, invulnerableUntilMs: 16_200 },
+        threats: withGhost(base, ghost(1, 84, 82, 'active', 15_900)),
       };
     }
 

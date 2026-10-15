@@ -3,12 +3,19 @@ import type { HauntedPlayerPhysicsState } from './PlayerPhysics';
 import { nextSeededRandom } from './SeededRng';
 
 export type GhostPhase = 'telegraph' | 'active' | 'dying';
+/**
+ * Phase as gameplay and presentation read it. 'recoil' is derived, never
+ * stored: it is an active Ghost whose `phaseUntilMs` is still ahead (an active
+ * Ghost otherwise keeps `phaseUntilMs` at 0), so saves keep their shape.
+ */
+export type ResolvedGhostPhase = GhostPhase | 'recoil';
 
 export type HauntedGhostState = {
   id: number;
   x: number;
   y: number;
   phase: GhostPhase;
+  /** End of the telegraph/dying window, or of the recoil window for an active Ghost (0 when not recoiling). */
   phaseUntilMs: number;
 };
 
@@ -35,11 +42,48 @@ export const GHOST_RULES = {
   sparkHitRadiusX: 8,
   sparkHitRadiusY: 10,
   edgeSafetyX: 40,
+  /**
+   * A Ghost that lands a hit is flung away from Wally and cannot touch him
+   * again until the recoil ends, so one touch costs one heart instead of
+   * chaining through every invulnerability window.
+   */
+  recoilMs: 1_200,
+  recoilPushDistance: 28,
+  recoilPushMs: 200,
+  /** Recoil may carry a Ghost just past the stage edge (the save accepts -16..144). */
+  recoilMinX: -12,
+  recoilMaxX: 140,
+  /**
+   * The run's first Ghost is a lesson: it closes to this distance and hovers
+   * there until Wally fires his first Dream Spark (it still hurts if he walks
+   * into it). It only hovers on stage, so a recoil past the edge cannot park
+   * it out of sight and out of reach. Derived from the Ghost id and the
+   * projectile sequence, so it needs no stored flag.
+   */
+  firstGhostHoverDistance: 24,
 } as const;
 
 const LEFT_SPAWN_X = 6;
 const RIGHT_SPAWN_X = 122;
 const GHOST_BASE_Y = 82;
+
+export function isGhostRecoiling(ghost: HauntedGhostState, nowMs: number): boolean {
+  return ghost.phase === 'active' && nowMs < ghost.phaseUntilMs;
+}
+
+export function resolveGhostPhase(ghost: HauntedGhostState, nowMs: number): ResolvedGhostPhase {
+  return isGhostRecoiling(ghost, nowMs) ? 'recoil' : ghost.phase;
+}
+
+/** The run's first Ghost waits for Wally's first Dream Spark before it closes in. */
+export function isGhostWaitingForFirstSpark(ghost: HauntedGhostState, combat: HauntedCombatState): boolean {
+  return ghost.id === 1 && combat.nextProjectileId <= 1;
+}
+
+/** A Ghost that can hurt Wally on contact right now. */
+export function isGhostDangerous(ghost: HauntedGhostState, nowMs: number): boolean {
+  return ghost.phase === 'active' && !isGhostRecoiling(ghost, nowMs);
+}
 
 export function createHauntedThreatState(): HauntedThreatState {
   return { ghosts: [], nextEnemyId: 1, nextSpawnAtMs: GHOST_RULES.graceMs };
@@ -104,11 +148,18 @@ export function stepHauntedThreats(
       }
       if (ghost.phase !== 'active') return ghost;
 
-      const direction = Math.sign(player.x - ghost.x);
-      const x = ghost.x + direction * GHOST_RULES.speed * dt;
       const targetY = player.y - 20 + Math.sin((nowMs + ghost.id * 137) / 240) * 3;
       const y = approach(ghost.y, targetY, GHOST_RULES.speed * 0.65 * dt);
-      return { ...ghost, x, y };
+      if (isGhostRecoiling(ghost, nowMs)) {
+        return { ...ghost, x: recoilX(ghost, player.x, nowMs, dt * 1000), y };
+      }
+
+      const direction = Math.sign(player.x - ghost.x);
+      const reach = isGhostWaitingForFirstSpark(ghost, combat) && isOnStage(ghost.x)
+        ? clamp(Math.abs(player.x - ghost.x) - GHOST_RULES.firstGhostHoverDistance, 0, GHOST_RULES.speed * dt)
+        : GHOST_RULES.speed * dt;
+      const x = ghost.x + direction * reach;
+      return { ...ghost, x, y, phaseUntilMs: 0 };
     });
 
   // Dream Spark resolves before contact damage so a well-timed shot can save Wally.
@@ -131,15 +182,19 @@ export function stepHauntedThreats(
     projectiles = projectiles.filter((projectile) => !consumedProjectileIds.has(projectile.id));
   }
 
+  // Contact only resolves outside invulnerability, exactly when the session
+  // accepts the hit (applyHauntedPlayerHit), so every Ghost touching Wally then
+  // recoils: the hit clears them off him instead of letting them sit on him.
   if (nowMs >= combat.invulnerableUntilMs) {
-    const contact = ghosts.find((ghost) =>
-      ghost.phase === 'active' &&
+    const touching = (ghost: HauntedGhostState) =>
+      isGhostDangerous(ghost, nowMs) &&
       Math.abs(ghost.x - player.x) <= GHOST_RULES.contactRadiusX &&
-      Math.abs(ghost.y - (player.y - 18)) <= GHOST_RULES.contactRadiusY,
-    );
+      Math.abs(ghost.y - (player.y - 18)) <= GHOST_RULES.contactRadiusY;
+    const contact = ghosts.find(touching);
     if (contact) {
       playerHitDirection = contact.x < player.x ? 1 : -1;
       events.push({ type: 'PLAYER_HIT_BY_GHOST', ghostId: contact.id });
+      ghosts = ghosts.map((ghost) => (touching(ghost) ? { ...ghost, phaseUntilMs: nowMs + GHOST_RULES.recoilMs } : ghost));
     }
   }
 
@@ -166,6 +221,26 @@ export function stepHauntedThreats(
     playerHitDirection,
     events,
   };
+}
+
+/**
+ * Recoil pushes the Ghost straight away from Wally for the first
+ * `recoilPushMs`, then it hovers in place until the recoil ends. The push is
+ * integrated over the part of this step inside the push window, so the total
+ * is `recoilPushDistance` whatever the step size.
+ */
+function recoilX(ghost: HauntedGhostState, playerX: number, nowMs: number, dtMs: number): number {
+  const startedAtMs = ghost.phaseUntilMs - GHOST_RULES.recoilMs;
+  const pushedBy = (atMs: number) => clamp(atMs - startedAtMs, 0, GHOST_RULES.recoilPushMs);
+  const pushedMs = pushedBy(nowMs) - pushedBy(nowMs - dtMs);
+  if (pushedMs <= 0) return ghost.x;
+  const away = ghost.x >= playerX ? 1 : -1;
+  const distance = (GHOST_RULES.recoilPushDistance * pushedMs) / GHOST_RULES.recoilPushMs;
+  return clamp(ghost.x + away * distance, GHOST_RULES.recoilMinX, GHOST_RULES.recoilMaxX);
+}
+
+function isOnStage(x: number): boolean {
+  return x >= LEFT_SPAWN_X && x <= RIGHT_SPAWN_X;
 }
 
 function chooseSpawnOnLeft(playerX: number, randomValue: number): boolean {

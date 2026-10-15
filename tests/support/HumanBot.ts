@@ -26,7 +26,7 @@ import { getLaboratoryEncounterPhase } from '../../src/game/adventure/Laboratory
 import { resolveResonatorInstabilityState } from '../../src/game/adventure/LaboratoryResonatorInstability';
 import { findActiveRoom } from '../../src/game/adventure/RoomRegistry';
 import { observeRoomThreats, type ThreatObservation } from '../../src/game/adventure/RoomThreatObservation';
-import type { GhostPhase } from '../../src/game/haunted/HauntedThreats';
+import { isGhostDangerous, type GhostPhase } from '../../src/game/haunted/HauntedThreats';
 import { HAUNTED_EXIT, isAtHauntedExit } from '../../src/game/haunted/HauntedSessionRuntime';
 import { HAUNTED_PLAYER_BOUNDS, HAUNTED_PLAYER_PHYSICS } from '../../src/game/haunted/PlayerPhysics';
 import { nextSeededRandom, seedFromString } from '../../src/game/haunted/SeededRng';
@@ -497,6 +497,29 @@ export class IdleBot implements BotPolicy {
 
   describe(): string {
     return 'idle';
+  }
+}
+
+/**
+ * Worst case for contact damage in the haunted bedroom: walks straight into the
+ * nearest Ghost that can hurt (else the nearest one) and never shoots, jumps
+ * or uses an object. Measures how fast touching Ghosts alone can take every heart.
+ */
+export class GhostHuggerBot implements BotPolicy {
+  act(world: BotWorld): BotAction {
+    if (isAdventureExplorationActive(world.adventure)) return IDLE_ACTION;
+    const { player, threats, elapsedMs } = world.session;
+    const active = threats.ghosts.filter(ghost => ghost.phase === 'active');
+    const dangerous = active.filter(ghost => isGhostDangerous(ghost, elapsedMs));
+    const candidates = dangerous.length > 0 ? dangerous : active;
+    if (candidates.length === 0) return IDLE_ACTION;
+    const target = candidates.reduce((best, ghost) => (Math.abs(ghost.x - player.x) < Math.abs(best.x - player.x) ? ghost : best));
+    const dx = target.x - player.x;
+    return Math.abs(dx) < 1 ? IDLE_ACTION : { move: dx > 0 ? 1 : -1, jump: false, attack: false, interact: false };
+  }
+
+  describe(): string {
+    return 'walking into the nearest ghost';
   }
 }
 

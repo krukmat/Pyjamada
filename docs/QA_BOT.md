@@ -65,6 +65,8 @@ same zones.
   'not-while-reading'`): measures whether reading spots are safe.
 - **No-dodge walker** - HumanBot that never reacts to threats (`'never'`); in
   the bedroom it never shoots ghosts.
+- **Ghost hugger** - walks into the nearest Ghost that can hurt and never
+  shoots: the worst case for contact damage in the bedroom.
 - **Idle** - does nothing: how long a player who only reads the screen survives.
 - **Route bot (oracle)** - explores every visible interaction and dodges with a
   lookahead that simulates the runtime `reactionMs` ahead. It sees danger before
@@ -81,7 +83,7 @@ or while the policy is reading (including the 367 ms it takes to look up).
 
 - **First minute** - haunted bedroom from a new game, 3 seeds x 11 start delays
   (0-2 s): escape/death rate and reason, hits, first hit, fastest 3-heart contact
-  chain, HUD time left; plus the idle player.
+  chain, HUD time left; plus the ghost hugger and the idle player.
 - **Rooms in isolation** - each room entered at full HP from the oracle's
   first-entry snapshot, 11 entry delays (0-2 s in 200 ms steps), for HumanBot,
   the reader probe and the no-dodge walker: mean/max hits, death %, hits at
@@ -109,16 +111,23 @@ or while the policy is reading (including the 367 ms it takes to look up).
 - The haunted bedroom is played for real: HumanBot escapes it from a new game
   (2 seeds x 3 delays) and lands on the App's false escape; every policy keeps
   the invariants.
+- The haunted bedroom is survivable (W1-2), on 3 seeds: the ghost hugger (walks
+  into the nearest Ghost, never shoots) cannot lose three hearts in under 3 s, an
+  idle player survives at least 25 s, and a player who never shoots survives at
+  least 20 s (3 start delays).
 - HumanBot plays from a new game without softlocks, deterministically.
 
 A stuck or failing run reports the room, Wally's position, HP and the bot's
 current intent and goal.
 
-## Pending balance gates (W1-2 / W1-3)
+## Pending balance gates (W1-3)
 
 These are the targets for retuning. They fail on the current tuning, so they are
 documented and reported by `npm run qa:bot`, not enforced. Promote each one into
-`tests/adventure-bot.test.ts` once the retune that meets it lands.
+`tests/adventure-bot.test.ts` once the retune that meets it lands. The three
+bedroom gates met by W1-2 are enforced (see Gates) and still reported. W1-2 also
+raised the shared post-hit invulnerability from 900 to 1500 ms, which every room
+hazard uses, so room hits after W1-2 can be lower than the column below.
 
 | Target | Value before W1-2 |
 |---|---|
@@ -126,9 +135,9 @@ documented and reported by `npm run qa:bot`, not enforced. Promote each one into
 | HumanBot takes at most 1 hit per room visit | up to 3 hits in the Laboratory (1 in every kitchen visit) |
 | Reader probe takes 0 hits at objects (reading spots are safe) | hit at the hallway clock, kitchen microwave, attic clues and basement terminal; dies in every basement visit |
 | No-dodge walker never dies in a room entered at full HP | dies in the Laboratory in 1 of 11 entries |
-| A ghost contact costs one heart (no 3-heart chain under 3 s) | 1.8 s chain |
-| An idle player survives the haunted bedroom for at least 25 s | 18.0 s |
-| A player who never shoots survives the bedroom for at least 20 s | 7.3 s |
+| ~~A ghost contact costs one heart (no 3-heart chain under 3 s)~~ | 1.8 s chain; enforced since W1-2 (8.3 s) |
+| ~~An idle player survives the haunted bedroom for at least 25 s~~ | 18.0 s; enforced since W1-2 (30.9 s) |
+| ~~A player who never shoots survives the bedroom for at least 20 s~~ | 7.3 s; enforced since W1-2 (survives) |
 | Every telegraphed threat warns for at least 600 ms | Resonator lanes 300 ms, nightmare attacks 400 ms, pendulum drop 500 ms |
 
 ## Limits

@@ -15,7 +15,7 @@ import {
   type BotRunResult,
   type BotWorld,
 } from './support/AdventureBot';
-import { HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
+import { GhostHuggerBot, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
 import { isTelegraphed, measureWarningLead, THREAT_SCENARIOS } from './support/ThreatScenarios';
 
 const ENTRY_DELAYS_MS = Array.from({ length: 11 }, (_, index) => index * 200);
@@ -87,6 +87,10 @@ const bedroomRows: BedroomRow[] = HUMAN_POLICIES.map(policy => ({
   results: BEDROOM_SEEDS.flatMap(seed => ENTRY_DELAYS_MS.map(delay =>
     runBot(createBotNewGame(seed), human(policy.response, delay, seed), ROOM_OPTIONS))),
 }));
+bedroomRows.push({
+  label: 'Ghost hugger (walks into ghosts, never shoots)',
+  results: BEDROOM_SEEDS.map(seed => runBot(createBotNewGame(seed), new GhostHuggerBot(), ROOM_OPTIONS)),
+});
 bedroomRows.push({
   label: 'Idle (reads the screen)',
   results: BEDROOM_SEEDS.map(seed => runBot(createBotNewGame(seed), new IdleBot(), ROOM_OPTIONS)),
@@ -225,7 +229,7 @@ for (const room of ACTIVE_ROOM_IDS) {
 }
 
 // ---------------------------------------------------------------------------
-// Pending balance gates (docs/QA_BOT.md): reported, never enforced here.
+// Balance gates (docs/QA_BOT.md): reported here; the enforced ones are also tests.
 
 function roomResults(policy: HumanPolicyId): { room: string; result: BotRunResult }[] {
   return THREAT_ROOMS.flatMap(room => (roomCells.get(`${room}:${policy}`)?.results ?? []).map(result => ({ room, result })));
@@ -235,20 +239,20 @@ const humanWorst = Math.max(...roomResults('human').map(({ result }) => result.h
 const readerAtObjects = roomResults('reader').reduce((sum, { result }) => sum + result.hitsAtObjects, 0);
 const walkerDeaths = roomResults('walker').filter(({ result }) => result.deaths > 0);
 const shortestLead = leads.reduce((best, lead) => (lead.minLeadMs < best.minLeadMs ? lead : best));
-const pending: { gate: string; now: string; pass: boolean }[] = [
+const pending: { gate: string; now: string; pass: boolean; enforced?: true }[] = [
   { gate: 'HumanBot never dies in a room entered at full HP', now: humanDeaths.length ? `deaths in ${[...new Set(humanDeaths.map(entry => entry.room))].join(', ')}` : 'no deaths', pass: humanDeaths.length === 0 },
   { gate: 'HumanBot takes at most 1 hit per room visit', now: `worst visit ${humanWorst} hits`, pass: humanWorst <= 1 },
   { gate: 'Reader probe takes 0 hits at objects (reading spots are safe)', now: `${readerAtObjects} hits over ${roomResults('reader').length} visits`, pass: readerAtObjects === 0 },
   { gate: 'No-dodge walker never dies in a room entered at full HP', now: walkerDeaths.length ? `deaths in ${[...new Set(walkerDeaths.map(entry => entry.room))].join(', ')}` : 'no deaths', pass: walkerDeaths.length === 0 },
-  { gate: 'A ghost contact costs one heart (no 3-heart chain under 3 s)', now: Number.isFinite(bedroomChainMs) ? `fastest chain ${seconds(bedroomChainMs)}` : 'no 3-heart chain', pass: !Number.isFinite(bedroomChainMs) || bedroomChainMs >= 3_000 },
-  { gate: 'An idle player survives the bedroom for at least 25 s', now: `dies at ${seconds(idleSurvivalMs)}`, pass: idleSurvivalMs >= 25_000 },
-  { gate: 'A player who never shoots survives the bedroom for at least 20 s', now: Number.isFinite(walkerSurvivalMs) ? `dies at ${seconds(walkerSurvivalMs)}` : 'survives', pass: walkerSurvivalMs >= 20_000 },
+  { gate: 'A ghost contact costs one heart (no 3-heart chain under 3 s)', now: Number.isFinite(bedroomChainMs) ? `fastest chain ${seconds(bedroomChainMs)}` : 'no 3-heart chain', pass: !Number.isFinite(bedroomChainMs) || bedroomChainMs >= 3_000, enforced: true },
+  { gate: 'An idle player survives the bedroom for at least 25 s', now: `dies at ${seconds(idleSurvivalMs)}`, pass: idleSurvivalMs >= 25_000, enforced: true },
+  { gate: 'A player who never shoots survives the bedroom for at least 20 s', now: Number.isFinite(walkerSurvivalMs) ? `dies at ${seconds(walkerSurvivalMs)}` : 'survives', pass: walkerSurvivalMs >= 20_000, enforced: true },
   { gate: 'Every telegraphed threat warns for at least 600 ms', now: `${shortestLead.kind} ${shortestLead.minLeadMs}ms`, pass: shortestLead.minLeadMs >= 600 },
 ];
-console.log('\n## Pending balance gates (targets for W1-2/W1-3; not enforced yet)\n');
+console.log('\n## Balance gates (enforced ones fail tests/adventure-bot.test.ts; the rest are W1-3 targets)\n');
 console.log('| Target | Now | Status |');
 console.log('|---|---|---|');
-for (const gate of pending) console.log(`| ${gate.gate} | ${gate.now} | ${gate.pass ? 'met' : 'not met'} |`);
+for (const gate of pending) console.log(`| ${gate.gate} | ${gate.now} | ${gate.pass ? 'met' : 'not met'}${gate.enforced ? ' (enforced)' : ''} |`);
 
 if (notes.length > 0) {
   console.log('\n## Notes\n');

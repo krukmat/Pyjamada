@@ -27,7 +27,9 @@ export const DREAM_SPARK = {
 } as const;
 
 export const PLAYER_HIT_RULES = {
-  invulnerabilityMs: 900,
+  // Longer than a Ghost's recoil (GHOST_RULES.recoilMs), so three hearts can
+  // never go in under three seconds, even with two Ghosts on Wally.
+  invulnerabilityMs: 1_500,
   damage: 1,
 } as const;
 

@@ -19,7 +19,18 @@ export const HAUNTED_PLAYER_PHYSICS = {
   jumpVelocity: -72,
   hitKnockbackX: 34,
   hitKnockbackY: -34,
+  /**
+   * A Ghost hit shoves harder: friction still applies in the air, so 72 u/s
+   * carries Wally about 8.6 units clear (34 u/s barely moved him 2 units, less
+   * than a Ghost's contact radius) even while the player holds toward it.
+   */
+  ghostKnockbackX: 72,
+  ghostKnockbackY: -40,
 } as const;
+
+export type HauntedKnockbackImpulse = { x: number; y: number };
+const HAZARD_KNOCKBACK: HauntedKnockbackImpulse = { x: HAUNTED_PLAYER_PHYSICS.hitKnockbackX, y: HAUNTED_PLAYER_PHYSICS.hitKnockbackY };
+export const GHOST_KNOCKBACK: HauntedKnockbackImpulse = { x: HAUNTED_PLAYER_PHYSICS.ghostKnockbackX, y: HAUNTED_PLAYER_PHYSICS.ghostKnockbackY };
 
 export function createHauntedPlayerPhysics(x = 24): HauntedPlayerPhysicsState {
   return { x, y: PLAYER_GROUND_Y, vx: 0, vy: 0, grounded: true, facing: 'right' };
@@ -62,11 +73,15 @@ export function stepHauntedPlayerPhysics(
   return { x, y, vx, vy, grounded, facing };
 }
 
-export function applyHauntedKnockback(state: HauntedPlayerPhysicsState, direction: -1 | 1): HauntedPlayerPhysicsState {
+export function applyHauntedKnockback(
+  state: HauntedPlayerPhysicsState,
+  direction: -1 | 1,
+  impulse: HauntedKnockbackImpulse = HAZARD_KNOCKBACK,
+): HauntedPlayerPhysicsState {
   return {
     ...state,
-    vx: HAUNTED_PLAYER_PHYSICS.hitKnockbackX * direction,
-    vy: HAUNTED_PLAYER_PHYSICS.hitKnockbackY,
+    vx: impulse.x * direction,
+    vy: impulse.y,
     grounded: false,
   };
 }

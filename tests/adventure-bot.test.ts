@@ -20,7 +20,7 @@ import {
   type BotRunResult,
   type BotWorld,
 } from './support/AdventureBot';
-import { HUMAN_LATENCY_MS, HUMAN_REACTION_MS, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
+import { GhostHuggerBot, HUMAN_LATENCY_MS, HUMAN_REACTION_MS, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
 import { explorationIn, THREAT_SESSION } from './support/ThreatScenarios';
 
 function ok(value: unknown, message: string) { if (!value) throw new Error(message); }
@@ -172,6 +172,30 @@ void test('the haunted bedroom is played for real: HumanBot escapes and every po
     const idle = runBot(createBotNewGame(seed), new IdleBot(), ROOM_OPTIONS);
     equal(idle.outcome, 'died', 'an idle player is eventually caught by the haunting');
     deepEqual(idle.violations, [], 'idle bedroom run keeps every gameplay invariant');
+  }
+});
+
+/** Shortest span in which `maxHp` consecutive hearts were lost. */
+function fastestKillChainMs(result: BotRunResult): number {
+  const needed = result.world.session.combat.maxHp;
+  let fastest = Infinity;
+  for (let index = 0; index + needed - 1 < result.hitTimesMs.length; index += 1) {
+    fastest = Math.min(fastest, result.hitTimesMs[index + needed - 1] - result.hitTimesMs[index]);
+  }
+  return fastest;
+}
+
+void test('the haunted bedroom is survivable: one Ghost touch costs one heart and idle players get time to read', () => {
+  for (const seed of ['gate-bedroom-a', 'gate-bedroom-b', 'gate-bedroom-c']) {
+    const hugger = runBot(createBotNewGame(seed), new GhostHuggerBot(), ROOM_OPTIONS);
+    ok(fastestKillChainMs(hugger) >= 2_999, `${seed}: walking into Ghosts cannot take three hearts in under 3 s (${fastestKillChainMs(hugger)} ms)`);
+    deepEqual(hugger.violations, [], `${seed}: ghost-hugger run keeps every gameplay invariant`);
+    const idle = runBot(createBotNewGame(seed), new IdleBot(), ROOM_OPTIONS);
+    ok(idle.gameTimeMs >= 25_000, `${seed}: an idle player survives at least 25 s (${idle.gameTimeMs} ms)`);
+    for (const startDelayMs of [0, 1_000, 2_000]) {
+      const walker = runBot(createBotNewGame(seed), new HumanBot({ threatResponse: 'never', startDelayMs, seed }), ROOM_OPTIONS);
+      ok(walker.outcome !== 'died' || walker.gameTimeMs >= 20_000, `${seed} +${startDelayMs}ms: a player who never shoots survives at least 20 s (${walker.gameTimeMs} ms)`);
+    }
   }
 });
 
