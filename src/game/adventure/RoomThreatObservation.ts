@@ -11,6 +11,7 @@ import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstabili
 import { resolveVesperControlState } from './LaboratoryVesperControl';
 import { resolveVesperNightmareState } from './LaboratoryVesperNightmare';
 import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from './LivingRoomStaticHazard';
+import { resolveRoomBoss } from './RoomBossHazard';
 
 export type ThreatPhase = 'warning' | 'danger';
 
@@ -21,6 +22,7 @@ export type ThreatKind =
   | 'attic-crate'
   | 'basement-discharge'
   | 'bathroom-twin'
+  | 'room-boss'
   | 'vesper-pressure'
   | 'resonator-electrical'
   | 'nightmare-attack';
@@ -66,6 +68,15 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
   const push = (kind: ThreatKind, phase: ThreatPhase, minX: number, maxX: number, jumpable = false) => {
     observations.push({ kind, phase, minX, maxX, jumpable });
   };
+
+  // A room boss touches Wally within contactHalfWidth of its body; the Roach
+  // only reaches a grounded Wally. The Wraith's faint telegraph is a warning.
+  const boss = resolveRoomBoss(adventure, session.elapsedMs);
+  if (boss) {
+    const reach = boss.config.contactHalfWidth;
+    if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
+    else push('room-boss', 'warning', boss.x - reach, boss.x + reach);
+  }
 
   switch (adventure.currentRoom) {
     case 'hallway': {

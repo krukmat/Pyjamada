@@ -10,6 +10,8 @@ import { resolveFxFrames, resolveScreenShake } from '../presentation/FxSystem';
 import { resolveWallyVisualFrame } from '../presentation/WallyAnimator';
 import type { SystemicRunState } from '../systemic/SystemicState';
 import { bathroomTwinX, isBathroomTwinActive, isBathroomTwinWounded } from '../adventure/BathroomTwinHazard';
+import { resolveRoomBoss } from '../adventure/RoomBossHazard';
+import { RoomBossLayer } from './RoomBossLayer';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
@@ -72,11 +74,13 @@ export function GameCanvas({
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
   const laboratoryPhase = roomId === 'laboratory' && adventure ? getLaboratoryEncounterPhase(adventure) : undefined;
   const twinActive = Boolean(adventure && isBathroomTwinActive(adventure));
+  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs) : undefined;
   const twinFlicker = Boolean(adventure && isBathroomTwinWounded(adventure)) && Math.floor(nowMs / 90) % 3 === 0;
   const combat = Boolean(
     (hauntedSession && !exploration && hauntedSession.threats.ghosts.some((ghost) => ghost.phase !== 'dying'))
     || laboratoryPhase === 'vesper-control' || laboratoryPhase === 'resonator' || laboratoryPhase === 'nightmare'
-    || twinActive,
+    || twinActive
+    || roomBoss !== undefined,
   );
 
   return (
@@ -110,6 +114,8 @@ export function GameCanvas({
               px={px}
             />
           )}
+
+          {roomBoss && <RoomBossLayer boss={roomBoss} nowMs={nowMs} px={px} />}
 
           {twinActive && hauntedSession && (
             // The reflection: Wally's own pose, mirrored across the glass, tinted cyan.
@@ -148,7 +154,7 @@ export function GameCanvas({
             />
           ) : null}
 
-          {(!exploration || roomId === 'laboratory' || twinActive) && dreamSparks.map((projectile) => (
+          {(!exploration || roomId === 'laboratory' || twinActive || roomBoss) && dreamSparks.map((projectile) => (
             <PixelDreamSpark
               key={projectile.id}
               projectile={projectile}

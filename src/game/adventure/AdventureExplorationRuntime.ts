@@ -68,6 +68,14 @@ import {
   resolveBathroomTwinSparks,
 } from './BathroomTwinHazard';
 import {
+  activeRoomBoss,
+  armRoomBoss,
+  isPlayerTouchingRoomBoss,
+  resolveRoomBoss,
+  resolveRoomBossSparks,
+  type RoomBossRoom,
+} from './RoomBossHazard';
+import {
   applyRoomInteractionEffect,
   type RoomInteractionEffectEvent,
 } from './RoomInteractionEffects';
@@ -90,6 +98,9 @@ export type AdventureExplorationEvent =
   | { type: 'BATHROOM_TWIN_HIT' }
   | { type: 'BATHROOM_TWIN_DISPELLED' }
   | { type: 'BATHROOM_TWIN_CONTACT_HIT' }
+  | { type: 'ROOM_BOSS_HIT'; room: RoomBossRoom }
+  | { type: 'ROOM_BOSS_DISPELLED'; room: RoomBossRoom }
+  | { type: 'ROOM_BOSS_CONTACT_HIT'; room: RoomBossRoom }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_VESPER_CONTROL_BROKEN' }
@@ -211,9 +222,9 @@ export function applyFirstVisitRecovery(
   return hp === session.combat.hp ? session : { ...session, combat: { ...session.combat, hp } };
 }
 
-/** Dream Sparks are available in exploration during the Laboratory fight and against the Bathroom reflection. */
+/** Dream Sparks are available in exploration during the Laboratory fight, against the Bathroom reflection and room bosses. */
 export function isExplorationCombatEnabled(adventure: AdventureState): boolean {
-  return isLaboratoryCombatEnabled(adventure) || isBathroomTwinActive(adventure);
+  return isLaboratoryCombatEnabled(adventure) || isBathroomTwinActive(adventure) || activeRoomBoss(adventure) !== undefined;
 }
 
 export function isKitchenCircuitOverloaded(adventure: AdventureState): boolean {
@@ -315,9 +326,15 @@ export function stepAdventureExploration(
   // by Dream Spark cooldowns without reactivating domestic deadline/noise rules.
   const laboratoryCombat = isLaboratoryCombatEnabled(adventure);
   const twinCombat = isBathroomTwinActive(adventure);
-  const combatEnabled = laboratoryCombat || twinCombat;
+  const bossCombat = activeRoomBoss(adventure) !== undefined;
+  const combatEnabled = laboratoryCombat || twinCombat || bossCombat;
   let clockAdvanced = false;
-  if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
+  if (bossCombat) {
+    elapsedMs += dtMs;
+    const armed = armRoomBoss(nextAdventure, elapsedMs);
+    nextAdventure = armed.adventure;
+    elapsedMs = armed.elapsedMs;
+  } else if (adventure.currentRoom === 'basement' && isBasementControlRevealed(adventure)) {
     elapsedMs += dtMs;
     const armed = armBasementElectricalHazard(nextAdventure, elapsedMs);
     nextAdventure = armed.adventure;
@@ -529,6 +546,21 @@ export function stepAdventureExploration(
     if (hit.accepted) {
       player = applyHauntedKnockback(player, player.x < bathroomTwinX(player.x) ? -1 : 1);
       events.push({ type: 'BATHROOM_TWIN_CONTACT_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
+  const boss = resolveRoomBoss(nextAdventure, elapsedMs);
+  const bossSparks = resolveRoomBossSparks(nextAdventure, combat, boss);
+  nextAdventure = bossSparks.adventure;
+  combat = bossSparks.combat;
+  events.push(...bossSparks.events);
+  if (boss && bossSparks.events.length === 0 && isPlayerTouchingRoomBoss(player, boss) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, player.x < boss.x ? -1 : 1);
+      events.push({ type: 'ROOM_BOSS_CONTACT_HIT', room: boss.config.room });
       if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
     }
   }

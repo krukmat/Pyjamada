@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -49,7 +50,7 @@ function setupKitchen(runId: string) {
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
   const clock = stepAdventureExploration(at(falseEscape.session, 64), hallway.state, 33);
-  const livingRequestStep = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
+  const livingRequestStep = stepAdventureExploration(at(clock.session, 114), dispelRoomBoss(clock.adventure, 'hallway'), 33);
   const livingRequest = transitionRequest(livingRequestStep.events);
   if (!livingRequest) throw new Error('Living Room transition was not requested.');
   const living = transitionAdventure(livingRequestStep.adventure, livingRequest.targetRoom, livingRequest.targetEntry);
@@ -65,7 +66,7 @@ function setupKitchen(runId: string) {
   const tvStatic = stepAdventureExploration(at(livingSession, 109), living.state, 33);
   const transmission = stepAdventureExploration(at(tvStatic.session, 109), tvStatic.adventure, 33);
   const source = stepAdventureExploration(at(transmission.session, 84), transmission.adventure, 33);
-  const kitchen = transitionAdventure(source.adventure, 'kitchen', 'kitchen-from-living-room');
+  const kitchen = transitionAdventure(dispelRoomBoss(source.adventure, 'living-room'), 'kitchen', 'kitchen-from-living-room');
   if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
 
   return {
@@ -92,7 +93,7 @@ void test('keeps Bathroom locked until Kitchen power is rerouted', () => {
   const reroute = stepAdventureExploration(at(overload.session, 108), overload.adventure, 33);
   equal(isKitchenPowerRerouted(reroute.adventure), true, 'Kitchen solution unlocks deeper progression');
 
-  const bathroomDoor = stepAdventureExploration(at(reroute.session, 116), reroute.adventure, 33);
+  const bathroomDoor = stepAdventureExploration(at(reroute.session, 116), dispelRoomBoss(reroute.adventure, 'kitchen'), 33);
   const request = transitionRequest(bathroomDoor.events);
   equal(request?.targetRoom, 'bathroom', 'solved Kitchen points to Bathroom');
   equal(request?.targetEntry, 'bathroom-from-kitchen', 'Bathroom uses production Kitchen entry');
@@ -110,7 +111,7 @@ void test('requires observing the mirror, testing the light, then confirming the
   const kitchen = setupKitchen('reflection-loop');
   const overload = stepAdventureExploration(at(kitchen.session, 64), kitchen.adventure, 33);
   const reroute = stepAdventureExploration(at(overload.session, 108), overload.adventure, 33);
-  const bathroom = transitionAdventure(reroute.adventure, 'bathroom', 'bathroom-from-kitchen');
+  const bathroom = transitionAdventure(dispelRoomBoss(reroute.adventure, 'kitchen'), 'bathroom', 'bathroom-from-kitchen');
   if (bathroom.status !== 'ok') throw new Error(bathroom.reason);
 
   const bathroomSession = {

@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 
 function ok(value: unknown, message: string) { if (!value) throw new Error(message); }
@@ -46,7 +47,7 @@ function livingRoomSetup(runId: string, tvOn: boolean, traced = false) {
     rooms: { ...escaped.adventure.rooms, 'living-room': createRoomPersistentState() },
   };
   if (tvOn) adventure = setRoomSwitch(adventure, 'living-room', 'tv-on', true);
-  if (traced) adventure = setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true);
+  if (traced) adventure = dispelRoomBoss(setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true), 'living-room');
   return { session: moveTo({ ...escaped.session, elapsedMs: 1_234 }, 109), adventure };
 }
 

@@ -28,6 +28,7 @@ import {
 import { decodeAdventureGameSession, encodeAdventureGameSession } from '../adventure/AdventureSessionCodec';
 import { createAdventureState, getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
 import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
+import { activeRoomBoss, resolveRoomBoss, type RoomBossConfig } from '../adventure/RoomBossHazard';
 import {
   getLaboratoryEncounterPhase,
   shouldUseLaboratoryCheckpoint,
@@ -218,6 +219,7 @@ const HIT_EVENT_THREATS: Partial<Record<BotEvent['type'], ThreatKind>> = {
   ATTIC_CRATE_HIT: 'attic-crate',
   BASEMENT_DISCHARGE_HIT: 'basement-discharge',
   BATHROOM_TWIN_CONTACT_HIT: 'bathroom-twin',
+  ROOM_BOSS_CONTACT_HIT: 'room-boss',
   LABORATORY_VESPER_PULSE_HIT: 'vesper-pressure',
   LABORATORY_RESONATOR_SURGE_HIT: 'resonator-electrical',
   LABORATORY_NIGHTMARE_ATTACK_HIT: 'nightmare-attack',
@@ -442,15 +444,32 @@ function isVisible(adventure: AdventureState, roomId: RoomId, interaction: RoomI
 function roomSignature(adventure: AdventureState, roomId: RoomId, ignoreHazardClocks = false): string {
   const room = adventure.rooms[roomId] ?? null;
   if (!ignoreHazardClocks || !room) return JSON.stringify([adventure.storyFlags, room]);
-  // A hazard arming its clock ('*-armed') is not news a player would re-read objects for.
-  const interactions = room.interactions.filter(interaction => !interaction.endsWith('-armed'));
+  // A hazard arming its clock ('*-armed') or a room boss fight ('*-boss-*') is not news a player would re-read objects for.
+  const interactions = room.interactions.filter(interaction => !interaction.endsWith('-armed') && !interaction.includes('-boss-'));
   return JSON.stringify([adventure.storyFlags, { ...room, interactions }]);
 }
 
-/** Dream Spark targets currently on stage; empty outside the twin and Laboratory fights. */
+/**
+ * Where to stand against a room boss: beyond the reach of the Moth's flight or
+ * the Wraith's blink spots (any spark fired across their range meets them), and
+ * between the microwave and the breaker against the Roach, which has no safe
+ * spot and must be jumped.
+ */
+export function roomBossFiringSpot(boss: RoomBossConfig): number {
+  // The Moth rises by the Living Room door and the Wraith's first blink is
+  // left of the television: each spot lies away from where the boss starts.
+  if (boss.kind === 'moth') return 12;
+  if (boss.kind === 'wraith') return 114;
+  return 86;
+}
+
+/** Dream Spark targets currently on stage; empty outside the twin, room boss and Laboratory fights. */
 export function combatTargets(world: BotWorld): number[] {
   const { adventure, session } = world;
   if (isBathroomTwinActive(adventure)) return [bathroomTwinX(session.player.x)];
+  // A rising boss cannot be hit yet: finish reading the object that woke it first.
+  const boss = resolveRoomBoss(adventure, session.elapsedMs);
+  if (boss) return boss.pose === 'rise' ? [] : [boss.x];
   if (adventure.currentRoom !== 'laboratory' || !isLaboratoryCombatEnabled(adventure)) return [];
   const phase = getLaboratoryEncounterPhase(adventure);
   if (phase === 'vesper-control') {
@@ -660,20 +679,28 @@ export class RouteBot implements BotPolicy {
         : targets.reduce((best, x) => (Math.abs(x - playerX) < Math.abs(best - playerX) ? x : best));
       // Keep one firing spot per target: recomputing the nearest spot every decision made Wally
       // oscillate between two equally near spots without ever turning to fire.
-      const key = isBathroomTwinActive(world.adventure) ? 'bathroom-twin' : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
+      const boss = activeRoomBoss(world.adventure);
+      const key = isBathroomTwinActive(world.adventure)
+        ? 'bathroom-twin'
+        : boss ? `boss:${boss.room}` : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
       if (this.firing?.key !== key) this.firing = { key, target, x: this.firingPosition(world, target) };
       return { x: this.firing.x, aimX: target, label: `fight target@${Math.round(target)}` };
     }
     this.firing = undefined;
 
     if (this.reading) return { x: this.reading.x, label: this.reading.label };
-    return this.planner.nextInteraction(world);
+    const goal = this.planner.nextInteraction(world);
+    const boss = activeRoomBoss(world.adventure);
+    if (!goal && boss) return { x: roomBossFiringSpot(boss), label: `await ${boss.name}` };
+    return goal;
   }
 
   /** Nearest spot within spark range of the target, preferring spots outside the phase's hazard lanes. */
   private firingPosition(world: BotWorld, targetX: number): number {
     const playerX = world.session.player.x;
     if (isBathroomTwinActive(world.adventure)) return playerX < 64 ? 24 : 104;
+    const boss = activeRoomBoss(world.adventure);
+    if (boss) return roomBossFiringSpot(boss);
     const lanes = laboratoryLanes(world.adventure);
     let best = { x: clampX(targetX - FIRING_DISTANCE), score: Number.POSITIVE_INFINITY };
     for (const distance of FIRING_DISTANCES) {

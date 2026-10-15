@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { deepEqual, equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -158,7 +159,7 @@ void test('Hallway clock reveals Living Room path and persists the anomaly', () 
   equal(inspected.events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED'), true, 'clock reveal event emitted');
   equal(inspected.events.some(event => event.type === 'LIVING_ROOM_PATH_REVEALED'), true, 'door reveal event emitted');
 
-  const livingAfter = findAdventureInteractionTarget(inspected.adventure, 114);
+  const livingAfter = findAdventureInteractionTarget(dispelRoomBoss(inspected.adventure, 'hallway'), 114);
   equal(livingAfter?.available, true, 'Living Room door becomes available after clock');
   equal(livingAfter?.displayLabel, 'LIVING ROOM', 'unlocked label comes from room definition');
 });
@@ -177,7 +178,7 @@ void test('Living Room unlock gates both interaction and transition, then suppor
     input: pressAction(falseEscape.session.input, 'interact'),
   };
   const inspected = stepAdventureExploration(atClock, hallway.state, 33);
-  const living = transitionAdventure(inspected.adventure, 'living-room', 'living-room-from-hallway');
+  const living = transitionAdventure(dispelRoomBoss(inspected.adventure, 'hallway'), 'living-room', 'living-room-from-hallway');
   if (living.status !== 'ok') throw new Error(living.reason);
   equal(living.state.currentRoom, 'living-room', 'entered Living Room');
   deepEqual(living.state.visitedRooms, ['bedroom', 'hallway', 'living-room'], 'Living Room marked visited');

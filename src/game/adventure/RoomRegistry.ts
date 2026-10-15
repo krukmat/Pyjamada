@@ -1,3 +1,4 @@
+import { isRoomBossGuardingExit } from './RoomBossHazard';
 import {
   createRoomPersistentState,
   getRoomState,
@@ -507,7 +508,7 @@ export function getRoomInteraction(roomId: RoomId, interactionId: string): RoomI
 export function isRoomExitAvailable(state: AdventureState, roomId: RoomId, exit: RoomExit): boolean {
   if (exit.requiresStoryFlag && !state.storyFlags[exit.requiresStoryFlag]) return false;
   if (exit.requiresRoomSwitch && getRoomState(state, roomId).switches[exit.requiresRoomSwitch] !== true) return false;
-  return true;
+  return !isRoomBossGuardingExit(state, roomId, exit.id);
 }
 
 export function isRoomInteractionAvailable(
@@ -563,7 +564,9 @@ export function transitionAdventure(
     };
   }
   if (!isRoomExitAvailable(state, source.id, allowed)) {
-    const requirement = allowed.requiresStoryFlag ?? allowed.requiresRoomSwitch ?? 'unknown requirement';
+    const requirement = isRoomBossGuardingExit(state, source.id, allowed.id)
+      ? 'its room boss to be dispelled'
+      : allowed.requiresStoryFlag ?? allowed.requiresRoomSwitch ?? 'unknown requirement';
     return {
       status: 'invalid',
       reason: `Transition ${allowed.id} requires ${requirement}.`,

@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { deepEqual, equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -45,7 +46,7 @@ void test('Gate A navigates Hallway to Living Room and back with persistence', (
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
   const clock = stepAdventureExploration(at(falseEscape.session, 64), hallway.state, 33);
-  const livingDoorStep = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
+  const livingDoorStep = stepAdventureExploration(at(clock.session, 114), dispelRoomBoss(clock.adventure, 'hallway'), 33);
   const livingRequest = transitionRequest(livingDoorStep.events);
   if (!livingRequest) throw new Error('Living Room door did not request a room transition.');
   equal(livingRequest.targetRoom, 'living-room', 'Hallway door targets Living Room');

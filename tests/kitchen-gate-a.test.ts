@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -48,7 +49,7 @@ function setupLivingRoom(runId: string) {
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
   const clock = stepAdventureExploration(at(falseEscape.session, 64), hallway.state, 33);
-  const livingDoor = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
+  const livingDoor = stepAdventureExploration(at(clock.session, 114), dispelRoomBoss(clock.adventure, 'hallway'), 33);
   const request = transitionRequest(livingDoor.events);
   if (!request) throw new Error('Living Room transition was not requested.');
   const living = transitionAdventure(livingDoor.adventure, request.targetRoom, request.targetEntry);
@@ -80,7 +81,7 @@ void test('Gate A unlocks Kitchen only after tracing the Living Room source cue'
   const source = stepAdventureExploration(at(transmission.session, 84), transmission.adventure, 33);
   equal(getRoomState(source.adventure, 'living-room').switches['source-hum-traced'], true, 'radio trace unlocks Kitchen route');
 
-  const kitchenDoor = stepAdventureExploration(at(source.session, 116), source.adventure, 33);
+  const kitchenDoor = stepAdventureExploration(at(source.session, 116), dispelRoomBoss(source.adventure, 'living-room'), 33);
   const request = transitionRequest(kitchenDoor.events);
   equal(request?.targetRoom, 'kitchen', 'source cue makes Kitchen the next real room');
   equal(request?.targetEntry, 'kitchen-from-living-room', 'Kitchen uses its production Living Room entry');
@@ -99,7 +100,7 @@ void test('Gate A uses microwave load to expose the breaker and reroute the powe
   const tvStatic = stepAdventureExploration(at(living.session, 109), living.adventure, 33);
   const transmission = stepAdventureExploration(at(tvStatic.session, 109), tvStatic.adventure, 33);
   const source = stepAdventureExploration(at(transmission.session, 84), transmission.adventure, 33);
-  const kitchen = transitionAdventure(source.adventure, 'kitchen', 'kitchen-from-living-room');
+  const kitchen = transitionAdventure(dispelRoomBoss(source.adventure, 'living-room'), 'kitchen', 'kitchen-from-living-room');
   if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
 
   const kitchenSession = {

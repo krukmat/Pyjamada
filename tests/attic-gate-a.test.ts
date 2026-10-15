@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -49,7 +50,7 @@ function setupBathroom(runId: string) {
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
   const clock = stepAdventureExploration(at(falseEscape.session, 64), hallway.state, 33);
-  const livingRequestStep = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
+  const livingRequestStep = stepAdventureExploration(at(clock.session, 114), dispelRoomBoss(clock.adventure, 'hallway'), 33);
   const livingRequest = transitionRequest(livingRequestStep.events);
   if (!livingRequest) throw new Error('Living Room transition was not requested.');
   const living = transitionAdventure(livingRequestStep.adventure, livingRequest.targetRoom, livingRequest.targetEntry);
@@ -65,7 +66,7 @@ function setupBathroom(runId: string) {
   const tvStatic = stepAdventureExploration(at(session, 109), living.state, 33);
   const transmission = stepAdventureExploration(at(tvStatic.session, 109), tvStatic.adventure, 33);
   const source = stepAdventureExploration(at(transmission.session, 84), transmission.adventure, 33);
-  const kitchen = transitionAdventure(source.adventure, 'kitchen', 'kitchen-from-living-room');
+  const kitchen = transitionAdventure(dispelRoomBoss(source.adventure, 'living-room'), 'kitchen', 'kitchen-from-living-room');
   if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
 
   session = {
@@ -77,7 +78,7 @@ function setupBathroom(runId: string) {
 
   const overload = stepAdventureExploration(at(session, 64), kitchen.state, 33);
   const reroute = stepAdventureExploration(at(overload.session, 108), overload.adventure, 33);
-  const bathroom = transitionAdventure(reroute.adventure, 'bathroom', 'bathroom-from-kitchen');
+  const bathroom = transitionAdventure(dispelRoomBoss(reroute.adventure, 'kitchen'), 'bathroom', 'bathroom-from-kitchen');
   if (bathroom.status !== 'ok') throw new Error(bathroom.reason);
 
   session = {

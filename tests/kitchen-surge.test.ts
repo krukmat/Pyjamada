@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -45,7 +46,7 @@ function kitchenSetup(runId: string, overloaded: boolean, rerouted = false) {
     rooms: { ...escaped.adventure.rooms, kitchen: createRoomPersistentState() },
   };
   if (overloaded) adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', true);
-  if (rerouted) adventure = setRoomSwitch(adventure, 'kitchen', 'power-rerouted', true);
+  if (rerouted) adventure = dispelRoomBoss(setRoomSwitch(adventure, 'kitchen', 'power-rerouted', true), 'kitchen');
   return { session: moveTo({ ...escaped.session, elapsedMs: 1_234 }, 64), adventure };
 }
 

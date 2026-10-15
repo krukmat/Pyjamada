@@ -22,6 +22,7 @@ import {
   isAdventureExplorationActive,
 } from '../adventure/AdventureExplorationRuntime';
 import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
+import { activeRoomBoss } from '../adventure/RoomBossHazard';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { resolveResonatorInstabilityState } from '../adventure/LaboratoryResonatorInstability';
 import { findActiveRoom } from '../adventure/RoomRegistry';
@@ -44,6 +45,7 @@ import {
   type BotPolicy,
   type BotWorld,
   type Goal,
+  roomBossFiringSpot,
 } from './AdventureBot';
 
 export const HUMAN_REACTION_MS = 250;
@@ -311,6 +313,8 @@ export class HumanBot implements BotPolicy {
       this.planner.markShadowed(world.adventure, goal.interactionId);
       goal = this.planner.nextInteraction(world);
     }
+    const boss = activeRoomBoss(world.adventure);
+    if (!goal && boss) return { x: roomBossFiringSpot(boss), label: `await ${boss.name}` };
     return goal;
   }
 
@@ -341,6 +345,12 @@ export class HumanBot implements BotPolicy {
       return undefined;
     }
     const x = world.session.player.x;
+    const boss = activeRoomBoss(world.adventure);
+    if (boss) {
+      const key = `${phaseKey(world)}:boss`;
+      if (!this.firing || this.firing.key !== key) this.firing = { key, x: roomBossFiringSpot(boss) };
+      return { x: this.firing.x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(this.firing.x)}` };
+    }
     const twin = isBathroomTwinActive(world.adventure);
     const target = twin ? targets[0] : targets.reduce((best, t) => (Math.abs(t - x) < Math.abs(best - x) ? t : best));
     const key = `${phaseKey(world)}:${twin ? 'twin' : target}`;

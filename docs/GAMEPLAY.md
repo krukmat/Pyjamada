@@ -64,6 +64,16 @@ Failure occurs when:
 
 The same room must support efficient, near-miss and chaos runs without random behavior.
 
+## Room bosses
+
+Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then four attack cycles:
+
+- Hallway, **Dust Moth** (2 hits): flutters across the room; shoot from the doorway.
+- Living Room, **Static Wraith** (3 hits): blinks between three spots; hittable only once solid.
+- Kitchen, **Giant Roach** (3 hits): waits at a wall, then charges along the floor; jump it.
+
+The Hallway pendulum starts only after the Moth is dispelled.
+
 ## Persistence
 
 The game uses one save domain:

@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../game/adventure/RoomBossHazard';
 import { applyFalseEscape } from '../game/adventure/AdventureExplorationRuntime';
 import {
   createAdventureState,
@@ -252,6 +253,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
   if (scenario !== 'hallway-arrival') {
     adventure = markRoomInspected(adventure, 'hallway', 'backward-clock');
     adventure = setRoomSwitch(adventure, 'hallway', 'living-room-unlocked', true);
+    adventure = dispelRoomBoss(adventure, 'hallway');
     adventure = markRoomInteraction(adventure, 'hallway', 'hallway-pendulum-armed');
   }
   if (scenario === 'living-door') {
@@ -281,6 +283,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = setRoomSwitch(adventure, 'living-room', 'photo-focused', false);
     adventure = setRoomSwitch(adventure, 'living-room', 'radio-focused', true);
     adventure = setRoomSwitch(adventure, 'living-room', 'source-hum-traced', true);
+    adventure = dispelRoomBoss(adventure, 'living-room');
   }
   if (isKitchenOrDeeperScenario(scenario)) {
     const kitchen = transitionAdventure(adventure, 'kitchen', 'kitchen-from-living-room');
@@ -301,6 +304,7 @@ export function createScreenshotAdventureState(scenario: HauntedScreenshotScenar
     adventure = setRoomSwitch(adventure, 'kitchen', 'microwave-on', false);
     adventure = setRoomSwitch(adventure, 'kitchen', 'circuit-overloaded', false);
     adventure = setRoomSwitch(adventure, 'kitchen', 'power-rerouted', true);
+    adventure = dispelRoomBoss(adventure, 'kitchen');
   }
   if (isBathroomOrDeeperScenario(scenario)) {
     const bathroom = transitionAdventure(adventure, 'bathroom', 'bathroom-from-kitchen');

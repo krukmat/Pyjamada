@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import { applyFalseEscape, stepAdventureExploration } from '../src/game/adventure/AdventureExplorationRuntime';
 import { createAdventureState, setRoomSwitch, type AdventureState } from '../src/game/adventure/AdventureState';
@@ -35,13 +36,13 @@ function setupResonator(runId: string): { session: HauntedSessionState; adventur
 
   const hallway = transitionAdventure(adventure, 'hallway', 'hallway-from-bedroom');
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
-  adventure = setRoomSwitch(hallway.state, 'hallway', 'living-room-unlocked', true);
+  adventure = dispelRoomBoss(setRoomSwitch(hallway.state, 'hallway', 'living-room-unlocked', true), 'hallway');
   const living = transitionAdventure(adventure, 'living-room', 'living-room-from-hallway');
   if (living.status !== 'ok') throw new Error(living.reason);
-  adventure = setRoomSwitch(living.state, 'living-room', 'source-hum-traced', true);
+  adventure = dispelRoomBoss(setRoomSwitch(living.state, 'living-room', 'source-hum-traced', true), 'living-room');
   const kitchen = transitionAdventure(adventure, 'kitchen', 'kitchen-from-living-room');
   if (kitchen.status !== 'ok') throw new Error(kitchen.reason);
-  adventure = setRoomSwitch(kitchen.state, 'kitchen', 'power-rerouted', true);
+  adventure = dispelRoomBoss(setRoomSwitch(kitchen.state, 'kitchen', 'power-rerouted', true), 'kitchen');
   const bathroom = transitionAdventure(adventure, 'bathroom', 'bathroom-from-kitchen');
   if (bathroom.status !== 'ok') throw new Error(bathroom.reason);
   adventure = setRoomSwitch(bathroom.state, 'bathroom', 'mirror-route-revealed', true);

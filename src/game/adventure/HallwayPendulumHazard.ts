@@ -1,3 +1,4 @@
+import { isRoomBossLive } from './RoomBossHazard';
 import { getRoomState, markRoomInteraction, type AdventureState } from './AdventureState';
 
 export type HallwayPendulumPhase = 'inactive' | 'raised' | 'dropping' | 'sweep';
@@ -10,8 +11,8 @@ export type HallwayPendulumSnapshot = {
 };
 
 /**
- * Hallway room threat: once the backward clock is inspected and until Wally
- * first reaches the Living Room, a phantom pendulum hangs from the clock. It
+ * Hallway room threat: once the backward clock is inspected and the Dust Moth
+ * it wakes is dispelled, until Wally first reaches the Living Room, a phantom pendulum hangs from the clock. It
  * waits raised at one end of its arc, drops (the warning), sweeps the middle
  * of the corridor at body height, then rises at the other end. Jumping does
  * not clear it; the counterplay is crossing while it is raised. It only arms
@@ -44,7 +45,8 @@ const ARMED_INTERACTION = 'hallway-pendulum-armed';
 
 export function isHallwayPendulumLive(adventure: AdventureState): boolean {
   return getRoomState(adventure, 'hallway').inspected.includes('backward-clock')
-    && !adventure.visitedRooms.includes('living-room');
+    && !adventure.visitedRooms.includes('living-room')
+    && !isRoomBossLive(adventure, 'hallway');
 }
 
 export function isHallwayPendulumArmed(adventure: AdventureState): boolean {

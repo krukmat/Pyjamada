@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -49,7 +50,7 @@ function setupLivingRoom(runId: string) {
   if (hallway.status !== 'ok') throw new Error(hallway.reason);
 
   const clock = stepAdventureExploration(at(falseEscape.session, 64), hallway.state, 33);
-  const door = stepAdventureExploration(at(clock.session, 114), clock.adventure, 33);
+  const door = stepAdventureExploration(at(clock.session, 114), dispelRoomBoss(clock.adventure, 'hallway'), 33);
   const request = transitionRequest(door.events);
   if (!request) throw new Error('Living Room transition was not requested.');
 

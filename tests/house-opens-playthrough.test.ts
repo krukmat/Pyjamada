@@ -1,3 +1,4 @@
+import { dispelRoomBoss } from '../src/game/adventure/RoomBossHazard';
 import { deepEqual, equal, test } from './assert';
 import {
   applyFalseEscape,
@@ -98,7 +99,7 @@ void test('end-to-end opens the house and exposes the Living Room boundary', () 
   equal(clock.events.some(event => event.type === 'HALLWAY_CLOCK_INSPECTED'), true, 'clock inspection emits narrative event');
   equal(clock.events.some(event => event.type === 'LIVING_ROOM_PATH_REVEALED'), true, 'Living Room reveal emits narrative event');
 
-  const livingDoor = findAdventureInteractionTarget(clock.adventure, 114);
+  const livingDoor = findAdventureInteractionTarget(dispelRoomBoss(clock.adventure, 'hallway'), 114);
   equal(livingDoor?.id, 'living-room-door', 'Living Room boundary is discoverable');
   equal(livingDoor?.available, true, 'Living Room boundary is unlocked by ');
   equal(livingDoor?.displayLabel, 'LIVING ROOM', 'ends with a clear Living Room hook');
