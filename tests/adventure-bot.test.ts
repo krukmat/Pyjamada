@@ -1,3 +1,4 @@
+import { roomBossFor } from '../src/game/adventure/RoomBossHazard';
 import { deepEqual, equal, test } from './assert';
 import { encodeAdventureGameSession } from '../src/game/adventure/AdventureSessionCodec';
 import { isAdventureEndingComplete } from '../src/game/adventure/AdventureEnding';
@@ -175,14 +176,17 @@ void test('the haunted bedroom is played for real: HumanBot escapes and every po
   }
 });
 
-void test('room threats are fair to the human model: no deaths, at most one hit per visit, reading spots safe (W1-3)', () => {
+void test('room threats are fair to the human model: no deaths, at most one hit per visit (two against a room boss), reading spots safe (W1-3)', () => {
   for (const room of ACTIVE_ROOM_IDS) {
     if (room === 'bedroom') continue;
     const entry = withFullHp(route.roomEntries[room]!);
+    // A room boss (and Vesper's final fight) is meant to be a fight: it may land
+    // a second blow, never a third.
+    const maxHits = roomBossFor(room) || room === 'laboratory' ? 2 : 1;
     for (const startDelayMs of [0, 1_000, 2_000]) {
       const human = runBot(entry, new HumanBot({ startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
       equal(human.deaths, 0, `${room} +${startDelayMs}ms: HumanBot never dies in a room entered at full HP`);
-      ok(human.hits <= 1, `${room} +${startDelayMs}ms: HumanBot takes at most one hit (${human.hits})`);
+      ok(human.hits <= maxHits, `${room} +${startDelayMs}ms: HumanBot takes at most ${maxHits} hit(s) (${human.hits})`);
       const reader = runBot(entry, new HumanBot({ threatResponse: 'not-while-reading', startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
       equal(reader.hitsAtObjects, 0, `${room} +${startDelayMs}ms: standing at an object to read it is safe`);
     }

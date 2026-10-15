@@ -20,7 +20,7 @@ import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } f
  *
  * A fight runs in rounds: a harmless rise (long enough to finish reading the
  * object that woke it), one shielded attack cycle that shows the pattern, and
- * then three vulnerable ones, after which the boss
+ * then three vulnerable ones that take one wound each, after which the boss
  * catches its breath where it started. Positions are a pure function of the
  * room clock, aligned to a round start when the boss wakes, so only the
  * arm/hit/dispelled marks are stored, as room interactions.
@@ -63,14 +63,22 @@ export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
  * It rises far from the television that wakes it and never blinks onto it.
  */
 export const WRAITH_BLINK = { spots: [28, 68, 46], blinkMs: 1_500, telegraphMs: 450 } as const;
-/** Per wound the Wraith's warning shrinks by telegraphCutMs and its drift toward Wally grows. */
-export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 12 } as const;
+/**
+ * Per wound the Wraith's warning shrinks by telegraphCutMs and its drift toward
+ * Wally grows; it never drifts past maxX, so reading the television stays safe.
+ */
+export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 12, maxX: 96 } as const;
 /** Share of the gap to Wally the Moth closes: leanBase plus leanPerHit per wound. */
-export const MOTH_HUNT = { leanBase: 0.2, leanPerHit: 0.15 } as const;
+export const MOTH_HUNT = { leanBase: 0.12, leanPerHit: 0.12 } as const;
 /** Roach: waits at a wall (the last telegraphMs twitching), then charges to the other one. */
 export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
 /** Each wound takes this off the Roach's charge and adds it to its wait, so the cycle keeps its length. */
 export const ROACH_HUNT = { chargeCutMs: 150 } as const;
+
+/** How long a Roach with this many wounds takes to cross the kitchen. */
+export function roachChargeMs(hits: number): number {
+  return ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits;
+}
 
 /** Harmless, untouchable rise at the start of every round. */
 export const ROOM_BOSS_RISE_MS = 3_000;
@@ -161,7 +169,11 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
     const lift = config.kind === 'moth' ? 26 : config.kind === 'wraith' ? 14 : 0;
     return { config, pose: 'rise', hits, dangerous: false, hittable: false, shielded: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
   }
-  const shielded = roundT - ROOM_BOSS_RISE_MS < SHIELDED_CYCLES * config.cycleMs;
+  // Shielded through the opening cycle, and again after each wound until the
+  // next cycle: one wound per vulnerable cycle (missed cycles can be caught up),
+  // so a fight lasts several attacks instead of one burst of sparks.
+  const vulnerableCycle = Math.floor((roundT - ROOM_BOSS_RISE_MS) / config.cycleMs) - SHIELDED_CYCLES;
+  const shielded = vulnerableCycle < 0 || hits > vulnerableCycle;
   const pose = poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX);
   return { ...pose, shielded, hittable: pose.hittable && !shielded };
 }
@@ -191,12 +203,12 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
       : 0;
     return {
       config, pose: solid ? 'solid' : 'telegraph', hits, dangerous: solid, hittable: solid,
-      x: spot + drift, lift: 14, facing: playerX !== undefined && playerX > spot ? 1 : -1,
+      x: Math.min(WRAITH_HUNT.maxX, spot + drift), lift: 14, facing: playerX !== undefined && playerX > spot ? 1 : -1,
     };
   }
   const { leftX, rightX, telegraphMs } = ROACH_CHARGE;
-  const chargeMs = ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits;
-  const waitMs = ROACH_CHARGE.waitMs + ROACH_HUNT.chargeCutMs * hits;
+  const chargeMs = roachChargeMs(hits);
+  const waitMs = ROACH_CHARGE.waitMs + ROACH_CHARGE.chargeMs - chargeMs;
   const leg = waitMs + chargeMs;
   const outbound = t < leg;
   const local = outbound ? t : t - leg;

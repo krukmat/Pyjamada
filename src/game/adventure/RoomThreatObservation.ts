@@ -11,7 +11,10 @@ import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstabili
 import { resolveVesperControlState } from './LaboratoryVesperControl';
 import { resolveVesperNightmareState } from './LaboratoryVesperNightmare';
 import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from './LivingRoomStaticHazard';
-import { resolveRoomBoss } from './RoomBossHazard';
+import { ROACH_CHARGE, resolveRoomBoss, roachChargeMs } from './RoomBossHazard';
+
+/** How much of the Roach's opening charge its twitch marks as a jump zone. */
+const ROACH_TWITCH_LANE_MS = 400;
 
 export type ThreatPhase = 'warning' | 'danger';
 
@@ -74,7 +77,14 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
   const boss = resolveRoomBoss(adventure, session.elapsedMs, session.player.x);
   if (boss) {
     const reach = boss.config.contactHalfWidth;
-    if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
+    if (boss.config.kind === 'roach' && boss.pose === 'telegraph') {
+      // The twitch announces the charge: the stretch it covers in its first
+      // moments is already worth jumping, as a player near that wall would.
+      const lane = (ROACH_CHARGE.rightX - ROACH_CHARGE.leftX) * Math.min(1, ROACH_TWITCH_LANE_MS / roachChargeMs(boss.hits));
+      const minX = boss.facing > 0 ? boss.x - reach : boss.x - reach - lane;
+      const maxX = boss.facing > 0 ? boss.x + reach + lane : boss.x + reach;
+      push('room-boss', 'danger', minX, maxX, true);
+    } else if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
     else push('room-boss', 'warning', boss.x - reach, boss.x + reach);
   }
 

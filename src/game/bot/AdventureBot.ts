@@ -43,7 +43,7 @@ import {
   VESPER_CONTROL_DEVICES,
   VESPER_PRESSURE_LANES,
 } from '../adventure/LaboratoryVesperControl';
-import { VESPER_NIGHTMARE_TARGET } from '../adventure/LaboratoryVesperNightmare';
+import { VESPER_NIGHTMARE_HAZARDS, VESPER_NIGHTMARE_TARGET } from '../adventure/LaboratoryVesperNightmare';
 import {
   ACTIVE_ROOM_IDS,
   findActiveRoom,
@@ -712,6 +712,11 @@ export class RouteBot implements BotPolicy {
     if (isBathroomTwinActive(world.adventure)) return playerX < 64 ? 24 : 104;
     const boss = activeRoomBoss(world.adventure);
     if (boss) return roomBossFiringSpot(boss);
+    // Every spot in range of the Nightmare lies in some attack lane. Just right
+    // of the center rift Wally can fire through each recovery window; from
+    // further left the rift's dodge walked him back with his back to the
+    // target and the same window was missed every cycle.
+    if (getLaboratoryEncounterPhase(world.adventure) === 'nightmare') return VESPER_NIGHTMARE_HAZARDS['center-rift'].maxX + 2;
     const lanes = laboratoryLanes(world.adventure);
     let best = { x: clampX(targetX - FIRING_DISTANCE), score: Number.POSITIVE_INFINITY };
     for (const distance of FIRING_DISTANCES) {

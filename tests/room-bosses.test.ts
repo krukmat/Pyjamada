@@ -56,7 +56,14 @@ void test('Dream Sparks wound the boss and the last one needed dispels it', () =
   let state = adventure;
   const fightMs = startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES.hallway.cycleMs;
   for (let hit = 1; hit <= ROOM_BOSSES.hallway.hp; hit += 1) {
-    const boss = resolveRoomBoss(state, fightMs)!;
+    // One wound per vulnerable cycle: the shield is back until the next one.
+    const cycleMs = fightMs + (hit - 1) * ROOM_BOSSES.hallway.cycleMs;
+    if (hit > 1) {
+      const guarded = resolveRoomBoss(state, cycleMs - 1)!;
+      equal(guarded.shielded, true, `after wound ${hit - 1} the shield is back for the rest of the cycle`);
+      equal(resolveRoomBossSparks(state, sparkAt(guarded.x), guarded).events.length, 0, `the shield swallows spark ${hit} early`);
+    }
+    const boss = resolveRoomBoss(state, cycleMs)!;
     const result = resolveRoomBossSparks(state, sparkAt(boss.x), boss);
     equal(result.events[0]?.type, hit < ROOM_BOSSES.hallway.hp ? 'ROOM_BOSS_HIT' : 'ROOM_BOSS_DISPELLED', `spark ${hit}`);
     equal(result.combat.projectiles.length, 0, `spark ${hit} is consumed`);
