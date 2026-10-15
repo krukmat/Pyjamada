@@ -36,10 +36,10 @@ same zones.
 
 - **Harness** - `stepBotWorld` mirrors App.tsx: the haunted bedroom run
   (`stepHauntedSession`) and its false escape, fixed 30 Hz exploration steps,
-  room transitions, first-visit HP recovery, room spawn, Laboratory checkpoint
-  retry and ending completion. `createBotNewGame` starts exactly like NEW GAME;
+  room transitions, first-visit HP recovery, room spawn, room and Laboratory
+  checkpoint retry and ending completion. `createBotNewGame` starts exactly like NEW GAME;
   `createBotStart` starts at the false escape. Known differences from App: the
-  bot retries the Laboratory at once (App waits for RETRY PHASE), App's room
+  bot retries at once (App waits for RETRY ROOM / RETRY PHASE), App's room
   fades pause the simulation for 370 ms, and App checks transitions after a
   batch of up to 5 steps while the bot checks after every step. When App.tsx
   changes that orchestration, update the harness too.
@@ -88,8 +88,8 @@ or while the policy is reading (including the 367 ms it takes to look up).
   first-entry snapshot, 11 entry delays (0-2 s in 200 ms steps), for HumanBot,
   the reader probe and the no-dodge walker: mean/max hits, death %, hits at
   objects. The Laboratory restarts from its checkpoint (counted as a death).
-- **Whole game** - one pass from a new game per policy, with the App rule (a
-  death before the Laboratory ends the run), and the oracle for reference.
+- **Whole game** - one pass from a new game per policy; a death in the house
+  retries the room from its entry (RETRY ROOM, W1-4), and the oracle for reference.
 - **Shortest visible warning** per telegraphed threat.
 - **Random fuzz** from each room entry.
 - **Pending balance gates** - the targets below with their current value.

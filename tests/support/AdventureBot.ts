@@ -8,6 +8,7 @@
  * `stepBotWorld` in sync with App.tsx when that orchestration changes; the bot
  * never mutates gameplay rules.
  */
+import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from '../../src/game/adventure/RoomCheckpoint';
 import {
   applyFalseEscape,
   applyFirstVisitRecovery,
@@ -29,7 +30,6 @@ import { createAdventureState, getRoomState, type AdventureState, type RoomId } 
 import { bathroomTwinX, isBathroomTwinActive } from '../../src/game/adventure/BathroomTwinHazard';
 import {
   getLaboratoryEncounterPhase,
-  restoreLaboratoryCheckpoint,
   shouldUseLaboratoryCheckpoint,
 } from '../../src/game/adventure/LaboratoryEncounter';
 import {
@@ -188,9 +188,9 @@ export function stepBotWorld(world: BotWorld, action: BotAction): BotStep {
   }
 
   if (world.session.objective.phase !== 'failed' && stepped.session.objective.phase === 'failed') {
-    if (shouldUseLaboratoryCheckpoint(stepped.adventure)) {
-      // App shows HAUNTED! and waits for RETRY PHASE; the bot retries at once.
-      const restored = restoreLaboratoryCheckpoint(stepped.session, stepped.adventure);
+    if (shouldUseLaboratoryCheckpoint(stepped.adventure) || shouldUseRoomCheckpoint(stepped.session, stepped.adventure)) {
+      // App shows the failure and waits for RETRY PHASE / RETRY ROOM; the bot retries at once.
+      const restored = restoreRoomCheckpoint(stepped.session, stepped.adventure);
       return { world: { session: restored, adventure: stepped.adventure }, events, outcome: 'checkpoint', hpLost, simulated };
     }
     return { world: simulated, events, outcome: 'died', hpLost, simulated };

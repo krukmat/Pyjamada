@@ -31,7 +31,8 @@ import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/a
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
 import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
-import { restoreLaboratoryCheckpoint, shouldUseLaboratoryCheckpoint } from './src/game/adventure/LaboratoryEncounter';
+import { shouldUseLaboratoryCheckpoint } from './src/game/adventure/LaboratoryEncounter';
+import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from './src/game/adventure/RoomCheckpoint';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
 import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
@@ -368,8 +369,9 @@ export default function App() {
         Alert.alert('Saved game unavailable', 'The save is incompatible or corrupted. Start a new run to replace it.');
         return;
       }
-      let restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure)
-        ? gameState(restoreLaboratoryCheckpoint(result.state.haunted, result.state.adventure), result.state.adventure)
+      // A save from a death in the house, or mid Laboratory phase, resumes at its checkpoint.
+      let restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure) || shouldUseRoomCheckpoint(result.state.haunted, result.state.adventure)
+        ? gameState(restoreRoomCheckpoint(result.state.haunted, result.state.adventure), result.state.adventure)
         : result.state;
       if (shouldBeginAdventureEnding(restoredState.adventure)) {
         const started = beginAdventureEnding(restoredState.haunted, restoredState.adventure);
@@ -437,14 +439,14 @@ export default function App() {
     if (!current) return;
     const currentAdventure = adventureRef.current;
 
-    if (shouldUseLaboratoryCheckpoint(currentAdventure)) {
-      const restored = gameState(restoreLaboratoryCheckpoint(current, currentAdventure), currentAdventure);
+    if (shouldUseLaboratoryCheckpoint(currentAdventure) || shouldUseRoomCheckpoint(current, currentAdventure)) {
+      const restored = gameState(restoreRoomCheckpoint(current, currentAdventure), currentAdventure);
       resetRuntimeClocks();
       activateGameSession(restored);
       try {
         await saveCoordinator.persist(restored, 'milestone');
       } catch {
-        Alert.alert('Retry not saved', 'The Laboratory phase restarted, but the checkpoint state was not persisted.');
+        Alert.alert('Retry not saved', 'The room restarted, but the checkpoint state was not persisted.');
       }
       return;
     }

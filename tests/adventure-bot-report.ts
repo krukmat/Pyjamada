@@ -152,7 +152,7 @@ function cell(room: string, policy: HumanPolicyId, pick: (result: BotRunResult) 
 
 console.log('\n## Rooms in isolation (entered at full HP, until Wally leaves the room)\n');
 console.log('Hits per visit as mean / max over the 11 entry delays; "died" counts visits with a death (the Laboratory');
-console.log('restarts from its checkpoint, every other room ends the run under the App rule).\n');
+console.log('restarts from its phase checkpoint, every other room from its entry, as RETRY ROOM does in the App).\n');
 console.log(`| Room | ${HUMAN_POLICIES.map(policy => policy.label).join(' | ')} | Mean time (HumanBot) |`);
 console.log(`|---|${HUMAN_POLICIES.map(() => '---:').join('|')}|---:|`);
 for (const room of THREAT_ROOMS) {
@@ -177,7 +177,7 @@ const fullRows: FullRow[] = HUMAN_POLICIES.map(policy => ({
 }));
 fullRows.push({ label: 'Oracle route bot, sees 800 ms ahead (false escape; not a human scale)', result: oracle });
 
-console.log('\n## Whole game, one pass (a death before the Laboratory ends the run, as in the App)\n');
+console.log('\n## Whole game, one pass (deaths retry from the room checkpoint, as in the App)\n');
 console.log('| Policy | Outcome | Game time | Hits | Deaths | Hits at objects | Per room (hits, x deaths) |');
 console.log('|---|---|---:|---:|---:|---:|---|');
 for (const { label, result } of fullRows) {

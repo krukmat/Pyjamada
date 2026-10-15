@@ -48,6 +48,7 @@ import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { activeGhostHint } from './HauntedThreatHint';
+import { shouldUseRoomCheckpoint } from '../game/adventure/RoomCheckpoint';
 import { PixelMeter } from './RetroUiKit';
 import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
 import { isTestHooksEnabled } from './testHooks';
@@ -99,6 +100,7 @@ export function HauntedGameScreen({
   const endingActive = Boolean(adventure && isAdventureEndingActive(adventure));
   const explorationCombat = Boolean(adventure && isExplorationCombatEnabled(adventure));
   const laboratoryRetry = Boolean(adventure && adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure));
+  const roomRetry = Boolean(adventure && shouldUseRoomCheckpoint(session, adventure));
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 80);
@@ -122,6 +124,11 @@ export function HauntedGameScreen({
             <Text style={styles.kicker}>{endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
             <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           </View>
+          {exploration && !endingActive && (
+            <View style={styles.stats}>
+              <Text testID="exploration-hp" style={styles.hp}>HP {'♥'.repeat(session.combat.hp)}{'·'.repeat(session.combat.maxHp - session.combat.hp)}</Text>
+            </View>
+          )}
           {!exploration && (
             <View style={styles.stats}>
               <View style={styles.statRow}>
@@ -186,7 +193,7 @@ export function HauntedGameScreen({
             </>
           )
         ) : (
-          <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : 'TRY AGAIN'} wide accent onPress={onRestart} />
+          <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : roomRetry ? 'RETRY ROOM' : 'TRY AGAIN'} wide accent onPress={onRestart} />
         )}
       </View>
 
@@ -377,7 +384,7 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
   if (session.objective.phase === 'completed') return 'Out. Barely.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
-    if (session.objective.reason === 'haunted') return 'The haunting got Wally.';
+    if (session.objective.reason === 'haunted') return adventure && shouldUseRoomCheckpoint(session, adventure) ? 'Knocked out. Wally wakes at the door - every clue stays found.' : 'The haunting got Wally.';
     if (session.objective.reason === 'too-late') return 'Morning won. Try a sharper route.';
     return 'No energy left. Heroics were a mistake.';
   }
