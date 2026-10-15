@@ -71,7 +71,7 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
 
   // A room boss touches Wally within contactHalfWidth of its body; the Roach
   // only reaches a grounded Wally. The Wraith's faint telegraph is a warning.
-  const boss = resolveRoomBoss(adventure, session.elapsedMs);
+  const boss = resolveRoomBoss(adventure, session.elapsedMs, session.player.x);
   if (boss) {
     const reach = boss.config.contactHalfWidth;
     if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');

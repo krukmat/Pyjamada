@@ -40,6 +40,9 @@ type Props = {
   hauntedGhostImage?: SkImage | null;
 };
 
+// Wally is drawn a little under his atlas size so the wide rooms read as rooms.
+const WALLY_DRAW_SCALE = 0.8;
+
 export function GameCanvas({
   state,
   width,
@@ -55,6 +58,7 @@ export function GameCanvas({
   hauntedGhostImage = null,
 }: Props) {
   const scale = stageScale(height);
+  const wallyScale = scale * WALLY_DRAW_SCALE;
   const px = (value: number) => stagePx(height, value);
   const originX = stageOriginX(width, height);
   const playerX = playerRenderPosition?.x ?? state.player.x;
@@ -65,7 +69,7 @@ export function GameCanvas({
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
   const domesticShake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
   const impactShake = resolveCombatImpactShake(hauntedSession, nowMs);
-  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs) : undefined;
+  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX) : undefined;
   const bossFx = useRoomBossFx(
     roomBoss,
     (room) => Boolean(adventure && adventure.currentRoom === room && isRoomBossDispelled(adventure, room)),
@@ -136,7 +140,7 @@ export function GameCanvas({
                 session={{ ...hauntedSession, player: { ...hauntedSession.player, x: bathroomTwinX(playerX), facing: playerFacing === 'right' ? 'left' : 'right' } }}
                 x={px(spreadX(bathroomTwinX(playerX)))}
                 y={px(playerY)}
-                scale={scale}
+                scale={wallyScale}
                 nowMs={nowMs}
                 honorTerminalObjective={false}
                 combat
@@ -149,7 +153,7 @@ export function GameCanvas({
               session={hauntedSession}
               x={px(spreadX(playerX))}
               y={px(playerY)}
-              scale={scale}
+              scale={wallyScale}
               nowMs={nowMs}
               honorTerminalObjective={!exploration}
               combat={combat}
@@ -160,7 +164,7 @@ export function GameCanvas({
               visual={legacyWally}
               x={px(spreadX(playerX))}
               y={px(playerY)}
-              scale={scale}
+              scale={wallyScale}
               facing={playerFacing}
             />
           ) : null}

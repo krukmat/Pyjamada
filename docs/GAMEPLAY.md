@@ -66,11 +66,13 @@ The same room must support efficient, near-miss and chaos runs without random be
 
 ## Room bosses
 
-Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then one shielded attack cycle (it shows its pattern and blocks Dream Sparks, but still hurts) and three vulnerable ones. Bosses are drawn at twice the pixel size, with a health bar across the top of the room, a white flash and a jolt on each wound, and a burst when dispelled:
+Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then one shielded attack cycle (it shows its pattern and blocks Dream Sparks, but still hurts) and three vulnerable ones. Bosses are drawn at 1.5x the pixel size (Wally at 0.8x his atlas size), with a health bar across the top of the room, a white flash and a jolt on each wound, and a burst when dispelled:
 
-- Hallway, **Dust Moth** (3 hits): flutters across the room; shoot from the doorway.
-- Living Room, **Static Wraith** (3 hits): blinks between three spots; hittable only once solid.
+- Hallway, **Dust Moth** (3 hits): flutters across the room, leaning toward Wally; after a wound it reaches the doorway too, so keep moving.
+- Living Room, **Static Wraith** (3 hits): blinks between three spots and, once solid, drifts toward Wally; hittable only once solid.
 - Kitchen, **Giant Roach** (3 hits): waits at a wall, then charges along the floor; jump it.
+
+Every wound makes a boss meaner: the Moth leans harder, the Wraith warns for 75 ms less and drifts further, the Roach holds longer and dashes 150 ms faster. Wally's position only bends the pattern (nothing extra is stored), so a boss never teleports when he moves.
 
 The Hallway pendulum starts only after the Moth is dispelled.
 

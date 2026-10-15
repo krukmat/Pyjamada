@@ -550,7 +550,7 @@ export function stepAdventureExploration(
     }
   }
 
-  const boss = resolveRoomBoss(nextAdventure, elapsedMs);
+  const boss = resolveRoomBoss(nextAdventure, elapsedMs, player.x);
   const bossSparks = resolveRoomBossSparks(nextAdventure, combat, boss);
   nextAdventure = bossSparks.adventure;
   combat = bossSparks.combat;

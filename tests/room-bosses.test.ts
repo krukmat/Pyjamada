@@ -1,5 +1,5 @@
 import { equal, test } from './assert';
-import { createAdventureState, setRoomSwitch, type AdventureState, type RoomId } from '../src/game/adventure/AdventureState';
+import { createAdventureState, markRoomInteraction, setRoomSwitch, type AdventureState, type RoomId } from '../src/game/adventure/AdventureState';
 import { createHauntedCombatState, type HauntedCombatState } from '../src/game/haunted/HauntedCombat';
 import {
   ROACH_CHARGE,
@@ -97,4 +97,32 @@ void test('the Wraith can be hit only once solid, and the Roach only reaches gro
   equal(charging.x > ROACH_CHARGE.leftX && charging.x < ROACH_CHARGE.rightX, true, 'mid-charge it crosses the floor');
   equal(isPlayerTouchingRoomBoss({ x: charging.x, grounded: true }, charging), true, 'a grounded Wally is run over');
   equal(isPlayerTouchingRoomBoss({ x: charging.x, grounded: false }, charging), false, 'jumping clears the Roach');
+});
+
+void test('bosses hunt Wally and get meaner with every wound', () => {
+  const wounded = (room: RoomBossRoom, adventure: AdventureState, hits: number) =>
+    Array.from({ length: hits }, (_, index) => `${room}-boss-hit-${index + 1}`)
+      .reduce((state, mark) => markRoomInteraction(state, room, mark), adventure);
+
+  const moth = awake('hallway');
+  const flyingMs = moth.startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES.hallway.cycleMs / 2;
+  const bare = resolveRoomBoss(moth.adventure, flyingMs)!;
+  const leaning = resolveRoomBoss(moth.adventure, flyingMs, 120)!;
+  const leaningHarder = resolveRoomBoss(wounded('hallway', moth.adventure, 2), flyingMs, 120)!;
+  equal(leaning.x > bare.x && leaningHarder.x > leaning.x, true, 'the Moth leans toward Wally, harder once wounded');
+
+  const wraith = awake('living-room');
+  const blinkStartMs = wraith.startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES['living-room'].cycleMs;
+  const lateSolidMs = blinkStartMs + WRAITH_BLINK.blinkMs - 1;
+  const spot = resolveRoomBoss(wraith.adventure, lateSolidMs)!.x;
+  equal(resolveRoomBoss(wraith.adventure, blinkStartMs, 120)!.x, spot, 'a faint Wraith stays on its spot');
+  equal(resolveRoomBoss(wraith.adventure, lateSolidMs, 120)!.x > spot, true, 'a solid Wraith drifts toward Wally');
+  const angry = wounded('living-room', wraith.adventure, 2);
+  equal(resolveRoomBoss(angry, blinkStartMs + WRAITH_BLINK.telegraphMs - 1)!.pose, 'solid', 'a wounded Wraith warns for less time');
+
+  const roach = awake('kitchen');
+  // Same arrival time, but a wounded Roach holds longer and then dashes faster.
+  const dashMs = roach.startMs + ROOM_BOSS_RISE_MS + ROACH_CHARGE.waitMs + 1;
+  equal(resolveRoomBoss(roach.adventure, dashMs)!.pose, 'charge', 'a fresh Roach is already charging');
+  equal(resolveRoomBoss(wounded('kitchen', roach.adventure, 1), dashMs)!.pose, 'telegraph', 'a wounded Roach still twitches, then dashes faster');
 });

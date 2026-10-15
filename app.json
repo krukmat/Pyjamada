@@ -9,6 +9,9 @@
       "package": "com.krukmat.pyjamada",
       "backgroundColor": "#0b0a12"
     },
-    "backgroundColor": "#0b0a12"
+    "backgroundColor": "#0b0a12",
+    "plugins": [
+      "./plugins/withDarkLaunchWindow"
+    ]
   }
 }

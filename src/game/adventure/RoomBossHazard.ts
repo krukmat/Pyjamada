@@ -6,11 +6,17 @@ import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } f
  * which seals the way forward until enough Dream Sparks dispel it. Each one
  * moves differently, so each needs a different answer:
  *
- * - Hallway, Dust Moth: flutters across the room; keep away and shoot.
- * - Living Room, Static Wraith: blinks between three spots; it can be hit
- *   only once solid.
+ * - Hallway, Dust Moth: flutters across the room, leaning toward Wally;
+ *   keep away and shoot.
+ * - Living Room, Static Wraith: blinks between three spots and, once solid,
+ *   drifts toward Wally; it can be hit only once solid.
  * - Kitchen, Giant Roach: waits at a wall, then charges along the floor to
  *   the other one; jump it, shoot it while it waits.
+ *
+ * Every wound makes a boss meaner: the Moth leans harder toward Wally, the
+ * Wraith warns for less time and drifts further, the Roach charges faster.
+ * Wally's position only bends the pattern (no stored aim), so the boss never
+ * jumps when he moves.
  *
  * A fight runs in rounds: a harmless rise (long enough to finish reading the
  * object that woke it), one shielded attack cycle that shows the pattern, and
@@ -57,8 +63,14 @@ export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
  * It rises far from the television that wakes it and never blinks onto it.
  */
 export const WRAITH_BLINK = { spots: [28, 68, 46], blinkMs: 1_500, telegraphMs: 450 } as const;
+/** Per wound the Wraith's warning shrinks by telegraphCutMs and its drift toward Wally grows. */
+export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 12 } as const;
+/** Share of the gap to Wally the Moth closes: leanBase plus leanPerHit per wound. */
+export const MOTH_HUNT = { leanBase: 0.2, leanPerHit: 0.15 } as const;
 /** Roach: waits at a wall (the last telegraphMs twitching), then charges to the other one. */
 export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
+/** Each wound takes this off the Roach's charge and adds it to its wait, so the cycle keeps its length. */
+export const ROACH_HUNT = { chargeCutMs: 150 } as const;
 
 /** Harmless, untouchable rise at the start of every round. */
 export const ROOM_BOSS_RISE_MS = 3_000;
@@ -137,7 +149,8 @@ export function armRoomBoss(adventure: AdventureState, elapsedMs: number): { adv
   };
 }
 
-export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number): RoomBossSnapshot | undefined {
+/** `playerX` lets the boss hunt Wally; without it the pattern is the bare one. */
+export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, playerX?: number): RoomBossSnapshot | undefined {
   const config = activeRoomBoss(adventure);
   if (!config || !getRoomState(adventure, config.room).interactions.includes(armedMark(config.room))) return undefined;
   const hits = roomBossHits(adventure, config.room);
@@ -149,29 +162,41 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number): R
     return { config, pose: 'rise', hits, dangerous: false, hittable: false, shielded: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
   }
   const shielded = roundT - ROOM_BOSS_RISE_MS < SHIELDED_CYCLES * config.cycleMs;
-  const pose = poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs);
+  const pose = poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX);
   return { ...pose, shielded, hittable: pose.hittable && !shielded };
 }
 
-function poseAt(config: RoomBossConfig, hits: number, t: number): Omit<RoomBossSnapshot, 'shielded'> {
+function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined): Omit<RoomBossSnapshot, 'shielded'> {
   if (config.kind === 'moth') {
     const phase = (2 * Math.PI * t) / config.cycleMs;
+    const pathX = MOTH_PATH.centerX + MOTH_PATH.amplitude * Math.cos(phase);
+    const lean = MOTH_HUNT.leanBase + MOTH_HUNT.leanPerHit * hits;
     return {
       config, pose: 'fly', hits, dangerous: true, hittable: true,
-      x: MOTH_PATH.centerX + MOTH_PATH.amplitude * Math.cos(phase),
+      x: playerX === undefined ? pathX : pathX + (playerX - pathX) * lean,
       lift: 26 + 5 * Math.sin(phase * 3),
       facing: Math.sin(phase) > 0 ? -1 : 1,
     };
   }
   if (config.kind === 'wraith') {
     const blink = Math.floor(t / WRAITH_BLINK.blinkMs);
-    const solid = t % WRAITH_BLINK.blinkMs >= WRAITH_BLINK.telegraphMs;
+    const local = t % WRAITH_BLINK.blinkMs;
+    const telegraphMs = WRAITH_BLINK.telegraphMs - WRAITH_HUNT.telegraphCutMs * hits;
+    const solid = local >= telegraphMs;
+    const spot = WRAITH_BLINK.spots[blink % WRAITH_BLINK.spots.length];
+    // Once solid it drifts toward Wally, a little further after every wound.
+    const reach = WRAITH_HUNT.driftMax + WRAITH_HUNT.driftPerHit * hits;
+    const drift = solid && playerX !== undefined
+      ? Math.max(-reach, Math.min(reach, playerX - spot)) * ((local - telegraphMs) / (WRAITH_BLINK.blinkMs - telegraphMs))
+      : 0;
     return {
       config, pose: solid ? 'solid' : 'telegraph', hits, dangerous: solid, hittable: solid,
-      x: WRAITH_BLINK.spots[blink % WRAITH_BLINK.spots.length], lift: 14, facing: -1,
+      x: spot + drift, lift: 14, facing: playerX !== undefined && playerX > spot ? 1 : -1,
     };
   }
-  const { leftX, rightX, waitMs, telegraphMs, chargeMs } = ROACH_CHARGE;
+  const { leftX, rightX, telegraphMs } = ROACH_CHARGE;
+  const chargeMs = ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits;
+  const waitMs = ROACH_CHARGE.waitMs + ROACH_HUNT.chargeCutMs * hits;
   const leg = waitMs + chargeMs;
   const outbound = t < leg;
   const local = outbound ? t : t - leg;

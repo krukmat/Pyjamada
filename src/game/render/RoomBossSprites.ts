@@ -97,7 +97,7 @@ const FRAMES: Record<RoomBossKind, readonly [PixelSprite, PixelSprite]> = {
 };
 
 /** Sprites are drawn this many stage units per sprite pixel: bosses tower over Wally. */
-export const ROOM_BOSS_SCALE = 2;
+export const ROOM_BOSS_SCALE = 1.5;
 
 /** Animation frame for a boss; `fast` (charging, fluttering) doubles the frame rate. */
 export function roomBossFrame(kind: RoomBossKind, nowMs: number, fast: boolean): PixelSprite {

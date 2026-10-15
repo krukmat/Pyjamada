@@ -84,7 +84,9 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   // The Roach twitches in place before it charges.
   const twitch = boss.config.kind === 'roach' && boss.pose === 'telegraph' && blink ? 1 : 0;
   const shadowWidth = width * (boss.lift > 0 ? 0.5 : 0.8);
-  const white = flash || dispelling;
+  // A dispel only blinks white at the start, then fades in its own colours: a
+  // full white silhouette read as a blank box on the boxy Wraith.
+  const white = flash || (dispelling && dispelProgress < 0.3 && blink);
   const ring = 3 + (blink ? 1 : 0);
 
   return (
