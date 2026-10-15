@@ -76,6 +76,10 @@ The Hallway pendulum starts only after the Moth is dispelled.
 
 The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.
 
+## Screen
+
+The game is played in landscape: the stage sits between two side columns (menu, objective and the movement pad on one side; USE prompt and JUMP/ATTACK/USE on the other). Rooms are drawn 1.75x wider than the 128-unit gameplay world (`ROOM_SPREAD` / `spreadX` in `src/game/render/StageViewport.ts`): every world x position is spread while sprites and furniture keep their size. This is presentation only; gameplay, collisions and saves stay in world units. The painted bedroom scene is stretched instead.
+
 ## Persistence
 
 The game uses one save domain:

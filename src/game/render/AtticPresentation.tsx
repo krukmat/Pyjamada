@@ -6,6 +6,8 @@ import { ATTIC_CRATES, resolveAtticCrates } from '../adventure/AtticCrateHazard'
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
+import { STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, acrossRoom, spreadX } from './StageViewport';
+import { Spread } from './RoomSpread';
 
 type Px = (value: number) => number;
 
@@ -30,28 +32,31 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
 
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="#16131a" />
-      <Rect x={px(-20)} y={px(32)} width={px(168)} height={px(55)} color="#332a31" />
-      <Rect x={px(-20)} y={px(87)} width={px(168)} height={px(41)} color="#242027" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="#16131a" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(32)} width={px(STAGE_LOGICAL_WIDTH)} height={px(55)} color="#332a31" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(87)} width={px(STAGE_LOGICAL_WIDTH)} height={px(41)} color="#242027" />
 
-      <Line p1={vec(px(-8), px(36))} p2={vec(px(31), px(12))} color="#56444a" strokeWidth={px(4)} />
-      <Line p1={vec(px(31), px(12))} p2={vec(px(64), px(33))} color="#56444a" strokeWidth={px(4)} />
-      <Line p1={vec(px(64), px(33))} p2={vec(px(96), px(12))} color="#56444a" strokeWidth={px(4)} />
-      <Line p1={vec(px(96), px(12))} p2={vec(px(136), px(37))} color="#56444a" strokeWidth={px(4)} />
-      <Line p1={vec(px(31), px(13))} p2={vec(px(31), px(87))} color="#43363d" strokeWidth={px(2)} />
-      <Line p1={vec(px(96), px(13))} p2={vec(px(96), px(87))} color="#43363d" strokeWidth={px(2)} />
+      <Line p1={vec(px(-8), px(36))} p2={vec(px(spreadX(31)), px(12))} color="#56444a" strokeWidth={px(4)} />
+      <Line p1={vec(px(spreadX(31)), px(12))} p2={vec(px(spreadX(64)), px(33))} color="#56444a" strokeWidth={px(4)} />
+      <Line p1={vec(px(spreadX(64)), px(33))} p2={vec(px(spreadX(96)), px(12))} color="#56444a" strokeWidth={px(4)} />
+      <Line p1={vec(px(spreadX(96)), px(12))} p2={vec(px(spreadX(136)), px(37))} color="#56444a" strokeWidth={px(4)} />
+      <Line p1={vec(px(spreadX(31)), px(13))} p2={vec(px(spreadX(31)), px(87))} color="#43363d" strokeWidth={px(2)} />
+      <Line p1={vec(px(spreadX(96)), px(13))} p2={vec(px(spreadX(96)), px(87))} color="#43363d" strokeWidth={px(2)} />
 
-      {[0, 18, 36, 54, 72, 90, 108, 126].map((x) => (
+      {acrossRoom(0, 18).map((x) => (
         <Line key={`floor-${x}`} p1={vec(px(x), px(103))} p2={vec(px(x + 8), px(128))} color="rgba(9,8,12,0.24)" strokeWidth={px(0.8)} />
       ))}
-      <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#100e13" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(101)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#100e13" />
       <PixelSpritePicture sprite={roomTexture('attic')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
+      <Spread at={10} px={px}>
       <RoundedRect x={px(3)} y={px(51)} width={px(22)} height={px(52)} r={px(2)} color="#433941" />
       <Rect x={px(7)} y={px(58)} width={px(14)} height={px(43)} color="#201c22" />
       <Line p1={vec(px(8), px(96))} p2={vec(px(21), px(83))} color="#705d5c" strokeWidth={px(1.2)} />
       <Line p1={vec(px(8), px(89))} p2={vec(px(21), px(76))} color="#705d5c" strokeWidth={px(1.2)} />
+      </Spread>
 
+      <Spread at={42} px={px}>
       <RoundedRect x={px(27)} y={px(79)} width={px(21)} height={px(23)} r={px(1)} color="#655244" />
       <Rect x={px(30)} y={px(82)} width={px(15)} height={px(4)} color="#84705c" />
       <RoundedRect x={px(34)} y={px(66)} width={px(18)} height={px(15)} r={px(1)} color="#58473e" />
@@ -63,7 +68,9 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
       <Line p1={vec(px(40), px(50))} p2={vec(px(46), px(50))} color={logSeen ? 'rgba(121,232,255,0.68)' : '#786158'} strokeWidth={px(0.6)} />
       <Line p1={vec(px(40), px(54))} p2={vec(px(47), px(54))} color={logSeen ? 'rgba(121,232,255,0.54)' : '#786158'} strokeWidth={px(0.6)} />
       {logSeen && <Circle cx={px(43)} cy={px(51)} r={px(10)} color="rgba(91,238,255,0.07)" />}
+      </Spread>
 
+      <Spread at={70} px={px}>
       <RoundedRect x={px(59)} y={px(74)} width={px(23)} height={px(28)} r={px(2)} color="#403b42" />
       <Rect x={px(63)} y={px(78)} width={px(15)} height={px(9)} color={sensorsSeen ? '#244857' : '#252930'} />
       {[64, 69, 74].map((x, index) => (
@@ -72,7 +79,9 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
       <Line p1={vec(px(70), px(74))} p2={vec(px(70), px(62))} color={sensorsSeen ? 'rgba(121,232,255,0.78)' : '#53474f'} strokeWidth={px(0.8)} />
       <Line p1={vec(px(70), px(62))} p2={vec(px(91), px(62))} color={sensorsSeen ? 'rgba(121,232,255,0.58)' : '#53474f'} strokeWidth={px(0.8)} />
       {sensorsSeen && <Circle cx={px(70)} cy={px(86)} r={px(12)} color="rgba(91,238,255,0.06)" />}
+      </Spread>
 
+      <Spread at={98} px={px}>
       <RoundedRect x={px(87)} y={px(48)} width={px(24)} height={px(53)} r={px(2)} color="#26252d" />
       <Rect x={px(91)} y={px(54)} width={px(16)} height={px(15)} color={experimentRevealed ? '#214654' : '#313943'} />
       <Line p1={vec(px(93), px(62))} p2={vec(px(105), px(62))} color={experimentRevealed ? '#79e8ff' : '#70808c'} strokeWidth={px(0.8)} />
@@ -87,16 +96,20 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
           <Line p1={vec(px(92), px(66))} p2={vec(px(106), px(66))} color="rgba(121,232,255,0.38)" strokeWidth={px(0.6)} />
         </>
       )}
+      </Spread>
 
-      <Line p1={vec(px(79), px(87))} p2={vec(px(88), px(87))} color="#57434c" strokeWidth={px(1)} />
-      <Line p1={vec(px(109), px(83))} p2={vec(px(118), px(83))} color={experimentRevealed ? 'rgba(121,232,255,0.64)' : '#57434c'} strokeWidth={px(1)} />
-      <Line p1={vec(px(118), px(83))} p2={vec(px(118), px(102))} color={experimentRevealed ? 'rgba(121,232,255,0.54)' : '#57434c'} strokeWidth={px(1)} />
+      <Line p1={vec(px(spreadX(70) + 9), px(87))} p2={vec(px(spreadX(98) - 10), px(87))} color="#57434c" strokeWidth={px(1)} />
+      <Line p1={vec(px(spreadX(98) + 11), px(83))} p2={vec(px(spreadX(117) + 1), px(83))} color={experimentRevealed ? 'rgba(121,232,255,0.64)' : '#57434c'} strokeWidth={px(1)} />
+      <Line p1={vec(px(spreadX(117) + 1), px(83))} p2={vec(px(spreadX(117) + 1), px(102))} color={experimentRevealed ? 'rgba(121,232,255,0.54)' : '#57434c'} strokeWidth={px(1)} />
 
+      <Spread at={117} px={px}>
       <RoundedRect x={px(112)} y={px(87)} width={px(16)} height={px(15)} r={px(1)} color="#332c32" />
       <Rect x={px(115)} y={px(90)} width={px(10)} height={px(9)} color="#1c191e" />
+      </Spread>
 
       {basementRouteRevealed && (
         <>
+          <Spread at={108} px={px}>
           <Circle cx={px(104)} cy={px(101)} r={px(17 + pulse)} color="rgba(91,238,255,0.10)" />
           <Rect x={px(97)} y={px(96)} width={px(15)} height={px(32)} color="#080d12" />
           <RoundedRect x={px(95)} y={px(94)} width={px(18)} height={px(9)} r={px(1)} color="#132b35" />
@@ -110,6 +123,7 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
           {[106, 112, 118].map((y) => (
             <Line key={`basement-rung-${y}`} p1={vec(px(98), px(y))} p2={vec(px(103), px(y))} color="rgba(190,232,235,0.52)" strokeWidth={px(0.7)} />
           ))}
+          </Spread>
         </>
       )}
 
@@ -122,36 +136,36 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
         return (
           <React.Fragment key={`crate-${index}`}>
             {drop.stage !== 'debris' && (
-              <Rect x={px(drop.x - shadowWidth / 2)} y={px(floorY)} width={px(shadowWidth)} height={px(2)} color={`rgba(10,6,4,${(0.35 + (drop.stage === 'shadow' ? drop.progress * 0.4 : 0.4)).toFixed(2)})`} />
+              <Rect x={px(spreadX(drop.x) - shadowWidth / 2)} y={px(floorY)} width={px(shadowWidth)} height={px(2)} color={`rgba(10,6,4,${(0.35 + (drop.stage === 'shadow' ? drop.progress * 0.4 : 0.4)).toFixed(2)})`} />
             )}
             {drop.stage === 'shadow' && (
               // The crate wobbles loose on the rafter for the whole warning.
               <>
-                <Rect x={px(drop.x - 5 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 2)} width={px(10)} height={px(9)} color="#1a120e" />
-                <Rect x={px(drop.x - 4 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 1)} width={px(8)} height={px(7)} color="#c8925a" />
+                <Rect x={px(spreadX(drop.x) - 5 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 2)} width={px(10)} height={px(9)} color="#1a120e" />
+                <Rect x={px(spreadX(drop.x) - 4 + (Math.floor(drop.progress * 12) % 2 === 0 ? -1 : 1))} y={px(rafterY - 1)} width={px(8)} height={px(7)} color="#c8925a" />
               </>
             )}
             {drop.stage === 'shadow' && [0, 1, 2].map(speck => (
-              <Rect key={`dust-${speck}`} x={px(drop.x - 3 + speck * 3)} y={px(rafterY + ((drop.progress * 60 + speck * 17) % 60))} width={px(1)} height={px(1)} color="#c8925a" />
+              <Rect key={`dust-${speck}`} x={px(spreadX(drop.x) - 3 + speck * 3)} y={px(rafterY + ((drop.progress * 60 + speck * 17) % 60))} width={px(1)} height={px(1)} color="#c8925a" />
             ))}
             {(drop.stage === 'falling' || drop.stage === 'impact') && (
               <>
-                <Rect x={px(drop.x - 5)} y={px(crateY)} width={px(10)} height={px(9)} color="#1a120e" />
-                <Rect x={px(drop.x - 4)} y={px(crateY + 1)} width={px(8)} height={px(7)} color="#9a6b3e" />
-                <Rect x={px(drop.x - 4)} y={px(crateY + 4)} width={px(8)} height={px(1)} color="#6e4a2e" />
-                <Rect x={px(drop.x - 1)} y={px(crateY + 1)} width={px(1)} height={px(7)} color="#6e4a2e" />
+                <Rect x={px(spreadX(drop.x) - 5)} y={px(crateY)} width={px(10)} height={px(9)} color="#1a120e" />
+                <Rect x={px(spreadX(drop.x) - 4)} y={px(crateY + 1)} width={px(8)} height={px(7)} color="#9a6b3e" />
+                <Rect x={px(spreadX(drop.x) - 4)} y={px(crateY + 4)} width={px(8)} height={px(1)} color="#6e4a2e" />
+                <Rect x={px(spreadX(drop.x) - 1)} y={px(crateY + 1)} width={px(1)} height={px(7)} color="#6e4a2e" />
               </>
             )}
             {drop.stage === 'impact' && (
               <>
-                <Circle cx={px(drop.x - 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
-                <Circle cx={px(drop.x + 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
+                <Circle cx={px(spreadX(drop.x) - 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
+                <Circle cx={px(spreadX(drop.x) + 7)} cy={px(floorY - 2)} r={px(3 + drop.progress * 3)} color="rgba(200,146,90,0.45)" />
               </>
             )}
             {drop.stage === 'debris' && [-6, -2, 3, 7].map(offset => (
               <Rect
                 key={`plank-${offset}`}
-                x={px(drop.x + offset * (1 + drop.progress))}
+                x={px(spreadX(drop.x) + offset * (1 + drop.progress))}
                 y={px(floorY - 2 - Math.abs(offset) * 0.3)}
                 width={px(4)}
                 height={px(1)}
@@ -162,7 +176,7 @@ export function AtticPresentation({ adventure, hauntedSession, playerX, playerY,
         );
       })}
 
-      {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
+      {hauntedSession && <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />}
     </>
   );
 }

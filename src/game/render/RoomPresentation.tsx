@@ -1,5 +1,5 @@
 import React from 'react';
-import { Circle, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
+import { Circle, Group, Line, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { getAdventureEndingPhase, isAdventureEndingActive } from '../adventure/AdventureEnding';
 import { getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
 import { findActiveRoom } from '../adventure/RoomRegistry';
@@ -31,6 +31,8 @@ import { SCENE_TOKENS, VISUAL_TOKENS } from './VisualLanguage';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
 import { HALLWAY_PENDULUM, resolveHallwayPendulum } from '../adventure/HallwayPendulumHazard';
+import { ROOM_SPREAD, STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, acrossRoom, spreadX } from './StageViewport';
+import { Spread } from './RoomSpread';
 
 type Px = (value: number) => number;
 type ObjectPlacement = { x: number; y: number };
@@ -152,9 +154,12 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
 
   return (
     <>
-      <IllustratedBedroomBackdrop state={state} size={size} night={!endingActive} />
-      <ArcadeStageAtmosphere state={state} size={size} />
-      {altered && <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="rgba(30,28,72,0.17)" />}
+      {/* The illustrated bedroom is one painted scene: it is stretched to the spread width. */}
+      <Group transform={[{ scaleX: ROOM_SPREAD }]}>
+        <IllustratedBedroomBackdrop state={state} size={size} night={!endingActive} />
+        <ArcadeStageAtmosphere state={state} size={size} />
+      </Group>
+      {altered && <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="rgba(30,28,72,0.17)" />}
       <RoomContactShadows state={state} px={px} />
       {hauntedSession && (
         <HauntedExitDoor
@@ -165,25 +170,29 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
       )}
       {altered && (
         <>
-          <Circle cx={px(114)} cy={px(73)} r={px(15)} color="rgba(91,238,255,0.08)" />
-          <RoundedRect x={px(106)} y={px(48)} width={px(17)} height={px(55)} r={px(2)} color="rgba(66,49,110,0.16)" />
-          <Rect x={px(105)} y={px(101)} width={px(20)} height={px(2)} color="rgba(91,238,255,0.22)" />
-          <Circle cx={px(92)} cy={px(31)} r={px(1.3)} color="rgba(248,218,118,0.72)" />
-          <Circle cx={px(38)} cy={px(45)} r={px(1)} color="rgba(91,238,255,0.58)" />
+          <Spread at={114} px={px}>
+            <Circle cx={px(114)} cy={px(73)} r={px(15)} color="rgba(91,238,255,0.08)" />
+            <RoundedRect x={px(106)} y={px(48)} width={px(17)} height={px(55)} r={px(2)} color="rgba(66,49,110,0.16)" />
+            <Rect x={px(105)} y={px(101)} width={px(20)} height={px(2)} color="rgba(91,238,255,0.22)" />
+          </Spread>
+          <Circle cx={px(spreadX(92))} cy={px(31)} r={px(1.3)} color="rgba(248,218,118,0.72)" />
+          <Circle cx={px(spreadX(38))} cy={px(45)} r={px(1)} color="rgba(91,238,255,0.58)" />
         </>
       )}
       {endingActive && (
         <>
+          <Spread at={56} px={px}>
           <RoundedRect x={px(51)} y={px(96)} width={px(10)} height={px(5)} r={px(1.5)} color="#2c2727" />
           <Rect x={px(53)} y={px(97)} width={px(6)} height={px(1)} color="rgba(121,232,255,0.72)" />
           <Circle cx={px(59)} cy={px(99)} r={px(0.8)} color="#ff5d69" />
+          </Spread>
           {(endingPhase === 'ghost-sting' || endingPhase === 'complete') && (
-            <>
+            <Spread at={108} px={px}>
               <Circle cx={px(108)} cy={px(34)} r={px(5.5)} color="rgba(24,20,35,0.86)" />
               <RoundedRect x={px(103)} y={px(38)} width={px(10)} height={px(8)} r={px(4)} color="rgba(35,27,48,0.82)" />
               <Circle cx={px(106)} cy={px(33)} r={px(0.9)} color="#fff1a8" />
               <Circle cx={px(110)} cy={px(33)} r={px(0.9)} color="#79e8ff" />
-            </>
+            </Spread>
           )}
         </>
       )}
@@ -195,18 +204,20 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
           key={objectId}
           objectId={objectId}
           visual={visual}
-          x={px(placement.x)}
+          x={px(spreadX(placement.x))}
           y={px(placement.y)}
           scale={scale}
         />
       ))}
-      <WallyFocusLight state={state} size={size} x={playerX} groundY={playerY} />
-      <IllustratedBedroomLightOverlay state={state} size={size} />
-      <IllustratedBedroomForeground state={state} size={size} />
+      <WallyFocusLight state={state} size={size} x={spreadX(playerX)} groundY={playerY} />
+      <Group transform={[{ scaleX: ROOM_SPREAD }]}>
+        <IllustratedBedroomLightOverlay state={state} size={size} />
+        <IllustratedBedroomForeground state={state} size={size} />
+      </Group>
       {hauntedSession && (
         <>
           <HauntedStageTreatment px={px} pressure={altered ? 0 : hauntedSession.threats.ghosts.length} />
-          <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />
+          <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />
         </>
       )}
     </>
@@ -226,29 +237,34 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
 
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="#15152b" />
-      <Rect x={px(-20)} y={px(18)} width={px(168)} height={px(67)} color="#292644" />
-      <Rect x={px(-20)} y={px(21)} width={px(168)} height={px(2)} color="#3b3659" />
-      {[4, 29, 54, 79, 104].map((x) => (
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="#15152b" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(18)} width={px(STAGE_LOGICAL_WIDTH)} height={px(67)} color="#292644" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(21)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#3b3659" />
+      {acrossRoom(4, 25).map((x) => (
         <Rect key={`panel-${x}`} x={px(x)} y={px(25)} width={px(20)} height={px(55)} color="rgba(70,61,98,0.18)" />
       ))}
-      <Rect x={px(-20)} y={px(84)} width={px(168)} height={px(44)} color="#242039" />
-      {[0, 16, 32, 48, 64, 80, 96, 112].map((x) => (
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(84)} width={px(STAGE_LOGICAL_WIDTH)} height={px(44)} color="#242039" />
+      {acrossRoom(0, 16).map((x) => (
         <Rect key={`floor-${x}`} x={px(x)} y={px(102)} width={px(1)} height={px(26)} color="rgba(9,10,24,0.24)" />
       ))}
-      <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#111126" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(101)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#111126" />
       <PixelSpritePicture sprite={roomTexture('hallway')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
-      <HallwayDoor x={4} px={px} accent="bedroom" unlocked />
-      <HallwayDoor x={103} px={px} accent="living" unlocked={livingUnlocked} />
+      <Spread at={10} px={px}><HallwayDoor x={4} px={px} accent="bedroom" unlocked /></Spread>
+      <Spread at={112} px={px}><HallwayDoor x={103} px={px} accent="living" unlocked={livingUnlocked} /></Spread>
 
-      <RoundedRect x={px(31)} y={px(35)} width={px(13)} height={px(17)} r={px(1)} color="#17162b" />
-      <Rect x={px(33)} y={px(37)} width={px(9)} height={px(13)} color="#4a3a57" />
-      <Circle cx={px(37.5)} cy={px(42)} r={px(2.6)} color="#8e6e7d" />
-      <RoundedRect x={px(84)} y={px(31)} width={px(15)} height={px(20)} r={px(1)} color="#17162b" />
-      <Rect x={px(86)} y={px(33)} width={px(11)} height={px(16)} color="#35475a" />
-      <Circle cx={px(91.5)} cy={px(39)} r={px(3)} color="#6d8890" />
+      <Spread at={37.5} px={px}>
+        <RoundedRect x={px(31)} y={px(35)} width={px(13)} height={px(17)} r={px(1)} color="#17162b" />
+        <Rect x={px(33)} y={px(37)} width={px(9)} height={px(13)} color="#4a3a57" />
+        <Circle cx={px(37.5)} cy={px(42)} r={px(2.6)} color="#8e6e7d" />
+      </Spread>
+      <Spread at={91.5} px={px}>
+        <RoundedRect x={px(84)} y={px(31)} width={px(15)} height={px(20)} r={px(1)} color="#17162b" />
+        <Rect x={px(86)} y={px(33)} width={px(11)} height={px(16)} color="#35475a" />
+        <Circle cx={px(91.5)} cy={px(39)} r={px(3)} color="#6d8890" />
+      </Spread>
 
+      <Spread at={64} px={px}>
       {clockInspected && <Circle cx={px(64)} cy={px(43)} r={px(10)} color="rgba(91,238,255,0.10)" />}
       <Circle cx={px(64)} cy={px(43)} r={px(7)} color="#17172d" />
       <Circle cx={px(64)} cy={px(43)} r={px(5.6)} color="#393653" />
@@ -259,34 +275,35 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
         const angle = (tick / 12) * Math.PI * 2 - Math.PI / 2;
         return <Circle key={`tick-${tick}`} cx={px(64 + Math.cos(angle) * 4.7)} cy={px(43 + Math.sin(angle) * 4.7)} r={px(0.45)} color="#b6abc9" />;
       })}
+      </Spread>
 
-      <RoundedRect x={px(25)} y={px(100)} width={px(77)} height={px(4)} r={px(2)} color="rgba(91,238,255,0.08)" />
+      <RoundedRect x={px(spreadX(25))} y={px(100)} width={px(spreadX(77))} height={px(4)} r={px(2)} color="rgba(91,238,255,0.08)" />
       {livingUnlocked && (
-        <>
+        <Spread at={112} px={px}>
           <Circle cx={px(114)} cy={px(70)} r={px(16)} color="rgba(91,238,255,0.07)" />
           <Rect x={px(102)} y={px(101)} width={px(24)} height={px(2)} color="rgba(91,238,255,0.34)" />
-        </>
+        </Spread>
       )}
-      {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
+      {hauntedSession && <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />}
       {/* Phantom pendulum: raised (safe), dropping (warning), sweeping (danger). */}
       {pendulum && pendulum.phase !== 'inactive' && (
         <>
           <Line
-            p1={vec(px(HALLWAY_PENDULUM.pivotX), px(HALLWAY_PENDULUM.pivotY + 6))}
-            p2={vec(px(pendulum.bobX), px(pendulum.bobY))}
+            p1={vec(px(spreadX(HALLWAY_PENDULUM.pivotX)), px(HALLWAY_PENDULUM.pivotY + 6))}
+            p2={vec(px(spreadX(pendulum.bobX)), px(pendulum.bobY))}
             color={pendulum.dangerous ? '#f4f1de' : 'rgba(149,133,201,0.8)'}
             strokeWidth={px(1)}
           />
           {pendulum.dangerous && (
-            <Circle cx={px(pendulum.bobX)} cy={px(pendulum.bobY)} r={px(9)} color="rgba(176,79,209,0.30)" />
+            <Circle cx={px(spreadX(pendulum.bobX))} cy={px(pendulum.bobY)} r={px(9)} color="rgba(176,79,209,0.30)" />
           )}
           <Circle
-            cx={px(pendulum.bobX)}
+            cx={px(spreadX(pendulum.bobX))}
             cy={px(pendulum.bobY)}
             r={px(5)}
             color={pendulum.dangerous ? '#b04fd1' : pendulum.phase === 'dropping' ? '#ffd84a' : '#4c3d7a'}
           />
-          <Circle cx={px(pendulum.bobX - 1)} cy={px(pendulum.bobY - 1)} r={px(2)} color={pendulum.dangerous ? '#f4f1de' : '#9585c9'} />
+          <Circle cx={px(spreadX(pendulum.bobX) - 1)} cy={px(pendulum.bobY - 1)} r={px(2)} color={pendulum.dangerous ? '#f4f1de' : '#9585c9'} />
         </>
       )}
     </>
@@ -319,20 +336,20 @@ function InteractionFocus({ objectId, placement, px, phase }: {
   const alpha = phase === 0 ? 0.13 : 0.21;
 
   return (
-    <>
+    <Spread at={placement.x} px={px}>
       <RoundedRect x={px(placement.x - radius)} y={px(cueY - 2)} width={px(radius * 2)} height={px(4)} r={px(2)} color={`rgba(241,215,92,${alpha})`} />
       <Circle cx={px(placement.x - radius + 1)} cy={px(cueY - 5 - phase)} r={px(1.2)} color={VISUAL_TOKENS.interactive.focusLight} />
       <Circle cx={px(placement.x + radius - 1)} cy={px(cueY - 7 + phase)} r={px(1)} color={VISUAL_TOKENS.interactive.focus} />
-    </>
+    </Spread>
   );
 }
 
 function RoomContactShadows({ state, px }: { state: SystemicRunState; px: Px }) {
   return (
     <>
-      <RoundedRect x={px(2)} y={px(102)} width={px(30)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
-      <RoundedRect x={px(53)} y={px(102)} width={px(31)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} />
-      {!state.equipped.includes('slippers') && <RoundedRect x={px(26)} y={px(102)} width={px(12)} height={px(3)} r={px(1.5)} color={SCENE_TOKENS.contactShadow} />}
+      <Spread at={16} px={px}><RoundedRect x={px(2)} y={px(102)} width={px(30)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} /></Spread>
+      <Spread at={68} px={px}><RoundedRect x={px(53)} y={px(102)} width={px(31)} height={px(4)} r={px(2)} color={SCENE_TOKENS.contactShadow} /></Spread>
+      {!state.equipped.includes('slippers') && <Spread at={32} px={px}><RoundedRect x={px(26)} y={px(102)} width={px(12)} height={px(3)} r={px(1.5)} color={SCENE_TOKENS.contactShadow} /></Spread>}
     </>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import type { SkImage } from '@shopify/react-native-skia';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedGhostSprite } from './HauntedGhostSprite';
+import { spreadX } from './StageViewport';
 
 type Props = {
   session: HauntedSessionState;
@@ -28,7 +29,7 @@ export function HauntedEnemyLayer({ session, ghostImage, scale, nowMs, playerX, 
           key={`ghost-${ghost.id}`}
           image={ghostImage}
           ghost={ghost}
-          x={px(ghost.x)}
+          x={px(spreadX(ghost.x))}
           y={px(ghost.y)}
           scale={scale}
           nowMs={nowMs}

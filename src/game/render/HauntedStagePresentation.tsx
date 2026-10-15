@@ -6,6 +6,8 @@ import {
   hauntedEdgeAlpha,
   hauntedWashAlpha,
 } from './HauntedStageLanguage';
+import { ROOM_VIEW_WIDTH, STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, spreadX } from './StageViewport';
+import { Spread } from './RoomSpread';
 
 type Px = (value: number) => number;
 
@@ -24,26 +26,26 @@ export function HauntedStageTreatment({ px, pressure }: { px: Px; pressure: numb
 
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color={`rgba(${atmosphere.washRgb},${washAlpha})`} />
-      <Rect x={px(-20)} y={0} width={px(34)} height={px(128)} color={`rgba(${atmosphere.edgeLeftRgb},${edgeAlpha})`} />
-      <Rect x={px(116)} y={0} width={px(32)} height={px(128)} color={`rgba(${atmosphere.edgeRightRgb},${edgeAlpha})`} />
-      <Rect x={px(-20)} y={px(91)} width={px(168)} height={px(37)} color={atmosphere.floorShade} />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color={`rgba(${atmosphere.washRgb},${washAlpha})`} />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_SIDE_MARGIN + 14)} height={px(128)} color={`rgba(${atmosphere.edgeLeftRgb},${edgeAlpha})`} />
+      <Rect x={px(ROOM_VIEW_WIDTH - 12)} y={0} width={px(12 + STAGE_SIDE_MARGIN)} height={px(128)} color={`rgba(${atmosphere.edgeRightRgb},${edgeAlpha})`} />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(91)} width={px(STAGE_LOGICAL_WIDTH)} height={px(37)} color={atmosphere.floorShade} />
       <Circle
-        cx={px(HAUNTED_STAGE_RULES.coldWindowX)}
+        cx={px(spreadX(HAUNTED_STAGE_RULES.coldWindowX))}
         cy={px(HAUNTED_STAGE_RULES.coldWindowY)}
         r={px(HAUNTED_STAGE_RULES.coldWindowRadius)}
         color={atmosphere.coldWindowGlow}
       />
       <Circle
-        cx={px(HAUNTED_STAGE_RULES.coldWindowX)}
+        cx={px(spreadX(HAUNTED_STAGE_RULES.coldWindowX))}
         cy={px(HAUNTED_STAGE_RULES.coldWindowY)}
         r={px(20)}
         color={atmosphere.coldWindowInnerGlow}
       />
       <RoundedRect
-        x={px(HAUNTED_STAGE_RULES.exitLaneStartX)}
+        x={px(spreadX(HAUNTED_STAGE_RULES.exitLaneStartX))}
         y={px(101)}
-        width={px(HAUNTED_STAGE_RULES.exitLaneWidth)}
+        width={px(spreadX(HAUNTED_STAGE_RULES.exitLaneWidth))}
         height={px(4)}
         r={px(2)}
         color={atmosphere.exitLaneGlow}
@@ -51,7 +53,7 @@ export function HauntedStageTreatment({ px, pressure }: { px: Px; pressure: numb
       {PIXEL_TEXTURE_BLOCKS.map(([x, y, width, height], index) => (
         <Rect
           key={`haunted-pixel-${index}`}
-          x={px(x)}
+          x={px(spreadX(x))}
           y={px(y)}
           width={px(width)}
           height={px(height)}
@@ -146,7 +148,7 @@ export function HauntedExitDoor({ px, ready, pulse }: { px: Px; ready: boolean; 
   const exit = HAUNTED_STAGE_TOKENS.exit;
   const glowAlpha = ready ? (pulse === 0 ? 0.18 : 0.32) : 0.06;
   return (
-    <>
+    <Spread at={114} px={px}>
       <RoundedRect x={px(111)} y={px(68)} width={px(15)} height={px(37)} r={px(1.5)} color={ready ? exit.frameReady : exit.frameIdle} />
       <Rect x={px(114)} y={px(72)} width={px(9)} height={px(31)} color={ready ? exit.panelReady : exit.panelIdle} />
       <Rect x={px(116)} y={px(75)} width={px(5)} height={px(25)} color={ready ? exit.coreReady : exit.coreIdle} opacity={ready ? 0.35 : 0.18} />
@@ -159,6 +161,6 @@ export function HauntedExitDoor({ px, ready, pulse }: { px: Px; ready: boolean; 
         r={px(2)}
         color={`rgba(91,238,255,${glowAlpha})`}
       />
-    </>
+    </Spread>
   );
 }

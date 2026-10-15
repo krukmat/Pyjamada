@@ -1,5 +1,6 @@
 import type { RoomId } from '../adventure/AdventureState';
 import type { PixelRun, PixelSprite } from './PixelSpriteBuilder';
+import { STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN } from './StageViewport';
 
 // Pixel-art surface textures laid over each room's flat wall and floor
 // colors. They only darken or lighten what is underneath, so state-driven
@@ -8,9 +9,9 @@ import type { PixelRun, PixelSprite } from './PixelSpriteBuilder';
 
 export type TexturedRoomId = Exclude<RoomId, 'bedroom'>;
 
-/** Stage-space origin of every texture: it spans the full 168-unit overscan. */
-export const ROOM_TEXTURE_ORIGIN = { x: -20, y: 0 } as const;
-const WIDTH = 168;
+/** Stage-space origin of every texture: it spans the full spread room plus its side margins. */
+export const ROOM_TEXTURE_ORIGIN = { x: -STAGE_SIDE_MARGIN, y: 0 } as const;
+const WIDTH = STAGE_LOGICAL_WIDTH;
 const HEIGHT = 128;
 
 const SHADE = 'rgba(0,0,0,0.30)';

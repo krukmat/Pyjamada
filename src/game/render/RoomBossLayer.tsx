@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
 import { BlendColor, Group, Oval, Paint, Rect } from '@shopify/react-native-skia';
-import { LOGICAL_SIZE, PLAYER_GROUND_Y } from '../core/World';
+import { PLAYER_GROUND_Y } from '../core/World';
 import type { RoomBossSnapshot } from '../adventure/RoomBossHazard';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_BOSS_SCALE, roomBossFrame } from './RoomBossSprites';
+import { ROOM_VIEW_WIDTH, spreadX } from './StageViewport';
 
 const HIT_FLASH_MS = 140;
 const HIT_SHAKE_MS = 180;
@@ -73,7 +74,8 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   const sprite = roomBossFrame(boss.config.kind, nowMs, fast);
   const width = sprite.width * ROOM_BOSS_SCALE;
   const height = sprite.height * ROOM_BOSS_SCALE;
-  const left = boss.x - width / 2;
+  const x = spreadX(boss.x);
+  const left = x - width / 2;
   const top = PLAYER_GROUND_Y - boss.lift - height;
   const blink = Math.floor(nowMs / 90) % 2 === 0;
   const opacity = dispelling
@@ -88,7 +90,7 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   return (
     <Group>
       <Oval
-        x={px(boss.x - shadowWidth / 2)}
+        x={px(x - shadowWidth / 2)}
         y={px(PLAYER_GROUND_Y - 2)}
         width={px(shadowWidth)}
         height={px(4)}
@@ -97,7 +99,7 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
       />
       <Group
         opacity={opacity}
-        transform={boss.facing < 0 ? [{ translateX: px(boss.x) * 2 }, { scaleX: -1 }] : undefined}
+        transform={boss.facing < 0 ? [{ translateX: px(x) * 2 }, { scaleX: -1 }] : undefined}
         layer={white ? <Paint><BlendColor color="#ffffff" mode="srcIn" /></Paint> : undefined}
       >
         <PixelSpritePicture sprite={sprite} x={left + twitch} y={top} px={px} scale={ROOM_BOSS_SCALE} />
@@ -124,7 +126,7 @@ const BAR = { y: 4, segmentWidth: 14, gap: 2, height: 4 } as const;
 function RoomBossHealthBar({ boss, px }: { boss: RoomBossSnapshot; px: (value: number) => number }) {
   const { hp } = boss.config;
   const total = hp * BAR.segmentWidth + (hp - 1) * BAR.gap;
-  const left = (LOGICAL_SIZE - total) / 2;
+  const left = (ROOM_VIEW_WIDTH - total) / 2;
   const full = boss.shielded ? '#9ff6ff' : '#ff5277';
   return (
     <Group>

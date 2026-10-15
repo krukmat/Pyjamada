@@ -9,6 +9,8 @@ import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
+import { ROOM_VIEW_WIDTH, STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, acrossRoom, spreadX } from './StageViewport';
+import { Spread } from './RoomSpread';
 
 type Px = (value: number) => number;
 
@@ -42,45 +44,48 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
 
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="#101419" />
-      <Rect x={px(-20)} y={px(23)} width={px(168)} height={px(66)} color="#252b2d" />
-      <Rect x={px(-20)} y={px(89)} width={px(168)} height={px(39)} color="#191e21" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="#101419" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(23)} width={px(STAGE_LOGICAL_WIDTH)} height={px(66)} color="#252b2d" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(89)} width={px(STAGE_LOGICAL_WIDTH)} height={px(39)} color="#191e21" />
 
-      {[0, 24, 48, 72, 96, 120].map((x) => (
+      {acrossRoom(0, 24).map((x) => (
         <Line key={`wall-v-${x}`} p1={vec(px(x), px(24))} p2={vec(px(x), px(89))} color="rgba(126,139,137,0.09)" strokeWidth={px(0.8)} />
       ))}
       {[39, 55, 71].map((y) => (
-        <Line key={`wall-h-${y}`} p1={vec(px(-20), px(y))} p2={vec(px(148), px(y))} color="rgba(126,139,137,0.07)" strokeWidth={px(0.7)} />
+        <Line key={`wall-h-${y}`} p1={vec(px(-STAGE_SIDE_MARGIN), px(y))} p2={vec(px(ROOM_VIEW_WIDTH + STAGE_SIDE_MARGIN), px(y))} color="rgba(126,139,137,0.07)" strokeWidth={px(0.7)} />
       ))}
 
-      <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#090d10" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(101)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#090d10" />
       <PixelSpritePicture sprite={roomTexture('basement')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
-      {[6, 28, 50, 72, 94, 116].map((x) => (
+      {acrossRoom(6, 22).map((x) => (
         <Line key={`floor-${x}`} p1={vec(px(x), px(103))} p2={vec(px(x + 7), px(128))} color="rgba(5,8,10,0.30)" strokeWidth={px(0.8)} />
       ))}
 
       {/* Attic ladder / return route. */}
+      <Spread at={10} px={px}>
       <RoundedRect x={px(2)} y={px(31)} width={px(16)} height={px(72)} r={px(1)} color="#1a2022" />
       <Line p1={vec(px(6), px(34))} p2={vec(px(6), px(101))} color="#697377" strokeWidth={px(1.4)} />
       <Line p1={vec(px(14), px(34))} p2={vec(px(14), px(101))} color="#697377" strokeWidth={px(1.4)} />
       {[42, 52, 62, 72, 82, 92].map((y) => (
         <Line key={`ladder-${y}`} p1={vec(px(6), px(y))} p2={vec(px(14), px(y))} color="#7f898a" strokeWidth={px(0.9)} />
       ))}
+      </Spread>
 
       {/* Old domestic utility pipes. */}
-      <Line p1={vec(px(20), px(35))} p2={vec(px(126), px(35))} color="#5b6463" strokeWidth={px(3.2)} />
-      <Line p1={vec(px(33), px(35))} p2={vec(px(33), px(77))} color="#4e5757" strokeWidth={px(2.5)} />
-      <Line p1={vec(px(112), px(35))} p2={vec(px(112), px(65))} color="#4e5757" strokeWidth={px(2.5)} />
-      <Circle cx={px(33)} cy={px(58)} r={px(4)} color="#313a3b" />
-      <Circle cx={px(33)} cy={px(58)} r={px(2)} color="#687271" />
+      <Line p1={vec(px(spreadX(20)), px(35))} p2={vec(px(spreadX(126)), px(35))} color="#5b6463" strokeWidth={px(3.2)} />
+      <Line p1={vec(px(spreadX(33)), px(35))} p2={vec(px(spreadX(33)), px(77))} color="#4e5757" strokeWidth={px(2.5)} />
+      <Line p1={vec(px(spreadX(112)), px(35))} p2={vec(px(spreadX(112)), px(65))} color="#4e5757" strokeWidth={px(2.5)} />
+      <Circle cx={px(spreadX(33))} cy={px(58)} r={px(4)} color="#313a3b" />
+      <Circle cx={px(spreadX(33))} cy={px(58)} r={px(2)} color="#687271" />
 
       {/* New resonance feed entering from Attic and crossing old utilities. */}
-      <Line p1={vec(px(18), px(27))} p2={vec(px(54), px(27))} color={live} strokeWidth={px(1.4)} />
-      <Line p1={vec(px(54), px(27))} p2={vec(px(54), px(84))} color={live} strokeWidth={px(1.4)} />
-      <Line p1={vec(px(54), px(84))} p2={vec(px(91), px(84))} color={stabilized ? '#79e8ff' : 'rgba(121,232,255,0.54)'} strokeWidth={px(1.2)} />
-      <Circle cx={px(54)} cy={px(55)} r={px(3.5)} color={stabilized ? '#214654' : '#4b2f2f'} />
-      <Circle cx={px(54)} cy={px(55)} r={px(1.4)} color={stabilized ? '#dffcff' : '#ffd08a'} />
+      <Line p1={vec(px(spreadX(18)), px(27))} p2={vec(px(spreadX(54)), px(27))} color={live} strokeWidth={px(1.4)} />
+      <Line p1={vec(px(spreadX(54)), px(27))} p2={vec(px(spreadX(54)), px(84))} color={live} strokeWidth={px(1.4)} />
+      <Line p1={vec(px(spreadX(54)), px(84))} p2={vec(px(spreadX(91)), px(84))} color={stabilized ? '#79e8ff' : 'rgba(121,232,255,0.54)'} strokeWidth={px(1.2)} />
+      <Circle cx={px(spreadX(54))} cy={px(55)} r={px(3.5)} color={stabilized ? '#214654' : '#4b2f2f'} />
+      <Circle cx={px(spreadX(54))} cy={px(55)} r={px(1.4)} color={stabilized ? '#dffcff' : '#ffd08a'} />
 
+      <Spread at={54} px={px}>
       {!stabilized && (
         <>
           <Line p1={vec(px(54), px(49))} p2={vec(px(49 - pulse), px(43))} color="#ffd08a" strokeWidth={px(0.9)} />
@@ -88,14 +93,18 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           <Circle cx={px(54)} cy={px(55)} r={px(10 + pulse)} color="rgba(255,190,110,0.05)" />
         </>
       )}
+      </Spread>
+      <Spread at={54} px={px}>
       {(faultTraced || conduitFocused) && !stabilized && (
         <>
           <Circle cx={px(54)} cy={px(55)} r={px(14)} color="rgba(255,190,110,0.08)" />
           <Line p1={vec(px(42), px(69))} p2={vec(px(54), px(55))} color="rgba(255,208,138,0.72)" strokeWidth={px(0.8)} />
         </>
       )}
+      </Spread>
 
       {/* Isolation relay. */}
+      <Spread at={92} px={px}>
       <RoundedRect x={px(81)} y={px(50)} width={px(23)} height={px(51)} r={px(2)} color="#343b3e" />
       <Rect x={px(85)} y={px(55)} width={px(15)} height={px(18)} color="#171c1f" />
       <Circle cx={px(89)} cy={px(61)} r={px(1.4)} color={stabilized ? '#79e8ff' : '#9c6262'} />
@@ -103,8 +112,10 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
       <Line p1={vec(px(87), px(78))} p2={vec(px(98), px(78))} color="#8a9392" strokeWidth={px(1)} />
       <Line p1={vec(px(92), px(78))} p2={vec(px(92), px(89))} color={stabilized ? '#79e8ff' : '#777f7f'} strokeWidth={px(1.3)} />
       {relayFocused && <Circle cx={px(92)} cy={px(72)} r={px(15)} color="rgba(248,218,118,0.07)" />}
+      </Spread>
 
       {/* Basement control terminal. */}
+      <Spread at={118} px={px}>
       <RoundedRect x={px(108)} y={px(56)} width={px(20)} height={px(45)} r={px(2)} color="#252b30" />
       <Rect x={px(111)} y={px(61)} width={px(14)} height={px(15)} color="#101619" />
       {!stabilized && (
@@ -138,16 +149,18 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
         <Circle key={`panel-${x}`} cx={px(x)} cy={px(84)} r={px(1)} color={lossOfControlRevealed ? '#ff7b82' : controlRevealed && index === 2 ? '#ff7b82' : stabilized && index === pulse % 3 ? '#79e8ff' : '#596164'} />
       ))}
       {terminalFocused && <Circle cx={px(118)} cy={px(69)} r={px(16)} color={controlRevealed ? 'rgba(255,92,105,0.08)' : 'rgba(121,232,255,0.06)'} />}
+      </Spread>
 
       {stabilized && (
         <>
-          <Circle cx={px(72)} cy={px(84)} r={px(24)} color="rgba(91,238,255,0.05)" />
-          <Line p1={vec(px(92), px(84))} p2={vec(px(118), px(84))} color="rgba(121,232,255,0.68)" strokeWidth={px(1.1)} />
-          <Line p1={vec(px(118), px(84))} p2={vec(px(118), px(101))} color={controlRevealed ? 'rgba(255,123,130,0.58)' : 'rgba(121,232,255,0.48)'} strokeWidth={px(1)} />
+          <Circle cx={px(spreadX(72))} cy={px(84)} r={px(24)} color="rgba(91,238,255,0.05)" />
+          <Line p1={vec(px(spreadX(92)), px(84))} p2={vec(px(spreadX(118)), px(84))} color="rgba(121,232,255,0.68)" strokeWidth={px(1.1)} />
+          <Line p1={vec(px(spreadX(118)), px(84))} p2={vec(px(spreadX(118)), px(101))} color={controlRevealed ? 'rgba(255,123,130,0.58)' : 'rgba(121,232,255,0.48)'} strokeWidth={px(1)} />
         </>
       )}
 
       {/* W5-T6/T7: rejected local failsafe exposes the downstream Laboratory feed hatch. */}
+      <Spread at={116} px={px}>
       {lossOfControlRevealed && (
         <>
           <Line p1={vec(px(118), px(84))} p2={vec(px(122), px(90))} color="#ff8f72" strokeWidth={px(1.4)} />
@@ -190,25 +203,26 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           {laboratoryRouteRevealed && <Circle cx={px(114)} cy={px(97)} r={px(15)} color="rgba(121,232,255,0.08)" />}
         </>
       )}
+      </Spread>
 
       {/* W5-T5: local overload pressure on the downstream control feed. */}
       {(hazardTelegraph || hazardDischarge) && (
         <>
           <Rect
-            x={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)}
+            x={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX))}
             y={px(98)}
-            width={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)}
+            width={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX))}
             height={px(5)}
             color={hazardDischarge ? 'rgba(255,92,105,0.38)' : fastPulse === 0 ? 'rgba(248,218,118,0.18)' : 'rgba(248,218,118,0.30)'}
           />
           <Line
-            p1={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX - 2), px(84))}
-            p2={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX + 2), px(84))}
+            p1={vec(px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX - 2)), px(84))}
+            p2={vec(px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX + 2)), px(84))}
             color={hazardDischarge ? '#fff0b8' : fastPulse === 0 ? '#f8da76' : '#ff9f73'}
             strokeWidth={px(hazardDischarge ? 2 : 1.2)}
           />
-          <Circle cx={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(255,92,105,0.12)' : 'rgba(248,218,118,0.08)'} />
-          <Circle cx={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX)} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(121,232,255,0.12)' : 'rgba(255,159,115,0.07)'} />
+          <Circle cx={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX))} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(255,92,105,0.12)' : 'rgba(248,218,118,0.08)'} />
+          <Circle cx={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX))} cy={px(84)} r={px(hazardDischarge ? 5 : 3 + fastPulse)} color={hazardDischarge ? 'rgba(121,232,255,0.12)' : 'rgba(255,159,115,0.07)'} />
         </>
       )}
       {hazardDischarge && (
@@ -217,17 +231,17 @@ export function BasementPresentation({ adventure, hauntedSession, playerX, playe
           {[[0, 84, 0.2, 75], [0.2, 75, 0.45, 88], [0.45, 88, 0.7, 72], [0.7, 72, 1, 86]].map(([from, fromY, to, toY], index) => (
             <Line
               key={`basement-bolt-${index}`}
-              p1={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + from * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)), px(fromY))}
-              p2={vec(px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + to * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)), px(toY))}
+              p1={vec(px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + from * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX))), px(fromY))}
+              p2={vec(px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX + to * (BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX))), px(toY))}
               color={index % 2 === 0 ? '#fff4c4' : '#9ff3ff'}
               strokeWidth={px(1.3)}
             />
           ))}
-          <Rect x={px(BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} y={px(37)} width={px(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX)} height={px(64)} color="rgba(255,92,105,0.08)" />
+          <Rect x={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMinX))} y={px(37)} width={px(spreadX(BASEMENT_ELECTRICAL_HAZARD.zoneMaxX - BASEMENT_ELECTRICAL_HAZARD.zoneMinX))} height={px(64)} color="rgba(255,92,105,0.08)" />
         </>
       )}
 
-      {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
+      {hauntedSession && <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />}
     </>
   );
 }

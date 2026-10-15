@@ -6,6 +6,8 @@ import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from '../adventure/Living
 import { HauntedPlayerReadability } from './HauntedStagePresentation';
 import { PixelSpritePicture } from './PixelSpritePicture';
 import { ROOM_TEXTURE_ORIGIN, roomTexture } from './RoomTextures';
+import { ROOM_VIEW_WIDTH, STAGE_LOGICAL_WIDTH, STAGE_SIDE_MARGIN, acrossRoom, spreadX } from './StageViewport';
+import { Spread } from './RoomSpread';
 
 type Px = (value: number) => number;
 
@@ -32,28 +34,33 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
 
   return (
     <>
-      <Rect x={px(-20)} y={0} width={px(168)} height={px(128)} color="#121726" />
-      <Rect x={px(-20)} y={px(18)} width={px(168)} height={px(68)} color="#263143" />
-      <Rect x={px(-20)} y={px(20)} width={px(168)} height={px(2)} color="#39475b" />
-      <Rect x={px(-20)} y={px(86)} width={px(168)} height={px(42)} color="#211f2f" />
-      {[0, 18, 36, 54, 72, 90, 108].map((x) => (
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="#121726" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(18)} width={px(STAGE_LOGICAL_WIDTH)} height={px(68)} color="#263143" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(20)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#39475b" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(86)} width={px(STAGE_LOGICAL_WIDTH)} height={px(42)} color="#211f2f" />
+      {acrossRoom(0, 18).map((x) => (
         <Rect key={`living-floor-${x}`} x={px(x)} y={px(101)} width={px(1)} height={px(27)} color="rgba(7,10,18,0.26)" />
       ))}
-      <Rect x={px(-20)} y={px(101)} width={px(168)} height={px(2)} color="#0d1220" />
+      <Rect x={px(-STAGE_SIDE_MARGIN)} y={px(101)} width={px(STAGE_LOGICAL_WIDTH)} height={px(2)} color="#0d1220" />
       <PixelSpritePicture sprite={roomTexture('living-room')} x={ROOM_TEXTURE_ORIGIN.x} y={ROOM_TEXTURE_ORIGIN.y} px={px} />
 
+      <Spread at={10} px={px}>
       <RoundedRect x={px(3)} y={px(44)} width={px(23)} height={px(59)} r={px(2)} color="#3d4657" />
       <Rect x={px(7)} y={px(49)} width={px(15)} height={px(52)} color="#1c2533" />
       <Rect x={px(9)} y={px(54)} width={px(11)} height={px(17)} color="rgba(88,104,125,0.19)" />
       <Circle cx={px(20)} cy={px(77)} r={px(1.1)} color="#f1d75c" />
+      </Spread>
 
+      <Spread at={55} px={px}>
       <RoundedRect x={px(34)} y={px(73)} width={px(43)} height={px(27)} r={px(4)} color="#172333" />
       <RoundedRect x={px(37)} y={px(68)} width={px(37)} height={px(23)} r={px(4)} color="#344a58" />
       <Rect x={px(42)} y={px(72)} width={px(12)} height={px(16)} color="#405c69" />
       <Rect x={px(58)} y={px(72)} width={px(12)} height={px(16)} color="#2e4352" />
       <Rect x={px(39)} y={px(98)} width={px(5)} height={px(5)} color="#111923" />
       <Rect x={px(68)} y={px(98)} width={px(5)} height={px(5)} color="#111923" />
+      </Spread>
 
+      <Spread at={84} px={px}>
       <Rect x={px(78)} y={px(84)} width={px(15)} height={px(3)} color="#483b36" />
       <Rect x={px(80)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
       <Rect x={px(89)} y={px(87)} width={px(2)} height={px(15)} color="#332a29" />
@@ -74,7 +81,9 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
 
       <Circle cx={px(90.5)} cy={px(80)} r={px(4)} color="rgba(248,218,118,0.12)" />
       <Line p1={vec(px(90.5), px(84))} p2={vec(px(90.5), px(98))} color="#7d6850" strokeWidth={px(1)} />
+      </Spread>
 
+      <Spread at={109} px={px}>
       {tvOn && <Circle cx={px(109.5)} cy={px(60)} r={px(20)} color={transmissionSeen ? "rgba(91,238,255,0.12)" : "rgba(196,227,235,0.08)"} />}
       <RoundedRect x={px(96)} y={px(48)} width={px(27)} height={px(24)} r={px(2)} color="#0a0f18" />
       <Rect
@@ -125,26 +134,28 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
       <Rect x={px(101)} y={px(79)} width={px(17)} height={px(4)} color="#1b202a" />
       <Rect x={px(98)} y={px(83)} width={px(23)} height={px(20)} color="#272633" />
       <Rect x={px(101)} y={px(86)} width={px(17)} height={px(5)} color="#32313e" />
+      </Spread>
 
       <Line
-        p1={vec(px(119), px(96))}
-        p2={vec(px(128), px(96))}
+        p1={vec(px(spreadX(109) + 9), px(96))}
+        p2={vec(px(ROOM_VIEW_WIDTH), px(96))}
         color={sourceCueRevealed ? 'rgba(121,232,255,0.70)' : '#151925'}
         strokeWidth={px(sourceCueRevealed ? 1 : 0.7)}
       />
       <Line
-        p1={vec(px(127.5), px(96))}
-        p2={vec(px(127.5), px(87))}
+        p1={vec(px(ROOM_VIEW_WIDTH - 0.5), px(96))}
+        p2={vec(px(ROOM_VIEW_WIDTH - 0.5), px(87))}
         color={sourceCueRevealed ? 'rgba(121,232,255,0.45)' : '#151925'}
         strokeWidth={px(0.7)}
       />
       {sourceCueRevealed && (
         <>
-          <Circle cx={px(126 - radioPulse * 2)} cy={px(96)} r={px(1.2)} color="rgba(121,232,255,0.72)" />
-          <Circle cx={px(127)} cy={px(87)} r={px(4 + radioPulse)} color="rgba(91,238,255,0.04)" />
+          <Circle cx={px(ROOM_VIEW_WIDTH - 2 - radioPulse * 2)} cy={px(96)} r={px(1.2)} color="rgba(121,232,255,0.72)" />
+          <Circle cx={px(ROOM_VIEW_WIDTH - 1)} cy={px(87)} r={px(4 + radioPulse)} color="rgba(91,238,255,0.04)" />
         </>
       )}
 
+      <Spread at={55} px={px}>
       <RoundedRect x={px(49)} y={px(34)} width={px(13)} height={px(17)} r={px(1)} color="#161b27" />
       <Rect x={px(51)} y={px(36)} width={px(9)} height={px(13)} color="#465263" />
       {photoInspected && (
@@ -154,24 +165,29 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
           <Circle cx={px(56.5)} cy={px(41.5)} r={px(1.3)} color="rgba(121,232,255,0.30)" />
         </>
       )}
+      </Spread>
+      <Spread at={76} px={px}>
       <RoundedRect x={px(70)} y={px(31)} width={px(12)} height={px(18)} r={px(1)} color="#161b27" />
       <Rect x={px(72)} y={px(33)} width={px(8)} height={px(14)} color="#5a4655" />
+      </Spread>
 
       {/* Static threat: the screen whites out, then static rolls along the floor. */}
       {staticWave?.phase === 'telegraph' && (
         <>
+          <Spread at={109} px={px}>
           <Rect x={px(98)} y={px(50)} width={px(23)} height={px(20)} color={`rgba(244,241,222,${(0.2 + staticWave.progress * 0.55).toFixed(2)})`} />
-          <Rect x={px(LIVING_ROOM_STATIC.sourceX - 1)} y={px(97 - jitter)} width={px(2)} height={px(2)} color="#f4f1de" />
-          <Rect x={px(LIVING_ROOM_STATIC.sourceX + 3)} y={px(95 + jitter)} width={px(1)} height={px(1)} color="#44d9e6" />
+          </Spread>
+          <Rect x={px(spreadX(LIVING_ROOM_STATIC.sourceX) - 1)} y={px(97 - jitter)} width={px(2)} height={px(2)} color="#f4f1de" />
+          <Rect x={px(spreadX(LIVING_ROOM_STATIC.sourceX) + 3)} y={px(95 + jitter)} width={px(1)} height={px(1)} color="#44d9e6" />
         </>
       )}
       {staticWave?.fronts.map((front, index) => (
         <React.Fragment key={`static-wave-${index}`}>
-          <Rect x={px(front - 3)} y={px(83)} width={px(7)} height={px(19)} color="rgba(68,217,230,0.45)" />
+          <Rect x={px(spreadX(front) - 3)} y={px(83)} width={px(7)} height={px(19)} color="rgba(68,217,230,0.45)" />
           {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(row => (
             <Rect
               key={`static-${index}-${row}`}
-              x={px(front - 3 + ((row * 2 + jitter + index) % 5))}
+              x={px(spreadX(front) - 3 + ((row * 2 + jitter + index) % 5))}
               y={px(84 + row * 2)}
               width={px(2)}
               height={px(1)}
@@ -181,7 +197,7 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
         </React.Fragment>
       ))}
 
-      {hauntedSession && <HauntedPlayerReadability x={px(playerX)} y={px(playerY)} px={px} />}
+      {hauntedSession && <HauntedPlayerReadability x={px(spreadX(playerX))} y={px(playerY)} px={px} />}
     </>
   );
 }

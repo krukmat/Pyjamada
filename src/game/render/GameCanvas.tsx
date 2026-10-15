@@ -22,7 +22,7 @@ import { PixelArcadeLayer } from './PixelArcadeLayer';
 import { pixelPaletteUniform } from './PixelArcadePalette';
 import { PixelDreamSpark } from './PixelDreamSpark';
 import { RoomPresentation } from './RoomPresentation';
-import { stageOriginX, stagePx, stageScale } from './StageViewport';
+import { spreadX, stageOriginX, stagePx, stageScale } from './StageViewport';
 import { SCENE_TOKENS } from './VisualLanguage';
 
 type Props = {
@@ -134,7 +134,7 @@ export function GameCanvas({
               <HauntedWallySprite
                 image={hauntedWallyImage}
                 session={{ ...hauntedSession, player: { ...hauntedSession.player, x: bathroomTwinX(playerX), facing: playerFacing === 'right' ? 'left' : 'right' } }}
-                x={px(bathroomTwinX(playerX))}
+                x={px(spreadX(bathroomTwinX(playerX)))}
                 y={px(playerY)}
                 scale={scale}
                 nowMs={nowMs}
@@ -147,7 +147,7 @@ export function GameCanvas({
             <HauntedWallySprite
               image={hauntedWallyImage}
               session={hauntedSession}
-              x={px(playerX)}
+              x={px(spreadX(playerX))}
               y={px(playerY)}
               scale={scale}
               nowMs={nowMs}
@@ -158,7 +158,7 @@ export function GameCanvas({
             <IllustratedWally
               state={state}
               visual={legacyWally}
-              x={px(playerX)}
+              x={px(spreadX(playerX))}
               y={px(playerY)}
               scale={scale}
               facing={playerFacing}
@@ -169,19 +169,19 @@ export function GameCanvas({
             <PixelDreamSpark
               key={projectile.id}
               projectile={projectile}
-              x={px(projectile.x)}
+              x={px(spreadX(projectile.x))}
               y={px(projectile.y)}
               scale={scale}
             />
           ))}
 
           {fx.map((item) => (
-            <IllustratedFx key={item.key} fx={item} x={px(item.x)} y={px(item.y)} scale={scale} />
+            <IllustratedFx key={item.key} fx={item} x={px(spreadX(item.x))} y={px(item.y)} scale={scale} />
           ))}
 
           {playerInvulnerable && (
             <HauntedHitFeedback
-              x={px(playerX)}
+              x={px(spreadX(playerX))}
               y={px(playerY - 23)}
               px={px}
               pulse={Math.floor(nowMs / 90) % 2}
