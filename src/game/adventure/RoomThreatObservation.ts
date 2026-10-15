@@ -1,0 +1,164 @@
+import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import type { AdventureState } from './AdventureState';
+import { isAdventureExplorationActive } from './AdventureExplorationRuntime';
+import { ATTIC_CRATES, resolveAtticCrates } from './AtticCrateHazard';
+import { BASEMENT_ELECTRICAL_HAZARD, resolveBasementElectricalHazard } from './BasementElectricalHazard';
+import { BATHROOM_TWIN, isBathroomTwinActive } from './BathroomTwinHazard';
+import type { FloorWaveConfig } from './FloorWaveHazard';
+import { HALLWAY_PENDULUM, resolveHallwayPendulum } from './HallwayPendulumHazard';
+import { KITCHEN_SURGE, resolveKitchenSurge } from './KitchenSurgeHazard';
+import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstability';
+import { resolveVesperControlState } from './LaboratoryVesperControl';
+import { resolveVesperNightmareState } from './LaboratoryVesperNightmare';
+import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from './LivingRoomStaticHazard';
+
+export type ThreatPhase = 'warning' | 'danger';
+
+export type ThreatKind =
+  | 'hallway-pendulum'
+  | 'living-room-static'
+  | 'kitchen-surge'
+  | 'attic-crate'
+  | 'basement-discharge'
+  | 'bathroom-twin'
+  | 'vesper-pressure'
+  | 'resonator-electrical'
+  | 'nightmare-attack';
+
+/**
+ * One floor zone of a live room threat, as the player can see it right now.
+ *
+ * - `danger`: Wally standing anywhere in `minX..maxX` (inclusive) is hit by
+ *   the threat's own hit test at this instant; when `jumpable` is true only a
+ *   grounded Wally is hit.
+ * - `warning`: the zone is telegraphed and will (or may) become dangerous; it
+ *   never hits on its own.
+ *
+ * Every zone is derived from the hazards' resolve and snapshot functions and hit
+ * widths, never from a parallel timing model, so a renderer drawing these
+ * zones and a QA bot reacting to them both see exactly what the rules do.
+ */
+export type ThreatObservation = {
+  kind: ThreatKind;
+  phase: ThreatPhase;
+  minX: number;
+  maxX: number;
+  jumpable: boolean;
+};
+
+/** Threat kinds whose dangers are always announced by a warning on the same floor zone first. */
+export const TELEGRAPHED_THREAT_KINDS: readonly ThreatKind[] = [
+  'hallway-pendulum',
+  'living-room-static',
+  'kitchen-surge',
+  'attic-crate',
+  'basement-discharge',
+  'vesper-pressure',
+  'resonator-electrical',
+  'nightmare-attack',
+];
+
+/** Pure read of the live exploration hazards in the current room; empty in the haunted bedroom run. */
+export function observeRoomThreats(session: HauntedSessionState, adventure: AdventureState): ThreatObservation[] {
+  if (!isAdventureExplorationActive(adventure)) return [];
+  const elapsedMs = session.elapsedMs;
+  const observations: ThreatObservation[] = [];
+  const push = (kind: ThreatKind, phase: ThreatPhase, minX: number, maxX: number, jumpable = false) => {
+    observations.push({ kind, phase, minX, maxX, jumpable });
+  };
+
+  switch (adventure.currentRoom) {
+    case 'hallway': {
+      const pendulum = resolveHallwayPendulum(adventure, elapsedMs);
+      const { leftX, rightX, halfWidth } = HALLWAY_PENDULUM;
+      // The whole arc is live from the drop until the bob rises again; while the bob drops, its
+      // own spot is a second, smaller warning that shows which end the swing starts from.
+      if (pendulum.phase === 'dropping' || pendulum.phase === 'sweep') {
+        push('hallway-pendulum', 'warning', leftX - halfWidth, rightX + halfWidth);
+      }
+      if (pendulum.phase === 'dropping') push('hallway-pendulum', 'warning', pendulum.bobX - halfWidth, pendulum.bobX + halfWidth);
+      if (pendulum.dangerous) push('hallway-pendulum', 'danger', pendulum.bobX - halfWidth, pendulum.bobX + halfWidth);
+      break;
+    }
+    case 'living-room': {
+      const wave = resolveLivingRoomStatic(adventure, elapsedMs);
+      observeFloorWave(push, 'living-room-static', LIVING_ROOM_STATIC, wave.phase === 'telegraph' || wave.phase === 'wave', wave.dangerous ? wave.fronts : []);
+      break;
+    }
+    case 'kitchen': {
+      const surge = resolveKitchenSurge(adventure, elapsedMs);
+      const fronts = surge.dangerous && surge.frontX !== undefined ? [surge.frontX] : [];
+      observeFloorWave(push, 'kitchen-surge', KITCHEN_SURGE, surge.phase === 'telegraph' || surge.phase === 'surge', fronts);
+      break;
+    }
+    case 'attic': {
+      const { halfWidth } = ATTIC_CRATES;
+      for (const drop of resolveAtticCrates(adventure, elapsedMs).drops) {
+        if (drop.dangerous) push('attic-crate', 'danger', drop.x - halfWidth, drop.x + halfWidth);
+        else if (drop.stage === 'shadow' || drop.stage === 'falling') push('attic-crate', 'warning', drop.x - halfWidth, drop.x + halfWidth);
+      }
+      break;
+    }
+    case 'basement': {
+      const hazard = resolveBasementElectricalHazard(adventure, elapsedMs);
+      const { zoneMinX, zoneMaxX } = BASEMENT_ELECTRICAL_HAZARD;
+      if (hazard.dangerous) push('basement-discharge', 'danger', zoneMinX, zoneMaxX);
+      else if (hazard.phase === 'telegraph') push('basement-discharge', 'warning', zoneMinX, zoneMaxX);
+      break;
+    }
+    case 'bathroom': {
+      // The reflection stands at 2 * mirrorX - x, so it touches Wally exactly
+      // when |x - mirrorX| <= contactHalfWidth / 2. It has no telegraph: the
+      // zone is dangerous for as long as the reflection is out.
+      if (isBathroomTwinActive(adventure)) {
+        const reach = BATHROOM_TWIN.contactHalfWidth / 2;
+        push('bathroom-twin', 'danger', BATHROOM_TWIN.mirrorX - reach, BATHROOM_TWIN.mirrorX + reach);
+      }
+      break;
+    }
+    case 'laboratory': {
+      const pressure = resolveVesperControlState(adventure, elapsedMs).pressure;
+      observeLane(push, 'vesper-pressure', pressure.phase, pressure.minX, pressure.maxX);
+      const electrical = resolveResonatorInstabilityState(adventure, elapsedMs).electrical;
+      observeLane(push, 'resonator-electrical', electrical.phase, electrical.minX, electrical.maxX);
+      const nightmare = resolveVesperNightmareState(adventure, elapsedMs);
+      if (nightmare.active) observeLane(push, 'nightmare-attack', nightmare.phase, nightmare.minX, nightmare.maxX);
+      break;
+    }
+    default:
+      break;
+  }
+  return observations;
+}
+
+/** True when an observed danger zone would hit a Wally standing at `x` (respecting jumpable zones). */
+export function isInsideObservedDanger(
+  observations: readonly ThreatObservation[],
+  x: number,
+  grounded: boolean,
+  kind?: ThreatKind,
+): boolean {
+  return observations.some(observation =>
+    observation.phase === 'danger'
+    && (kind === undefined || observation.kind === kind)
+    && x >= observation.minX
+    && x <= observation.maxX
+    && (!observation.jumpable || grounded));
+}
+
+type Push = (kind: ThreatKind, phase: ThreatPhase, minX: number, maxX: number, jumpable?: boolean) => void;
+
+function observeFloorWave(push: Push, kind: ThreatKind, config: FloorWaveConfig, live: boolean, fronts: readonly number[]) {
+  if (!live) return;
+  // From the telegraph until the last wave dies the whole path is charged.
+  const pathMin = Math.min(config.sourceX, config.targetX) - config.halfWidth;
+  const pathMax = Math.max(config.sourceX, config.targetX) + config.halfWidth;
+  push(kind, 'warning', pathMin, pathMax, true);
+  for (const front of fronts) push(kind, 'danger', front - config.halfWidth, front + config.halfWidth, true);
+}
+
+function observeLane(push: Push, kind: ThreatKind, phase: string, minX: number | undefined, maxX: number | undefined) {
+  if (minX === undefined || maxX === undefined) return;
+  if (phase === 'active') push(kind, 'danger', minX, maxX);
+  else if (phase === 'telegraph') push(kind, 'warning', minX, maxX);
+}

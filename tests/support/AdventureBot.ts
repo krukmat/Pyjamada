@@ -1,20 +1,23 @@
 /**
- * Headless QA bot for the adventure exploration loop.
+ * Headless QA bot for the adventure.
  *
- * The harness mirrors the App.tsx orchestration (fixed steps, room transitions,
- * first-visit recovery, room spawn, Laboratory checkpoint retry and ending
- * completion) so policies can play the real pure-TypeScript runtime without a
- * device. Keep `stepBotWorld` in sync with App.tsx when that orchestration
- * changes; the bot never mutates gameplay rules.
+ * The harness mirrors the App.tsx orchestration (the haunted bedroom run and
+ * its false escape, fixed exploration steps, room transitions, first-visit
+ * recovery, room spawn, Laboratory checkpoint retry and ending completion) so
+ * policies can play the real pure-TypeScript runtime without a device. Keep
+ * `stepBotWorld` in sync with App.tsx when that orchestration changes; the bot
+ * never mutates gameplay rules.
  */
 import {
   applyFalseEscape,
   applyFirstVisitRecovery,
   findAdventureInteractionTarget,
+  isAdventureExplorationActive,
   isLaboratoryCombatEnabled,
   stepAdventureExploration,
   type AdventureExplorationEvent,
 } from '../../src/game/adventure/AdventureExplorationRuntime';
+import { createAdventureGameSession } from '../../src/game/adventure/AdventureGameSession';
 import {
   beginAdventureEnding,
   completeAdventureEnding,
@@ -49,10 +52,17 @@ import {
   type RoomEntryPoint,
   type RoomInteractionDefinition,
 } from '../../src/game/adventure/RoomRegistry';
+import { isInsideObservedDanger, observeRoomThreats, type ThreatKind } from '../../src/game/adventure/RoomThreatObservation';
 import { PLAYER_GROUND_Y } from '../../src/game/core/World';
 import { HAUNTED_STEP_MS } from '../../src/game/haunted/FixedStepClock';
 import { createHauntedInputState, type HauntedInputState } from '../../src/game/haunted/HauntedInput';
-import { createHauntedSession, type HauntedSessionState } from '../../src/game/haunted/HauntedSessionRuntime';
+import {
+  createHauntedSession,
+  stepHauntedSession,
+  type HauntedSessionEvent,
+  type HauntedSessionState,
+} from '../../src/game/haunted/HauntedSessionRuntime';
+import { findSystemicObject } from '../../src/game/systemic/SystemicContent';
 import { HAUNTED_PLAYER_BOUNDS } from '../../src/game/haunted/PlayerPhysics';
 import { nextSeededRandom, seedFromString } from '../../src/game/haunted/SeededRng';
 
@@ -60,8 +70,16 @@ export const BOT_STEP_MS = HAUNTED_STEP_MS;
 
 export type BotWorld = { session: HauntedSessionState; adventure: AdventureState };
 export type BotAction = { move: -1 | 0 | 1; jump: boolean; attack: boolean; interact: boolean };
-export type BotStepOutcome = 'running' | 'transition' | 'ending-started' | 'checkpoint' | 'died' | 'completed';
-export type BotStep = { world: BotWorld; events: AdventureExplorationEvent[]; outcome: BotStepOutcome; hpLost: number };
+export type BotStepOutcome = 'running' | 'escaped' | 'transition' | 'ending-started' | 'checkpoint' | 'died' | 'completed';
+export type BotEvent = AdventureExplorationEvent | HauntedSessionEvent;
+export type BotStep = {
+  world: BotWorld;
+  events: BotEvent[];
+  outcome: BotStepOutcome;
+  hpLost: number;
+  /** World straight after the pure simulation step, before the App-level orchestration reacted to it. */
+  simulated: BotWorld;
+};
 
 export interface BotPolicy {
   act(world: BotWorld): BotAction;
@@ -69,9 +87,17 @@ export interface BotPolicy {
   describe(): string;
   /** False once the policy has no reachable goal left (route bots only). */
   hasGoal?(): boolean;
+  /** True while the policy reads an object's text (human-model bots count the moment to look up too). */
+  isReading?(): boolean;
 }
 
 export const IDLE_ACTION: BotAction = { move: 0, jump: false, attack: false, interact: false };
+
+/** A new game exactly as App.handleNewGame creates it: the haunted bedroom run is about to start. */
+export function createBotNewGame(runId = 'qa-bot'): BotWorld {
+  const created = createAdventureGameSession(runId);
+  return { session: created.haunted, adventure: created.adventure };
+}
 
 /** Bedroom run already escaped: the adventure starts exactly where App applies the false escape. */
 export function createBotStart(runId = 'qa-bot'): BotWorld {
@@ -113,15 +139,38 @@ function applyRoomSpawn(state: HauntedSessionState, spawn: RoomEntryPoint): Haun
   };
 }
 
+/** Mirrors App's bedroom loop: the haunted run steps until it completes (false escape) or fails. */
+function stepHauntedBedroom(world: BotWorld, action: BotAction): BotStep {
+  if (world.adventure.currentRoom !== 'bedroom') {
+    return { world, events: [], outcome: 'running', hpLost: 0, simulated: world };
+  }
+  const stepped = stepHauntedSession({ ...world.session, input: toInput(action) }, BOT_STEP_MS);
+  const events = stepped.events;
+  const simulated = { session: stepped.state, adventure: world.adventure };
+  const hpLost = Math.max(0, world.session.combat.hp - stepped.state.combat.hp);
+  if (events.some(event => event.type === 'SESSION_COMPLETED')) {
+    // App fades out, then applies the false escape at the fade midpoint.
+    const escaped = applyFalseEscape(stepped.state, world.adventure);
+    return { world: { session: escaped.session, adventure: escaped.adventure }, events, outcome: 'escaped', hpLost, simulated };
+  }
+  if (events.some(event => event.type === 'SESSION_FAILED')) {
+    return { world: simulated, events, outcome: 'died', hpLost, simulated };
+  }
+  return { world: simulated, events, outcome: 'running', hpLost, simulated };
+}
+
 /** One fixed simulation step plus the App-level orchestration that reacts to it. */
 export function stepBotWorld(world: BotWorld, action: BotAction): BotStep {
+  if (!isAdventureExplorationActive(world.adventure)) return stepHauntedBedroom(world, action);
+
   const stepped = stepAdventureExploration({ ...world.session, input: toInput(action) }, world.adventure, BOT_STEP_MS);
   const events = stepped.events;
+  const simulated = { session: stepped.session, adventure: stepped.adventure };
   const hpLost = Math.max(0, world.session.combat.hp - stepped.session.combat.hp);
 
   if (shouldBeginAdventureEnding(stepped.adventure)) {
     const started = beginAdventureEnding(stepped.session, stepped.adventure);
-    return { world: { session: started.session, adventure: started.adventure }, events, outcome: 'ending-started', hpLost };
+    return { world: { session: started.session, adventure: started.adventure }, events, outcome: 'ending-started', hpLost, simulated };
   }
 
   const transition = events.find(
@@ -135,15 +184,16 @@ export function stepBotWorld(world: BotWorld, action: BotAction): BotStep {
       applyFirstVisitRecovery(stepped.session, stepped.adventure, transition.targetRoom),
       result.spawn,
     );
-    return { world: { session: spawned, adventure: result.state }, events, outcome: 'transition', hpLost };
+    return { world: { session: spawned, adventure: result.state }, events, outcome: 'transition', hpLost, simulated };
   }
 
   if (world.session.objective.phase !== 'failed' && stepped.session.objective.phase === 'failed') {
     if (shouldUseLaboratoryCheckpoint(stepped.adventure)) {
+      // App shows HAUNTED! and waits for RETRY PHASE; the bot retries at once.
       const restored = restoreLaboratoryCheckpoint(stepped.session, stepped.adventure);
-      return { world: { session: restored, adventure: stepped.adventure }, events, outcome: 'checkpoint', hpLost };
+      return { world: { session: restored, adventure: stepped.adventure }, events, outcome: 'checkpoint', hpLost, simulated };
     }
-    return { world: { session: stepped.session, adventure: stepped.adventure }, events, outcome: 'died', hpLost };
+    return { world: simulated, events, outcome: 'died', hpLost, simulated };
   }
 
   if (getAdventureEndingPhase(stepped.adventure) === 'ghost-sting') {
@@ -153,10 +203,32 @@ export function stepBotWorld(world: BotWorld, action: BotAction): BotStep {
       events,
       outcome: 'completed',
       hpLost,
+      simulated,
     };
   }
 
-  return { world: { session: stepped.session, adventure: stepped.adventure }, events, outcome: 'running', hpLost };
+  return { world: simulated, events, outcome: 'running', hpLost, simulated };
+}
+
+/** Exploration hit events and the observed threat zone each one must come from. */
+const HIT_EVENT_THREATS: Partial<Record<BotEvent['type'], ThreatKind>> = {
+  HALLWAY_PENDULUM_HIT: 'hallway-pendulum',
+  LIVING_ROOM_STATIC_HIT: 'living-room-static',
+  KITCHEN_SURGE_HIT: 'kitchen-surge',
+  ATTIC_CRATE_HIT: 'attic-crate',
+  BASEMENT_DISCHARGE_HIT: 'basement-discharge',
+  BATHROOM_TWIN_CONTACT_HIT: 'bathroom-twin',
+  LABORATORY_VESPER_PULSE_HIT: 'vesper-pressure',
+  LABORATORY_RESONATOR_SURGE_HIT: 'resonator-electrical',
+  LABORATORY_NIGHTMARE_ATTACK_HIT: 'nightmare-attack',
+};
+
+/** Wally is standing still at a usable object (where a player stops to read its text). */
+export function isStandingAtObject(world: BotWorld): boolean {
+  const { player } = world.session;
+  if (!player.grounded || Math.abs(player.vx) > 1) return false;
+  if (!isAdventureExplorationActive(world.adventure)) return findSystemicObject(world.session.domestic.player.x) !== undefined;
+  return findAdventureInteractionTarget(world.adventure, player.x)?.behavior.type === 'effect';
 }
 
 /** Gameplay invariants every step must respect, whatever the policy does. */
@@ -174,11 +246,13 @@ export function checkBotInvariants(previous: BotWorld, step: BotStep): string[] 
     violations.push(`inactive room: ${adventure.currentRoom}`);
   }
 
+  const exploring = isAdventureExplorationActive(previous.adventure);
   if (step.outcome === 'died') {
-    if (hp !== 0) violations.push(`run failed with ${hp} HP`);
-    if (session.objective.phase !== 'failed' || session.objective.reason !== 'haunted') {
-      violations.push(`unexpected failure objective: ${JSON.stringify(session.objective)}`);
-    }
+    const reason = session.objective.phase === 'failed' ? session.objective.reason : undefined;
+    // The haunted bedroom run can also fail by noise, exhaustion or deadline; exploration only by HP.
+    const allowed = exploring ? reason === 'haunted' : reason !== undefined;
+    if (!allowed) violations.push(`unexpected failure objective: ${JSON.stringify(session.objective)}`);
+    if (reason === 'haunted' && hp !== 0) violations.push(`run failed with ${hp} HP`);
   } else if (session.objective.phase === 'failed') {
     violations.push(`objective failed without a terminal outcome (${step.outcome})`);
   } else if (hp === 0) {
@@ -186,10 +260,26 @@ export function checkBotInvariants(previous: BotWorld, step: BotStep): string[] 
   }
 
   if (step.outcome === 'running' && session.elapsedMs < previous.session.elapsedMs) {
-    violations.push(`exploration clock went backwards: ${previous.session.elapsedMs} -> ${session.elapsedMs}`);
+    violations.push(`game clock went backwards: ${previous.session.elapsedMs} -> ${session.elapsedMs}`);
   }
 
-  if (step.outcome === 'transition' || step.outcome === 'ending-started' || step.outcome === 'checkpoint') {
+  if (exploring) {
+    // Every exploration hit must come from a threat zone the player can see (RoomThreatObservation).
+    const observations = observeRoomThreats(step.simulated.session, step.simulated.adventure);
+    const hitX = step.simulated.session.player.x;
+    let explained = false;
+    for (const event of step.events) {
+      const kind = HIT_EVENT_THREATS[event.type];
+      if (!kind) continue;
+      explained = true;
+      if (!isInsideObservedDanger(observations, hitX, true, kind)) {
+        violations.push(`${event.type} at x=${hitX.toFixed(2)} outside every observed ${kind} danger zone`);
+      }
+    }
+    if (step.hpLost > 0 && !explained) violations.push(`lost ${step.hpLost} HP in exploration without a threat hit event`);
+  }
+
+  if (step.outcome === 'escaped' || step.outcome === 'transition' || step.outcome === 'ending-started' || step.outcome === 'checkpoint') {
     const encoded = encodeAdventureGameSession({ schemaVersion: 3, haunted: session, adventure });
     const decoded = decodeAdventureGameSession(encoded);
     if (decoded.status !== 'ok') {
@@ -205,7 +295,7 @@ export function checkBotInvariants(previous: BotWorld, step: BotStep): string[] 
 // ---------------------------------------------------------------------------
 // Runner
 
-export type BotRoomStats = { timeMs: number; hits: number; deaths: number };
+export type BotRoomStats = { timeMs: number; hits: number; deaths: number; hitsAtObjects: number };
 
 export type BotRunResult = {
   outcome: 'completed' | 'died' | 'stuck' | 'timeout';
@@ -214,6 +304,10 @@ export type BotRunResult = {
   gameTimeMs: number;
   hits: number;
   deaths: number;
+  /** Hits taken while Wally stood still at a usable object (isStandingAtObject) or the policy was reading. */
+  hitsAtObjects: number;
+  /** Game time of every heart lost, in order. */
+  hitTimesMs: number[];
   rooms: Partial<Record<RoomId, BotRoomStats>>;
   /** World snapshot at the first entry into each room (route runs seed fuzz runs from these). */
   roomEntries: Partial<Record<RoomId, BotWorld>>;
@@ -228,8 +322,11 @@ export type BotRunOptions = {
   stopOnRoomExit?: boolean;
 };
 
-function progressSignature(adventure: AdventureState): string {
-  return JSON.stringify([adventure.currentRoom, adventure.storyFlags, adventure.rooms]);
+function progressSignature(world: BotWorld): string {
+  const { adventure, session } = world;
+  // Domestic progress only changes during the haunted bedroom run.
+  const domestic = [session.objective.phase, session.domestic.objectStates, session.domestic.wallyState];
+  return JSON.stringify([adventure.currentRoom, adventure.storyFlags, adventure.rooms, domestic]);
 }
 
 function describeWorld(world: BotWorld): string {
@@ -242,10 +339,12 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
   let gameTimeMs = 0;
   let hits = 0;
   let deaths = 0;
+  let hitsAtObjects = 0;
+  const hitTimesMs: number[] = [];
   const rooms: Partial<Record<RoomId, BotRoomStats>> = {};
   const roomEntries: Partial<Record<RoomId, BotWorld>> = { [start.adventure.currentRoom]: start };
   const violations: string[] = [];
-  let signature = progressSignature(world.adventure);
+  let signature = progressSignature(world);
   let lastProgressMs = 0;
 
   const finish = (outcome: BotRunResult['outcome'], diagnostic: string): BotRunResult => ({
@@ -255,6 +354,8 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
     gameTimeMs,
     hits,
     deaths,
+    hitsAtObjects,
+    hitTimesMs,
     rooms,
     roomEntries,
     violations,
@@ -265,8 +366,10 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
       return finish('stuck', `no reachable goal left (${describeWorld(world)}; ${policy.describe()})`);
     }
     const room = world.adventure.currentRoom;
-    const stats = (rooms[room] ??= { timeMs: 0, hits: 0, deaths: 0 });
-    const step = stepBotWorld(world, policy.act(world));
+    const stats = (rooms[room] ??= { timeMs: 0, hits: 0, deaths: 0, hitsAtObjects: 0 });
+    const action = policy.act(world);
+    const atObject = isStandingAtObject(world) || policy.isReading?.() === true;
+    const step = stepBotWorld(world, action);
     for (const violation of checkBotInvariants(world, step)) {
       if (violations.length < 20) violations.push(`${violation} (${describeWorld(step.world)} t=${Math.round(gameTimeMs)}ms)`);
     }
@@ -276,6 +379,11 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
     if (step.hpLost > 0) {
       hits += step.hpLost;
       stats.hits += step.hpLost;
+      for (let index = 0; index < step.hpLost; index += 1) hitTimesMs.push(gameTimeMs);
+      if (atObject) {
+        hitsAtObjects += step.hpLost;
+        stats.hitsAtObjects += step.hpLost;
+      }
     }
     world = step.world;
 
@@ -283,14 +391,18 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
       deaths += 1;
       stats.deaths += 1;
     }
-    if (step.outcome === 'died') return finish('died', `died (${describeWorld(world)}; ${policy.describe()})`);
+    if (step.outcome === 'died') {
+      const reason = world.session.objective.phase === 'failed' ? world.session.objective.reason : 'unknown';
+      return finish('died', `died: ${reason} (${describeWorld(world)}; ${policy.describe()})`);
+    }
     if (step.outcome === 'completed') return finish('completed', `ending complete (${describeWorld(world)})`);
+    if (step.outcome === 'escaped' && options.stopOnRoomExit) return finish('completed', `escaped the haunted bedroom (${describeWorld(world)})`);
     if (step.outcome === 'transition' || step.outcome === 'ending-started') {
       if (options.stopOnRoomExit) return finish('completed', `left ${room} (${describeWorld(world)})`);
       roomEntries[world.adventure.currentRoom] ??= world;
     }
 
-    const nextSignature = progressSignature(world.adventure);
+    const nextSignature = progressSignature(world);
     if (nextSignature !== signature) {
       signature = nextSignature;
       lastProgressMs = gameTimeMs;
@@ -304,10 +416,10 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
 // ---------------------------------------------------------------------------
 // Route bot: explores every available interaction and dodges with lookahead.
 
-type Goal = { x: number; label: string; interactionId?: string; aimX?: number };
+export type Goal = { x: number; label: string; interactionId?: string; aimX?: number };
 
 const DECISION_STEPS = 3;
-const ARRIVE_DISTANCE = 2.5;
+export const ARRIVE_DISTANCE = 2.5;
 const FIRING_DISTANCE = 28;
 const FIRING_DISTANCES = [16, 22, FIRING_DISTANCE] as const;
 const CONTINUATIONS = ['goal', 'idle', 'hold'] as const;
@@ -317,7 +429,7 @@ const CONTINUATIONS = ['goal', 'idle', 'hold'] as const;
  */
 const NAVIGATION_STEPS = 24;
 
-function clampX(x: number): number {
+export function clampX(x: number): number {
   return Math.min(HAUNTED_PLAYER_BOUNDS.maxX, Math.max(HAUNTED_PLAYER_BOUNDS.minX, x));
 }
 
@@ -327,8 +439,12 @@ function isVisible(adventure: AdventureState, roomId: RoomId, interaction: RoomI
   return !hiddenBy || getRoomState(adventure, roomId).switches[hiddenBy] !== true;
 }
 
-function roomSignature(adventure: AdventureState, roomId: RoomId): string {
-  return JSON.stringify([adventure.storyFlags, adventure.rooms[roomId] ?? null]);
+function roomSignature(adventure: AdventureState, roomId: RoomId, ignoreHazardClocks = false): string {
+  const room = adventure.rooms[roomId] ?? null;
+  if (!ignoreHazardClocks || !room) return JSON.stringify([adventure.storyFlags, room]);
+  // A hazard arming its clock ('*-armed') is not news a player would re-read objects for.
+  const interactions = room.interactions.filter(interaction => !interaction.endsWith('-armed'));
+  return JSON.stringify([adventure.storyFlags, { ...room, interactions }]);
 }
 
 /** Dream Spark targets currently on stage; empty outside the twin and Laboratory fights. */
@@ -387,21 +503,106 @@ function turningMove(world: BotWorld, aimDirection: -1 | 1): -1 | 1 {
   return aimDirection;
 }
 
-function interactsWith(world: BotWorld, goal: Goal): boolean {
+export function interactsWith(world: BotWorld, goal: Goal): boolean {
   if (!goal.interactionId) return false;
   return findAdventureInteractionTarget(world.adventure, world.session.player.x)?.id === goal.interactionId;
 }
 
-export class RouteBot implements BotPolicy {
+/**
+ * Route knowledge shared by the route bot and the human-model bot: tries every
+ * visible object once per room state, then walks to the nearest room that is
+ * unvisited or has something untried.
+ */
+export class RoutePlanner {
   private readonly attempted = new Set<string>();
-  /** Interactions the bot reached but could not select because another target wins at that spot. */
+  /** Interactions reached but not selectable because another target wins at that spot. */
   readonly shadowed = new Set<string>();
+
+  /**
+   * Objects are retried whenever their room state changes. `ignoreHazardClocks`
+   * (human model) does not count a hazard arming its clock as such a change.
+   */
+  constructor(private readonly ignoreHazardClocks = false) {}
+
+  private signature(adventure: AdventureState, roomId: RoomId): string {
+    return roomSignature(adventure, roomId, this.ignoreHazardClocks);
+  }
+
+  markAttempted(adventure: AdventureState, interactionId: string): void {
+    const room = adventure.currentRoom;
+    this.attempted.add(`${room}|${interactionId}|${this.signature(adventure, room)}`);
+  }
+
+  markShadowed(adventure: AdventureState, interactionId: string): void {
+    this.shadowed.add(`${adventure.currentRoom}:${interactionId}`);
+    this.markAttempted(adventure, interactionId);
+  }
+
+  /** Nearest untried object in this room, else the first exit toward a room with something left to do. */
+  nextInteraction(world: BotWorld): Goal | undefined {
+    const { adventure, session } = world;
+    const playerX = session.player.x;
+    const room = adventure.currentRoom;
+    const effects = this.untriedEffects(adventure, room)
+      .sort((a, b) => Math.abs(a.x - playerX) - Math.abs(b.x - playerX));
+    if (effects[0]) return { x: clampX(effects[0].x), interactionId: effects[0].id, label: `${room}:${effects[0].id}` };
+
+    const exit = this.nextExit(adventure);
+    if (exit) return { x: clampX(exit.x), interactionId: exit.id, label: `${room}:${exit.id}` };
+    return undefined;
+  }
+
+  private untriedEffects(adventure: AdventureState, roomId: RoomId): RoomInteractionDefinition[] {
+    const room = findActiveRoom(roomId);
+    if (!room) return [];
+    const signature = this.signature(adventure, roomId);
+    return room.interactions.filter(interaction =>
+      interaction.behavior.type === 'effect'
+      && isVisible(adventure, roomId, interaction)
+      && !this.attempted.has(`${roomId}|${interaction.id}|${signature}`));
+  }
+
+  /** Breadth-first search to the nearest room that is unvisited or has untried interactions. */
+  private nextExit(adventure: AdventureState): RoomInteractionDefinition | undefined {
+    const start = adventure.currentRoom;
+    const seen = new Set<RoomId>([start]);
+    const queue: { room: RoomId; first?: RoomInteractionDefinition }[] = [{ room: start }];
+    while (queue.length > 0) {
+      const { room, first } = queue.shift()!;
+      for (const interaction of findActiveRoom(room)?.interactions ?? []) {
+        if (interaction.behavior.type !== 'exit' || !isVisible(adventure, room, interaction)) continue;
+        const exit = getRoomExit(room, interaction.behavior.exitId);
+        if (!exit || seen.has(exit.targetRoom)) continue;
+        seen.add(exit.targetRoom);
+        const firstHop = first ?? interaction;
+        const wanted = !adventure.visitedRooms.includes(exit.targetRoom)
+          || this.untriedEffects(adventure, exit.targetRoom).length > 0;
+        if (wanted) return firstHop;
+        queue.push({ room: exit.targetRoom, first: firstHop });
+      }
+    }
+    return undefined;
+  }
+}
+
+/** Standing on the goal spot but the runtime resolves a different interaction there. */
+export function isGoalShadowed(world: BotWorld, goal: Goal): boolean {
+  const player = world.session.player;
+  if (Math.abs(goal.x - player.x) > ARRIVE_DISTANCE || Math.abs(player.vx) > 1 || !player.grounded) return false;
+  return !interactsWith(world, goal);
+}
+
+export class RouteBot implements BotPolicy {
+  private readonly planner = new RoutePlanner();
+  /** Interactions the bot reached but could not select because another target wins at that spot. */
+  readonly shadowed = this.planner.shadowed;
   private readonly horizonSteps: number;
   private readonly readSteps: number;
   private reading: { x: number; stepsLeft: number; label: string } | undefined;
   private current: BotAction = IDLE_ACTION;
   private stepsUntilDecision = 0;
   private goal: Goal | undefined = { x: 0, label: 'start' };
+  private firing: { key: string; x: number } | undefined;
 
   /**
    * `reactionMs` is how far ahead the bot sees danger; 0 never dodges.
@@ -428,10 +629,8 @@ export class RouteBot implements BotPolicy {
       return { ...this.current, jump: false, interact: false };
     }
     this.goal = this.resolveGoal(world);
-    while (this.goal?.interactionId && this.isShadowed(world, this.goal)) {
-      const room = world.adventure.currentRoom;
-      this.shadowed.add(`${room}:${this.goal.interactionId}`);
-      this.attempted.add(`${room}|${this.goal.interactionId}|${roomSignature(world.adventure, room)}`);
+    while (this.goal?.interactionId && isGoalShadowed(world, this.goal)) {
+      this.planner.markShadowed(world.adventure, this.goal.interactionId);
       this.goal = this.resolveGoal(world);
     }
     if (!this.goal) return IDLE_ACTION;
@@ -439,7 +638,7 @@ export class RouteBot implements BotPolicy {
     const action = this.choose(world, this.goal);
     if (action.interact && this.goal.interactionId) {
       const room = world.adventure.currentRoom;
-      this.attempted.add(`${room}|${this.goal.interactionId}|${roomSignature(world.adventure, room)}`);
+      this.planner.markAttempted(world.adventure, this.goal.interactionId);
       const used = findActiveRoom(room)?.interactions.find(interaction => interaction.id === this.goal?.interactionId);
       if (used?.behavior.type === 'effect' && this.readSteps > 0) {
         this.reading = { x: world.session.player.x, stepsLeft: this.readSteps, label: `reading after ${used.id}` };
@@ -450,42 +649,21 @@ export class RouteBot implements BotPolicy {
     return action;
   }
 
-  /** Standing on the goal spot but the runtime resolves a different interaction there. */
-  private isShadowed(world: BotWorld, goal: Goal): boolean {
-    const player = world.session.player;
-    if (Math.abs(goal.x - player.x) > ARRIVE_DISTANCE || Math.abs(player.vx) > 1 || !player.grounded) return false;
-    return !interactsWith(world, goal);
-  }
-
-  private untriedEffects(adventure: AdventureState, roomId: RoomId): RoomInteractionDefinition[] {
-    const room = findActiveRoom(roomId);
-    if (!room) return [];
-    const signature = roomSignature(adventure, roomId);
-    return room.interactions.filter(interaction =>
-      interaction.behavior.type === 'effect'
-      && isVisible(adventure, roomId, interaction)
-      && !this.attempted.has(`${roomId}|${interaction.id}|${signature}`));
-  }
-
   private resolveGoal(world: BotWorld): Goal | undefined {
-    const { adventure, session } = world;
-    const playerX = session.player.x;
+    const playerX = world.session.player.x;
     const targets = combatTargets(world);
     if (targets.length > 0) {
       const target = targets.reduce((best, x) => (Math.abs(x - playerX) < Math.abs(best - playerX) ? x : best));
-      return { x: this.firingPosition(world, target), aimX: target, label: `fight target@${Math.round(target)}` };
+      // Keep one firing spot per target: recomputing the nearest spot every decision made Wally
+      // oscillate between two equally near spots without ever turning to fire.
+      const key = isBathroomTwinActive(world.adventure) ? 'bathroom-twin' : `${getLaboratoryEncounterPhase(world.adventure)}:${target}`;
+      if (this.firing?.key !== key) this.firing = { key, x: this.firingPosition(world, target) };
+      return { x: this.firing.x, aimX: target, label: `fight target@${Math.round(target)}` };
     }
+    this.firing = undefined;
 
     if (this.reading) return { x: this.reading.x, label: this.reading.label };
-
-    const room = adventure.currentRoom;
-    const effects = this.untriedEffects(adventure, room)
-      .sort((a, b) => Math.abs(a.x - playerX) - Math.abs(b.x - playerX));
-    if (effects[0]) return { x: clampX(effects[0].x), interactionId: effects[0].id, label: `${room}:${effects[0].id}` };
-
-    const exit = this.nextExit(adventure);
-    if (exit) return { x: clampX(exit.x), interactionId: exit.id, label: `${room}:${exit.id}` };
-    return undefined;
+    return this.planner.nextInteraction(world);
   }
 
   /** Nearest spot within spark range of the target, preferring spots outside the phase's hazard lanes. */
@@ -504,28 +682,6 @@ export class RouteBot implements BotPolicy {
       }
     }
     return best.x;
-  }
-
-  /** Breadth-first search to the nearest room that is unvisited or has untried interactions. */
-  private nextExit(adventure: AdventureState): RoomInteractionDefinition | undefined {
-    const start = adventure.currentRoom;
-    const seen = new Set<RoomId>([start]);
-    const queue: { room: RoomId; first?: RoomInteractionDefinition }[] = [{ room: start }];
-    while (queue.length > 0) {
-      const { room, first } = queue.shift()!;
-      for (const interaction of findActiveRoom(room)?.interactions ?? []) {
-        if (interaction.behavior.type !== 'exit' || !isVisible(adventure, room, interaction)) continue;
-        const exit = getRoomExit(room, interaction.behavior.exitId);
-        if (!exit || seen.has(exit.targetRoom)) continue;
-        seen.add(exit.targetRoom);
-        const firstHop = first ?? interaction;
-        const wanted = !adventure.visitedRooms.includes(exit.targetRoom)
-          || this.untriedEffects(adventure, exit.targetRoom).length > 0;
-        if (wanted) return firstHop;
-        queue.push({ room: exit.targetRoom, first: firstHop });
-      }
-    }
-    return undefined;
   }
 
   /**

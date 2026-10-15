@@ -1,10 +1,33 @@
 import { deepEqual, equal, test } from './assert';
 import { encodeAdventureGameSession } from '../src/game/adventure/AdventureSessionCodec';
 import { isAdventureEndingComplete } from '../src/game/adventure/AdventureEnding';
+import { isAdventureExplorationActive } from '../src/game/adventure/AdventureExplorationRuntime';
+import { setRoomSwitch } from '../src/game/adventure/AdventureState';
+import { armBasementElectricalHazard, BASEMENT_ELECTRICAL_HAZARD } from '../src/game/adventure/BasementElectricalHazard';
 import { ACTIVE_ROOM_IDS } from '../src/game/adventure/RoomRegistry';
-import { createBotStart, RandomBot, RouteBot, runBot, type BotRunResult } from './support/AdventureBot';
+import { observeRoomThreats } from '../src/game/adventure/RoomThreatObservation';
+import {
+  BOT_STEP_MS,
+  createBotNewGame,
+  createBotStart,
+  IDLE_ACTION,
+  RandomBot,
+  RouteBot,
+  runBot,
+  stepBotWorld,
+  type BotAction,
+  type BotPolicy,
+  type BotRunResult,
+  type BotWorld,
+} from './support/AdventureBot';
+import { HUMAN_LATENCY_MS, HUMAN_REACTION_MS, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
+import { explorationIn, THREAT_SESSION } from './support/ThreatScenarios';
+
+function ok(value: unknown, message: string) { if (!value) throw new Error(message); }
 
 const ROUTE_OPTIONS = { maxGameMs: 20 * 60_000, stallMs: 120_000 };
+const ROOM_OPTIONS = { maxGameMs: 3 * 60_000, stallMs: 60_000, stopOnRoomExit: true };
+const RESPONSES: readonly HumanThreatResponse[] = ['always', 'not-while-reading', 'never'];
 
 function summary(result: BotRunResult) {
   return {
@@ -12,8 +35,32 @@ function summary(result: BotRunResult) {
     gameTimeMs: result.gameTimeMs,
     hits: result.hits,
     deaths: result.deaths,
+    hitTimesMs: result.hitTimesMs,
+    rooms: result.rooms,
     save: encodeAdventureGameSession({ schemaVersion: 3, haunted: result.world.session, adventure: result.world.adventure }),
   };
+}
+
+function softlocked(result: BotRunResult): boolean {
+  return result.outcome === 'stuck' || result.outcome === 'timeout';
+}
+
+function withFullHp(world: BotWorld): BotWorld {
+  return { ...world, session: { ...world.session, combat: { ...world.session.combat, hp: world.session.combat.maxHp } } };
+}
+
+/** Records every action a policy emits, as the harness applies it. */
+class Recorder implements BotPolicy {
+  readonly actions: BotAction[] = [];
+  constructor(private readonly inner: BotPolicy) {}
+  act(world: BotWorld): BotAction {
+    const action = this.inner.act(world);
+    this.actions.push(action);
+    return action;
+  }
+  describe(): string { return this.inner.describe(); }
+  hasGoal(): boolean { return this.inner.hasGoal?.() ?? true; }
+  isReading(): boolean { return this.inner.isReading?.() ?? false; }
 }
 
 const route = runBot(createBotStart('qa-bot-route'), new RouteBot(800), ROUTE_OPTIONS);
@@ -30,14 +77,8 @@ void test('QA route bot plays from the false escape to the completed ending', ()
 
 void test('QA route bot without dodging never softlocks or breaks invariants', () => {
   const result = runBot(createBotStart('qa-bot-no-dodge'), new RouteBot(0), ROUTE_OPTIONS);
-  equal(result.outcome === 'stuck' || result.outcome === 'timeout', false, `no softlock (${result.diagnostic})`);
+  equal(softlocked(result), false, `no softlock (${result.diagnostic})`);
   deepEqual(result.violations, [], 'no-dodge run keeps every gameplay invariant');
-});
-
-void test('QA bot runs are deterministic', () => {
-  const first = runBot(createBotStart('qa-bot-determinism'), new RouteBot(400), ROUTE_OPTIONS);
-  const second = runBot(createBotStart('qa-bot-determinism'), new RouteBot(400), ROUTE_OPTIONS);
-  deepEqual(summary(second), summary(first), 'same start and policy reproduce the same run');
 });
 
 void test('QA random fuzz from every room entry keeps gameplay invariants', () => {
@@ -49,4 +90,96 @@ void test('QA random fuzz from every room entry keeps gameplay invariants', () =
       deepEqual(result.violations, [], `random run ${room}#${seed} keeps every gameplay invariant`);
     }
   }
+});
+
+void test('HumanBot keeps to one thumb and its first inputs wait for the input latency', () => {
+  const runs: Recorder[] = [];
+  const bedroom = new Recorder(new HumanBot({ seed: 'thumb-bedroom' }));
+  runBot(createBotNewGame('thumb-bedroom'), bedroom, ROOM_OPTIONS);
+  runs.push(bedroom);
+  for (const room of ['kitchen', 'laboratory'] as const) {
+    const recorder = new Recorder(new HumanBot({ seed: `thumb-${room}` }));
+    runBot(withFullHp(route.roomEntries[room]!), recorder, ROOM_OPTIONS);
+    runs.push(recorder);
+  }
+  const latencySteps = Math.ceil(HUMAN_LATENCY_MS / BOT_STEP_MS - 1e-9);
+  for (const recorder of runs) {
+    ok(recorder.actions.length > 100, 'the human-model run plays for a while');
+    deepEqual(recorder.actions.slice(0, latencySteps), Array(latencySteps).fill(IDLE_ACTION), 'nothing lands before the input latency');
+    recorder.actions.forEach((action, index) => {
+      const taps = Number(action.jump) + Number(action.attack) + Number(action.interact);
+      ok(taps <= 1, `step ${index}: at most one button tapped`);
+      ok(taps === 0 || action.move === 0, `step ${index}: a tap releases the held direction`);
+    });
+    ok(recorder.actions.some(action => action.attack || action.interact || action.jump), 'the run taps buttons');
+  }
+});
+
+void test('HumanBot reacts to a threat no sooner than its reaction time plus input latency', () => {
+  const armed = armBasementElectricalHazard(setRoomSwitch(explorationIn('basement'), 'basement', 'basement-control-revealed', true), 4_000);
+  let world: BotWorld = {
+    adventure: armed.adventure,
+    session: { ...THREAT_SESSION, elapsedMs: armed.elapsedMs, player: { ...THREAT_SESSION.player, x: 108, vx: 0, grounded: true } },
+  };
+  // A long hesitation leaves threat reactions as the only thing the bot does.
+  const bot = new HumanBot({ startDelayMs: 60_000 });
+  let warningStep: number | undefined;
+  let reactionStep: number | undefined;
+  for (let step = 0; step < 90 && reactionStep === undefined; step += 1) {
+    if (warningStep === undefined && observeRoomThreats(world.session, world.adventure).some(threat => threat.phase === 'warning')) warningStep = step;
+    const action = bot.act(world);
+    if (action.move !== 0) reactionStep = step;
+    world = stepBotWorld(world, action).world;
+  }
+  ok(warningStep !== undefined, 'the discharge warning appears');
+  ok(Math.abs(warningStep! * BOT_STEP_MS - BASEMENT_ELECTRICAL_HAZARD.safeLeadMs) <= 2 * BOT_STEP_MS, 'warning appears after the safe lead');
+  ok(reactionStep !== undefined, 'the bot steps out of the warned zone');
+  const minimum = Math.ceil(HUMAN_REACTION_MS / BOT_STEP_MS - 1e-9) + Math.ceil(HUMAN_LATENCY_MS / BOT_STEP_MS - 1e-9);
+  const delay = reactionStep! - warningStep!;
+  ok(delay >= minimum && delay <= minimum + 1, `reaction lands ${delay} steps after the warning (expected ${minimum})`);
+});
+
+void test('HumanBot, the reader probe and the no-dodge walker never softlock from any room entry', () => {
+  for (const room of ACTIVE_ROOM_IDS) {
+    if (room === 'bedroom') continue;
+    const entry = withFullHp(route.roomEntries[room]!);
+    for (const threatResponse of RESPONSES) {
+      for (const startDelayMs of [0, 1_000, 2_000]) {
+        const result = runBot(entry, new HumanBot({ threatResponse, startDelayMs, seed: `gate-${room}` }), ROOM_OPTIONS);
+        const label = `${room} ${threatResponse} +${startDelayMs}ms`;
+        equal(softlocked(result), false, `${label}: no softlock (${result.diagnostic})`);
+        deepEqual(result.violations, [], `${label}: keeps every gameplay invariant`);
+      }
+    }
+  }
+});
+
+void test('the haunted bedroom is played for real: HumanBot escapes and every policy keeps the invariants', () => {
+  for (const seed of ['gate-bedroom-a', 'gate-bedroom-b']) {
+    for (const threatResponse of RESPONSES) {
+      for (const startDelayMs of [0, 1_000, 2_000]) {
+        const result = runBot(createBotNewGame(seed), new HumanBot({ threatResponse, startDelayMs, seed }), ROOM_OPTIONS);
+        const label = `bedroom ${seed} ${threatResponse} +${startDelayMs}ms`;
+        equal(softlocked(result), false, `${label}: no softlock (${result.diagnostic})`);
+        deepEqual(result.violations, [], `${label}: keeps every gameplay invariant`);
+        if (threatResponse === 'always') {
+          equal(result.outcome, 'completed', `${label}: the human model escapes the haunted bedroom (${result.diagnostic})`);
+          equal(isAdventureExplorationActive(result.world.adventure), true, `${label}: the App's false escape follows the haunted run`);
+          equal(result.world.session.player.x, 24, `${label}: Wally restarts at the false-escape spot`);
+        }
+      }
+    }
+    const idle = runBot(createBotNewGame(seed), new IdleBot(), ROOM_OPTIONS);
+    equal(idle.outcome, 'died', 'an idle player is eventually caught by the haunting');
+    deepEqual(idle.violations, [], 'idle bedroom run keeps every gameplay invariant');
+  }
+});
+
+void test('HumanBot plays from a new game without softlocks, deterministically', () => {
+  const first = runBot(createBotNewGame('qa-bot-human'), new HumanBot({ seed: 'qa-bot-human' }), ROUTE_OPTIONS);
+  const second = runBot(createBotNewGame('qa-bot-human'), new HumanBot({ seed: 'qa-bot-human' }), ROUTE_OPTIONS);
+  equal(softlocked(first), false, `no softlock (${first.diagnostic})`);
+  deepEqual(first.violations, [], 'human-model run keeps every gameplay invariant');
+  ok(Object.keys(first.rooms).length >= 4, 'the run gets well past the bedroom');
+  deepEqual(summary(second), summary(first), 'same start and policy reproduce the same run');
 });
