@@ -19,8 +19,8 @@ import {
   type BotPolicy,
   type BotRunResult,
   type BotWorld,
-} from './support/AdventureBot';
-import { GhostHuggerBot, HUMAN_LATENCY_MS, HUMAN_REACTION_MS, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
+} from '../src/game/bot/AdventureBot';
+import { GhostHuggerBot, HUMAN_LATENCY_MS, HUMAN_REACTION_MS, HumanBot, IdleBot, type HumanThreatResponse } from '../src/game/bot/HumanBot';
 import { explorationIn, THREAT_SESSION } from './support/ThreatScenarios';
 
 function ok(value: unknown, message: string) { if (!value) throw new Error(message); }

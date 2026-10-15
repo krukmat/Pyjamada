@@ -61,6 +61,8 @@ type Props = {
   transitionPhase?: RoomTransitionPhase;
   presentationRuntime: PresentationRuntime;
   touchControlLayout: TouchControlLayout;
+  /** The QA bot is playing (DEMO): show it and leave the deck to the bot. */
+  demo?: boolean;
   onHeldControl: (control: HauntedHeldControl, pressed: boolean) => void;
   onAction: (control: HauntedActionControl) => void;
   onRestart: () => void;
@@ -74,6 +76,7 @@ export function HauntedGameScreen({
   transitionPhase = 'idle',
   presentationRuntime,
   touchControlLayout,
+  demo = false,
   onHeldControl,
   onAction,
   onRestart,
@@ -115,7 +118,7 @@ export function HauntedGameScreen({
       <View style={[styles.cabinet, { width: viewport.width + 8 }]}>
         <View style={styles.marquee}>
           <View style={styles.marqueeMission}>
-            <Text style={styles.kicker}>{endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
+            <Text testID={demo ? 'demo-banner' : undefined} style={styles.kicker}>{demo ? 'DEMO · BOT PLAYING · BACK TO MENU TO STOP' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
             <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           </View>
           {exploration && !endingActive && (

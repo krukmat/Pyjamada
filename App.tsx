@@ -24,6 +24,7 @@ import {
 import {
   beginAdventureEnding,
   completeAdventureEnding,
+  getAdventureEndingPhase,
   isAdventureEndingComplete,
   shouldBeginAdventureEnding,
 } from './src/game/adventure/AdventureEnding';
@@ -33,6 +34,8 @@ import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessi
 import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
 import { shouldUseLaboratoryCheckpoint } from './src/game/adventure/LaboratoryEncounter';
 import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from './src/game/adventure/RoomCheckpoint';
+import { toInput } from './src/game/bot/AdventureBot';
+import { HumanBot } from './src/game/bot/HumanBot';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
 import { advanceFixedStep, HAUNTED_STEP_MS } from './src/game/haunted/FixedStepClock';
 import { createHauntedInputState, pressAction, setHeldControl, type HauntedActionControl, type HauntedHeldControl } from './src/game/haunted/HauntedInput';
@@ -74,6 +77,12 @@ export default function App() {
 
   const saves = useMemo(() => new AsyncStorageAdventureGameSaveRepository(), []);
   const saveCoordinator = useMemo(() => new AdventureSaveCoordinator(saves), [saves]);
+  // Demo: the human-model QA bot plays a throwaway run. It never touches the save.
+  const demoBotRef = useRef<HumanBot | null>(null);
+  const demoAutoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [demo, setDemo] = useState(false);
+  const persistRun: AdventureSaveCoordinator['persist'] = (state, reason) =>
+    demoBotRef.current ? Promise.resolve(false) : saveCoordinator.persist(state, reason);
   const settingsRepository = useMemo(() => new AsyncStorageGameSettingsRepository(), []);
   const loadSettings = useMemo(() => new LoadGameSettingsUseCase(settingsRepository), [settingsRepository]);
   const updateSettings = useMemo(() => new UpdateGameSettingsUseCase(settingsRepository), [settingsRepository]);
@@ -116,6 +125,7 @@ export default function App() {
 
       const current = sessionRef.current;
       if (!current) return;
+      scheduleDemoAdvance(current);
       const now = Date.now();
       if (lastFrameMsRef.current === null) {
         lastFrameMsRef.current = now;
@@ -134,7 +144,7 @@ export default function App() {
         let nextAdventure = currentAdventure;
         const events: AdventureExplorationEvent[] = [];
         for (let index = 0; index < fixed.steps; index += 1) {
-          const stepped = stepAdventureExploration(nextSession, nextAdventure, HAUNTED_STEP_MS);
+          const stepped = stepAdventureExploration(withDemoInput(nextSession, nextAdventure), nextAdventure, HAUNTED_STEP_MS);
           nextSession = stepped.session;
           nextAdventure = stepped.adventure;
           events.push(...stepped.events);
@@ -144,7 +154,7 @@ export default function App() {
         if (nextAdventure !== currentAdventure) activateAdventure(nextAdventure);
 
         if (shouldBeginAdventureEnding(nextAdventure)) {
-          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
+          void persistRun(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
           beginEndingTransition(nextSession, nextAdventure);
           return;
         }
@@ -157,12 +167,12 @@ export default function App() {
 
         const explorationFailed = current.objective.phase !== 'failed' && nextSession.objective.phase === 'failed';
         if (explorationFailed) {
-          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'terminal').catch(() => undefined);
+          void persistRun(gameState(nextSession, nextAdventure), 'terminal').catch(() => undefined);
           return;
         }
 
         if (events.some(event => event.type === 'BASEMENT_DISCHARGE_HIT' || event.type === 'KITCHEN_SURGE_HIT' || event.type === 'LIVING_ROOM_STATIC_HIT' || event.type === 'HALLWAY_PENDULUM_HIT' || event.type === 'ATTIC_CRATE_HIT' || event.type === 'BATHROOM_TWIN_CONTACT_HIT' || event.type === 'BATHROOM_TWIN_HIT' || event.type === 'BATHROOM_TWIN_DISPELLED' || event.type === 'LABORATORY_VESPER_PULSE_HIT' || event.type === 'LABORATORY_RESONATOR_SURGE_HIT' || event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT')) {
-          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
+          void persistRun(gameState(nextSession, nextAdventure), 'interaction').catch(() => undefined);
           return;
         }
 
@@ -202,7 +212,7 @@ export default function App() {
           || event.type === 'LABORATORY_ENCOUNTER_COMPLETED'
           || event.type === 'ENDING_EVIDENCE_CONFIRMED'
           || event.type === 'ENDING_GHOST_STING_REVEALED')) {
-          void saveCoordinator.persist(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
+          void persistRun(gameState(nextSession, nextAdventure), 'milestone').catch(() => undefined);
         }
         return;
       }
@@ -213,7 +223,7 @@ export default function App() {
       let saveReason: AdventureSaveReason = 'periodic';
       let falseEscape = false;
       for (let index = 0; index < fixed.steps; index += 1) {
-        const stepped = stepHauntedSession(next, HAUNTED_STEP_MS);
+        const stepped = stepHauntedSession(withDemoInput(next, currentAdventure), HAUNTED_STEP_MS);
         next = stepped.state;
         if (stepped.events.some((event) => event.type === 'DOMESTIC_INTERACTION')) saveReason = 'interaction';
         if (stepped.events.some((event) => event.type === 'ESCAPE_READY')) saveReason = 'milestone';
@@ -226,7 +236,7 @@ export default function App() {
         beginFalseEscape(next, currentAdventure);
         return;
       }
-      void saveCoordinator.persist(gameState(next, currentAdventure), saveReason).catch(() => undefined);
+      void persistRun(gameState(next, currentAdventure), saveReason).catch(() => undefined);
     }, 16);
 
     return () => clearInterval(timer);
@@ -283,7 +293,7 @@ export default function App() {
       resetRuntimeClocks();
       activateAdventure(transformed.adventure);
       activateSession(transformed.session);
-      void saveCoordinator.persist(gameState(transformed.session, transformed.adventure), 'milestone').catch(() => undefined);
+      void persistRun(gameState(transformed.session, transformed.adventure), 'milestone').catch(() => undefined);
     });
   }
 
@@ -293,7 +303,7 @@ export default function App() {
       resetRuntimeClocks();
       activateAdventure(started.adventure);
       activateSession(started.session);
-      void saveCoordinator.persist(gameState(started.session, started.adventure), 'milestone').catch(() => undefined);
+      void persistRun(gameState(started.session, started.adventure), 'milestone').catch(() => undefined);
     });
   }
 
@@ -306,7 +316,7 @@ export default function App() {
       resetRuntimeClocks();
       activateAdventure(result.state);
       activateSession(spawned);
-      void saveCoordinator.persist(gameState(spawned, result.state), 'room-transition').catch(() => undefined);
+      void persistRun(gameState(spawned, result.state), 'room-transition').catch(() => undefined);
     });
   }
 
@@ -381,7 +391,7 @@ export default function App() {
       resetRuntimeClocks();
       activateGameSession(restoredState);
       if (restoredState !== result.state) {
-        await saveCoordinator.persist(restoredState, 'milestone').catch(() => undefined);
+        await persistRun(restoredState, 'milestone').catch(() => undefined);
       }
       const endingComplete = isAdventureEndingComplete(restoredState.adventure);
       setCompletedRun(endingComplete);
@@ -393,7 +403,46 @@ export default function App() {
     }
   }
 
+  function withDemoInput(state: HauntedSessionState, currentAdventure: AdventureState): HauntedSessionState {
+    const bot = demoBotRef.current;
+    return bot ? { ...state, input: toInput(bot.act({ session: state, adventure: currentAdventure })) } : state;
+  }
+
+  /** In the demo nobody presses RETRY or END NIGHT: the App does it after a short beat. */
+  function scheduleDemoAdvance(current: HauntedSessionState) {
+    if (!demoBotRef.current || demoAutoRef.current !== null) return;
+    const failed = current.objective.phase === 'failed';
+    if (!failed && getAdventureEndingPhase(adventureRef.current) !== 'ghost-sting') return;
+    demoAutoRef.current = setTimeout(() => {
+      demoAutoRef.current = null;
+      if (!demoBotRef.current) return;
+      if (!failed) { void handleFinishEnding(); return; }
+      // A bedroom death restarts the run; the bot starts over with it.
+      if (!isAdventureExplorationActive(adventureRef.current)) demoBotRef.current = new HumanBot({ seed: `demo-${Date.now()}` });
+      void handleRestart();
+    }, 1_800);
+  }
+
+  function stopDemo() {
+    if (demoAutoRef.current !== null) clearTimeout(demoAutoRef.current);
+    demoAutoRef.current = null;
+    demoBotRef.current = null;
+    setDemo(false);
+  }
+
+  function handleDemo() {
+    leaveScreenshotMode();
+    clearTransitionTimers();
+    const next = createAdventureGameSession(`demo-${Date.now()}`);
+    demoBotRef.current = new HumanBot({ seed: next.haunted.runId });
+    setDemo(true);
+    resetRuntimeClocks();
+    activateGameSession(next);
+    setView('game');
+  }
+
   function handleHeldControl(control: HauntedHeldControl, pressed: boolean) {
+    if (demoBotRef.current) return;
     if (screenshotScenarioRef.current !== null || transitionLockRef.current) return;
     const current = sessionRef.current;
     if (!current || current.objective.phase === 'failed') return;
@@ -402,6 +451,7 @@ export default function App() {
   }
 
   function handleAction(control: HauntedActionControl) {
+    if (demoBotRef.current) return;
     if (screenshotScenarioRef.current !== null || transitionLockRef.current) return;
     const current = sessionRef.current;
     if (!current || current.objective.phase === 'failed') return;
@@ -421,11 +471,15 @@ export default function App() {
 
     const completed = gameState(current, nextAdventure);
     try {
-      await saveCoordinator.persist(completed, 'terminal');
+      await persistRun(completed, 'terminal');
       activateAdventure(nextAdventure);
       resetRuntimeClocks();
-      setCanContinue(true);
-      setCompletedRun(true);
+      if (demoBotRef.current) {
+        stopDemo();
+      } else {
+        setCanContinue(true);
+        setCompletedRun(true);
+      }
       setView('ending');
     } catch {
       Alert.alert('Ending not saved', 'The ending could not be persisted. Try END NIGHT again.');
@@ -444,7 +498,7 @@ export default function App() {
       resetRuntimeClocks();
       activateGameSession(restored);
       try {
-        await saveCoordinator.persist(restored, 'milestone');
+        await persistRun(restored, 'milestone');
       } catch {
         Alert.alert('Retry not saved', 'The room restarted, but the checkpoint state was not persisted.');
       }
@@ -455,7 +509,7 @@ export default function App() {
     resetRuntimeClocks();
     activateGameSession(next);
     try {
-      await saveCoordinator.persist(next, 'milestone');
+      await persistRun(next, 'milestone');
     } catch {
       Alert.alert('Restart not saved', 'The run restarted, but the reset state was not persisted.');
     }
@@ -467,8 +521,9 @@ export default function App() {
     clearTransitionTimers();
     const current = sessionRef.current;
     if (current && !screenshotMode) {
-      await saveCoordinator.persist(gameState(current, adventureRef.current), 'exit-menu').catch(() => undefined);
+      await persistRun(gameState(current, adventureRef.current), 'exit-menu').catch(() => undefined);
     }
+    stopDemo();
     resetRuntimeClocks();
     setView('menu');
   }
@@ -512,6 +567,7 @@ export default function App() {
           completedRun={completedRun}
           onContinue={() => void handleContinue()}
           onNewGame={() => void handleNewGame(false)}
+          onDemo={handleDemo}
           onSettings={() => setView('settings')}
         />
       )}
@@ -533,6 +589,7 @@ export default function App() {
       )}
       {view === 'game' && session !== null && (
         <HauntedGameScreen
+          demo={demo}
           session={session}
           adventure={adventure}
           transitionPhase={transitionPhase}

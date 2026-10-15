@@ -20,18 +20,18 @@
 import {
   findAdventureInteractionTarget,
   isAdventureExplorationActive,
-} from '../../src/game/adventure/AdventureExplorationRuntime';
-import { bathroomTwinX, isBathroomTwinActive } from '../../src/game/adventure/BathroomTwinHazard';
-import { getLaboratoryEncounterPhase } from '../../src/game/adventure/LaboratoryEncounter';
-import { resolveResonatorInstabilityState } from '../../src/game/adventure/LaboratoryResonatorInstability';
-import { findActiveRoom } from '../../src/game/adventure/RoomRegistry';
-import { observeRoomThreats, type ThreatObservation } from '../../src/game/adventure/RoomThreatObservation';
-import { isGhostDangerous, type GhostPhase } from '../../src/game/haunted/HauntedThreats';
-import { HAUNTED_EXIT, isAtHauntedExit } from '../../src/game/haunted/HauntedSessionRuntime';
-import { HAUNTED_PLAYER_BOUNDS, HAUNTED_PLAYER_PHYSICS } from '../../src/game/haunted/PlayerPhysics';
-import { nextSeededRandom, seedFromString } from '../../src/game/haunted/SeededRng';
-import { findSystemicObject, getSystemicObject } from '../../src/game/systemic/SystemicContent';
-import type { SystemicObjectId } from '../../src/game/systemic/SystemicState';
+} from '../adventure/AdventureExplorationRuntime';
+import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
+import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
+import { resolveResonatorInstabilityState } from '../adventure/LaboratoryResonatorInstability';
+import { findActiveRoom } from '../adventure/RoomRegistry';
+import { observeRoomThreats, type ThreatObservation } from '../adventure/RoomThreatObservation';
+import { isGhostDangerous, type GhostPhase } from '../haunted/HauntedThreats';
+import { HAUNTED_EXIT, isAtHauntedExit } from '../haunted/HauntedSessionRuntime';
+import { HAUNTED_PLAYER_BOUNDS, HAUNTED_PLAYER_PHYSICS } from '../haunted/PlayerPhysics';
+import { nextSeededRandom, seedFromString } from '../haunted/SeededRng';
+import { findSystemicObject, getSystemicObject } from '../systemic/SystemicContent';
+import type { SystemicObjectId } from '../systemic/SystemicState';
 import {
   ARRIVE_DISTANCE,
   BOT_STEP_MS,

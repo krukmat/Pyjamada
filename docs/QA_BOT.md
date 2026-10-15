@@ -1,15 +1,24 @@
 # Headless QA bot
 
 The adventure runtime is deterministic pure TypeScript, so bots can play it in
-Node without a device. The harness lives in `tests/support/AdventureBot.ts`,
-the human-model policy in `tests/support/HumanBot.ts`.
+Node without a device. The harness lives in `src/game/bot/AdventureBot.ts`,
+the human-model policy in `src/game/bot/HumanBot.ts`.
 
 ## Commands
 
 ```bash
 npm run test:all   # includes tests/adventure-bot.test.ts and tests/room-threat-observation.test.ts (gates)
 npm run qa:bot     # prints a Markdown balance report (about 15 s); never fails
+npm run bot:watch  # narrates one HumanBot run from NEW GAME (optional seed: npm run bot:watch -- myseed)
 ```
+
+### Watching it play in the app
+
+Main menu -> **DEMO · BOT PLAYS** starts a throwaway run driven by HumanBot,
+the same policy as above, fed into the real App loop one fixed step at a time
+(`withDemoInput` in `App.tsx`). The demo never writes the save, ignores the
+touch deck, presses RETRY / END NIGHT by itself after a short beat, and stops
+with BACK TO MENU. The bots live in `src/game/bot/` for that reason.
 
 ## What the player can see: `observeRoomThreats`
 

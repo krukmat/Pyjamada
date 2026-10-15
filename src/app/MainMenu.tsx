@@ -17,12 +17,14 @@ type Props = {
   completedRun: boolean;
   onContinue: () => void;
   onNewGame: () => void;
+  /** Watch the QA bot play a throwaway run (never saved). */
+  onDemo: () => void;
   onSettings: () => void;
 };
 
 type MenuTier = 'primary' | 'secondary';
 
-export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGame, onSettings }: Props) {
+export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGame, onDemo, onSettings }: Props) {
   return (
     <View testID="main-menu-screen" style={styles.container}>
       <View style={styles.backdropStripeA} />
@@ -53,6 +55,7 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
         <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
         {!canContinue && !busy && <Text style={styles.disabledHint}>NO SAVE YET — START SOMETHING MESSY</Text>}
         <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={onNewGame} />
+        <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={onDemo} />
         <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
 
         <View style={styles.footerRail}>

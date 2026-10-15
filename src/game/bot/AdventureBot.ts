@@ -8,7 +8,7 @@
  * `stepBotWorld` in sync with App.tsx when that orchestration changes; the bot
  * never mutates gameplay rules.
  */
-import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from '../../src/game/adventure/RoomCheckpoint';
+import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from '../adventure/RoomCheckpoint';
 import {
   applyFalseEscape,
   applyFirstVisitRecovery,
@@ -17,32 +17,32 @@ import {
   isLaboratoryCombatEnabled,
   stepAdventureExploration,
   type AdventureExplorationEvent,
-} from '../../src/game/adventure/AdventureExplorationRuntime';
-import { createAdventureGameSession } from '../../src/game/adventure/AdventureGameSession';
+} from '../adventure/AdventureExplorationRuntime';
+import { createAdventureGameSession } from '../adventure/AdventureGameSession';
 import {
   beginAdventureEnding,
   completeAdventureEnding,
   getAdventureEndingPhase,
   shouldBeginAdventureEnding,
-} from '../../src/game/adventure/AdventureEnding';
-import { decodeAdventureGameSession, encodeAdventureGameSession } from '../../src/game/adventure/AdventureSessionCodec';
-import { createAdventureState, getRoomState, type AdventureState, type RoomId } from '../../src/game/adventure/AdventureState';
-import { bathroomTwinX, isBathroomTwinActive } from '../../src/game/adventure/BathroomTwinHazard';
+} from '../adventure/AdventureEnding';
+import { decodeAdventureGameSession, encodeAdventureGameSession } from '../adventure/AdventureSessionCodec';
+import { createAdventureState, getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
+import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
 import {
   getLaboratoryEncounterPhase,
   shouldUseLaboratoryCheckpoint,
-} from '../../src/game/adventure/LaboratoryEncounter';
+} from '../adventure/LaboratoryEncounter';
 import {
   isResonatorWeakPointDisabled,
   RESONATOR_ELECTRICAL_LANES,
   RESONATOR_WEAK_POINTS,
-} from '../../src/game/adventure/LaboratoryResonatorInstability';
+} from '../adventure/LaboratoryResonatorInstability';
 import {
   isVesperControlDeviceDisabled,
   VESPER_CONTROL_DEVICES,
   VESPER_PRESSURE_LANES,
-} from '../../src/game/adventure/LaboratoryVesperControl';
-import { VESPER_NIGHTMARE_TARGET } from '../../src/game/adventure/LaboratoryVesperNightmare';
+} from '../adventure/LaboratoryVesperControl';
+import { VESPER_NIGHTMARE_TARGET } from '../adventure/LaboratoryVesperNightmare';
 import {
   ACTIVE_ROOM_IDS,
   findActiveRoom,
@@ -51,20 +51,20 @@ import {
   transitionAdventure,
   type RoomEntryPoint,
   type RoomInteractionDefinition,
-} from '../../src/game/adventure/RoomRegistry';
-import { isInsideObservedDanger, observeRoomThreats, type ThreatKind } from '../../src/game/adventure/RoomThreatObservation';
-import { PLAYER_GROUND_Y } from '../../src/game/core/World';
-import { HAUNTED_STEP_MS } from '../../src/game/haunted/FixedStepClock';
-import { createHauntedInputState, type HauntedInputState } from '../../src/game/haunted/HauntedInput';
+} from '../adventure/RoomRegistry';
+import { isInsideObservedDanger, observeRoomThreats, type ThreatKind } from '../adventure/RoomThreatObservation';
+import { PLAYER_GROUND_Y } from '../core/World';
+import { HAUNTED_STEP_MS } from '../haunted/FixedStepClock';
+import { createHauntedInputState, type HauntedInputState } from '../haunted/HauntedInput';
 import {
   createHauntedSession,
   stepHauntedSession,
   type HauntedSessionEvent,
   type HauntedSessionState,
-} from '../../src/game/haunted/HauntedSessionRuntime';
-import { findSystemicObject } from '../../src/game/systemic/SystemicContent';
-import { HAUNTED_PLAYER_BOUNDS } from '../../src/game/haunted/PlayerPhysics';
-import { nextSeededRandom, seedFromString } from '../../src/game/haunted/SeededRng';
+} from '../haunted/HauntedSessionRuntime';
+import { findSystemicObject } from '../systemic/SystemicContent';
+import { HAUNTED_PLAYER_BOUNDS } from '../haunted/PlayerPhysics';
+import { nextSeededRandom, seedFromString } from '../haunted/SeededRng';
 
 export const BOT_STEP_MS = HAUNTED_STEP_MS;
 
@@ -118,7 +118,7 @@ export function createBotStart(runId = 'qa-bot'): BotWorld {
   return { session: escaped.session, adventure: escaped.adventure };
 }
 
-function toInput(action: BotAction): HauntedInputState {
+export function toInput(action: BotAction): HauntedInputState {
   return {
     ...createHauntedInputState(),
     left: action.move < 0,

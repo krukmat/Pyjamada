@@ -14,8 +14,8 @@ import {
   runBot,
   type BotRunResult,
   type BotWorld,
-} from './support/AdventureBot';
-import { GhostHuggerBot, HumanBot, IdleBot, type HumanThreatResponse } from './support/HumanBot';
+} from '../src/game/bot/AdventureBot';
+import { GhostHuggerBot, HumanBot, IdleBot, type HumanThreatResponse } from '../src/game/bot/HumanBot';
 import { isTelegraphed, measureWarningLead, THREAT_SCENARIOS } from './support/ThreatScenarios';
 
 const ENTRY_DELAYS_MS = Array.from({ length: 11 }, (_, index) => index * 200);
