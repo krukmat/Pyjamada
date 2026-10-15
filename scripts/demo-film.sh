@@ -15,8 +15,10 @@ done
 SERIAL="${ANDROID_SERIAL:-$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')}"
 [[ -n "$SERIAL" ]] || { echo "no Android device or emulator connected" >&2; exit 1; }
 mkdir -p "$OUT_DIR"
-# Close the app first so the film opens on one cold launch, not a relaunch.
+# Close the app first so the film opens on one cold launch, not a relaunch,
+# and start from the home screen so no other app shows before Pyjamada.
 adb -s "$SERIAL" shell am force-stop com.krukmat.pyjamada
+adb -s "$SERIAL" shell input keyevent KEYCODE_HOME
 adb -s "$SERIAL" shell rm -f '/sdcard/pyjamada-demo-*.mp4'
 
 STOP_FILE="$OUT_DIR/.stop"
