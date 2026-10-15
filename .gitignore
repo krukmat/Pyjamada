@@ -10,3 +10,4 @@ dist/
 
 # Local run artifacts (screenshot failures, maestro reports)
 artifacts/
+films-to-review/
