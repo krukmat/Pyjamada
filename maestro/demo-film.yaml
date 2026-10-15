@@ -1,0 +1,38 @@
+appId: com.krukmat.pyjamada
+name: DEMO film - the QA bot plays one real run
+tags:
+  - android
+  - demo
+---
+# Run through scripts/demo-film.sh (npm run demo:film), which records the
+# screen to video around this flow. Needs no test hooks: DEMO is in every build.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: main-menu-screen
+    timeout: 20000
+- tapOn:
+    id: demo-button
+- extendedWaitUntil:
+    visible:
+      id: demo-banner
+    timeout: 10000
+- evalScript: ${output.last = ''}
+# One still per new numbered moment (start, room entry, hit, down, retry,
+# ending) until the run ends and the DEMO banner goes away.
+- repeat:
+    while:
+      visible:
+        id: demo-banner
+    times: 3000
+    commands:
+      - copyTextFrom:
+          id: demo-moment
+        optional: true
+      - runFlow:
+          when:
+            true: ${maestro.copiedText && maestro.copiedText != output.last}
+          commands:
+            - takeScreenshot:
+                path: ${maestro.copiedText.replace(/[^A-Za-z0-9]+/g, '_')}
+            - evalScript: ${output.last = maestro.copiedText}

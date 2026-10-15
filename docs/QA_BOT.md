@@ -12,6 +12,19 @@ npm run qa:bot     # prints a Markdown balance report (about 15 s); never fails
 npm run bot:watch  # narrates one HumanBot run from NEW GAME (optional seed: npm run bot:watch -- myseed)
 ```
 
+### Filming a real run (video + stills)
+
+`npm run demo:film` needs `adb`, `maestro` and the app installed on a connected
+device or emulator (`npm run android`; no test hooks needed). Maestro starts the
+DEMO while `adb screenrecord` films the screen in 170 s segments (joined with
+`ffmpeg` when available). The App numbers each moment on screen
+(`MOMENT 004 · HIT KITCHEN`, see `src/app/DemoFilm.ts`): start, room entry, hit,
+down, retry and ending, and Maestro takes one still per new moment. Output:
+`artifacts/demo-film/<timestamp>/demo-run.mp4` plus `MOMENT_*.png`.
+
+Unlike `npm run screenshots:android` (fixed, hand-staged scenarios that are
+the same every run), the film shows whatever the bot really ran into.
+
 ### Watching it play in the app
 
 Main menu -> **DEMO · BOT PLAYS** starts a throwaway run driven by HumanBot,

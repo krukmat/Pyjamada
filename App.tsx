@@ -12,6 +12,7 @@ import type { RoomTransitionPhase } from './src/app/RoomTransitionOverlay';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
 import { EndingScreen } from './src/app/EndingScreen';
+import { formatDemoMoment, nextDemoMoment, type DemoFrame, type DemoMoment } from './src/app/DemoFilm';
 import { isTestHooksEnabled } from './src/app/testHooks';
 import {
   applyFirstVisitRecovery,
@@ -25,6 +26,7 @@ import {
   beginAdventureEnding,
   completeAdventureEnding,
   getAdventureEndingPhase,
+  isAdventureEndingActive,
   isAdventureEndingComplete,
   shouldBeginAdventureEnding,
 } from './src/game/adventure/AdventureEnding';
@@ -81,6 +83,9 @@ export default function App() {
   const demoBotRef = useRef<HumanBot | null>(null);
   const demoAutoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [demo, setDemo] = useState(false);
+  // Demo film: numbered moments (room entries, hits, falls) for maestro/demo-film.yaml.
+  const demoFrameRef = useRef<DemoFrame | null>(null);
+  const [demoMoment, setDemoMoment] = useState<DemoMoment | null>(null);
   const persistRun: AdventureSaveCoordinator['persist'] = (state, reason) =>
     demoBotRef.current ? Promise.resolve(false) : saveCoordinator.persist(state, reason);
   const settingsRepository = useMemo(() => new AsyncStorageGameSettingsRepository(), []);
@@ -108,6 +113,19 @@ export default function App() {
   }, [loadSettings, saves]);
 
   useEffect(() => () => clearTransitionTimers(), []);
+
+  useEffect(() => {
+    if (!demo || !session) return;
+    const frame: DemoFrame = {
+      room: adventure.currentRoom,
+      hp: session.combat.hp,
+      failed: session.objective.phase === 'failed',
+      ending: isAdventureEndingActive(adventure),
+    };
+    const prev = demoFrameRef.current;
+    demoFrameRef.current = frame;
+    setDemoMoment(current => nextDemoMoment(prev, frame, current));
+  }, [demo, session, adventure]);
 
   useEffect(() => {
     if (view !== 'game') {
@@ -427,6 +445,8 @@ export default function App() {
     if (demoAutoRef.current !== null) clearTimeout(demoAutoRef.current);
     demoAutoRef.current = null;
     demoBotRef.current = null;
+    demoFrameRef.current = null;
+    setDemoMoment(null);
     setDemo(false);
   }
 
@@ -435,6 +455,8 @@ export default function App() {
     clearTransitionTimers();
     const next = createAdventureGameSession(`demo-${Date.now()}`);
     demoBotRef.current = new HumanBot({ seed: next.haunted.runId });
+    demoFrameRef.current = null;
+    setDemoMoment(null);
     setDemo(true);
     resetRuntimeClocks();
     activateGameSession(next);
@@ -590,6 +612,7 @@ export default function App() {
       {view === 'game' && session !== null && (
         <HauntedGameScreen
           demo={demo}
+          demoMoment={demo && demoMoment ? formatDemoMoment(demoMoment) : undefined}
           session={session}
           adventure={adventure}
           transitionPhase={transitionPhase}
