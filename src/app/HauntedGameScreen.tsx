@@ -99,7 +99,8 @@ export function HauntedGameScreen({
   const domesticTarget = exploration ? undefined : roomInteractionTarget(roomId, state);
   const adventureTarget = adventure ? findAdventureInteractionTarget(adventure, session.player.x) : undefined;
   const exitTarget = !exploration && roomId === 'bedroom' && session.objective.phase === 'escape-ready' && isAtHauntedExit(session.player.x);
-  const done = session.objective.phase === 'failed' || (session.objective.phase === 'completed' && !exploration);
+  // A completed bedroom run in the adventure is the false escape, mid-fade: not an ending.
+  const done = session.objective.phase === 'failed' || (session.objective.phase === 'completed' && !exploration && !adventure);
   const activeVisualEvents = presentationRuntime.snapshot();
   const remainingSeconds = Math.max(0, Math.ceil((session.deadlineMs - session.elapsedMs - session.penaltyMs) / 1000));
   const testHooksEnabled = isTestHooksEnabled();

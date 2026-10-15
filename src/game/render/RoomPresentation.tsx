@@ -141,6 +141,16 @@ export function RoomPresentation(props: Props) {
   }
 }
 
+/** Per-object float (stage units) and lean (radians) in the altered bedroom. */
+const ALTERED_DRIFT = [
+  { lift: 3, tilt: -0.12 },
+  { lift: 7, tilt: 0.2 },
+  { lift: 2, tilt: 0.08 },
+  { lift: 9, tilt: -0.25 },
+  { lift: 5, tilt: 0.15 },
+  { lift: 6, tilt: -0.18 },
+] as const;
+
 function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEvents, size, playerX, playerY, nowMs, scale, px }: Props) {
   const endingPhase = adventure ? getAdventureEndingPhase(adventure) : 'locked';
   const endingActive = Boolean(adventure && isAdventureEndingActive(adventure)) || endingPhase === 'complete';
@@ -199,21 +209,23 @@ function BedroomPresentation({ adventure, state, hauntedSession, activeVisualEve
       {target && (
         <InteractionFocus objectId={target.id} placement={OBJECT_PLACEMENTS[target.id]} px={px} phase={Math.floor(nowMs / 240) % 2} />
       )}
-      {objects.map(({ objectId, visual, placement }) => (
-        <IllustratedObject
-          key={objectId}
-          objectId={objectId}
-          visual={visual}
-          x={px(spreadX(placement.x))}
-          y={px(placement.y)}
-          scale={scale}
-        />
-      ))}
+      {objects.map(({ objectId, visual, placement }, index) => {
+        // The altered bedroom is wrong: its furniture floats and leans.
+        const drift = altered ? ALTERED_DRIFT[index % ALTERED_DRIFT.length] : undefined;
+        const x = px(spreadX(placement.x));
+        const y = px(placement.y - (drift ? drift.lift + Math.sin(nowMs / 600 + index) * 1.5 : 0));
+        return (
+          <Group key={objectId} origin={vec(x, y)} transform={drift ? [{ rotate: drift.tilt }] : undefined}>
+            <IllustratedObject objectId={objectId} visual={visual} x={x} y={y} scale={scale} />
+          </Group>
+        );
+      })}
       <WallyFocusLight state={state} size={size} x={spreadX(playerX)} groundY={playerY} />
       <Group transform={[{ scaleX: ROOM_SPREAD }]}>
         <IllustratedBedroomLightOverlay state={state} size={size} />
         <IllustratedBedroomForeground state={state} size={size} />
       </Group>
+      {altered && <Rect x={px(-STAGE_SIDE_MARGIN)} y={0} width={px(STAGE_LOGICAL_WIDTH)} height={px(128)} color="rgba(58,24,104,0.42)" />}
       {hauntedSession && (
         <>
           <HauntedStageTreatment px={px} pressure={altered ? 0 : hauntedSession.threats.ghosts.length} />
