@@ -49,7 +49,9 @@ same zones.
     Resonator's control-swapping zone is seen with the same delay;
   - every input lands 100 ms (3 steps) after the decision;
   - one thumb: a step never combines a held direction with JUMP, ATTACK or
-    INTERACT, and taps at most one button; ATTACK repeats every 200-350 ms;
+    INTERACT, and taps at most one button; ATTACK repeats every 200-350 ms.
+    Since W1-5 the deck is multi-touch (`src/app/TouchControlZones.ts`), so
+    this is stricter than a real two-thumb player;
   - reads for 1.2 s after using an object;
   - dodges by stepping out of warning/danger zones toward the nearer safe side
     (never through a visible danger or the spot a threat starts from), jumps

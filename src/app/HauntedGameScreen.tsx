@@ -48,6 +48,7 @@ import { SCENE_TOKENS, VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { activeGhostHint } from './HauntedThreatHint';
+import { TouchDeck } from './TouchDeck';
 import { shouldUseRoomCheckpoint } from '../game/adventure/RoomCheckpoint';
 import { PixelMeter } from './RetroUiKit';
 import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
@@ -107,14 +108,7 @@ export function HauntedGameScreen({
     return () => clearInterval(timer);
   }, []);
 
-  const left = <HeldControl testID="move-left-button" label="◀" onChange={(pressed) => onHeldControl('left', pressed)} />;
-  const right = <HeldControl testID="move-right-button" label="▶" onChange={(pressed) => onHeldControl('right', pressed)} />;
-  const dpad = (
-    <View style={styles.dpad}>
-      {touchControlLayout === 'standard' ? left : right}
-      {touchControlLayout === 'standard' ? right : left}
-    </View>
-  );
+  const useTarget = exitTarget ? 'EXIT' : adventureTarget?.displayLabel ?? domesticTarget?.label;
 
   return (
     <View testID="game-screen" style={styles.container}>
@@ -175,22 +169,14 @@ export function HauntedGameScreen({
         {!done ? (
           endingPhase === 'ghost-sting' ? (
             <TapControl testID="ending-finish-button" label="END NIGHT" wide accent onPress={onFinishEnding} />
-          ) : endingActive ? (
-            <>
-              {dpad}
-              <View style={styles.buttonCluster}>
-                <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
-              </View>
-            </>
           ) : (
-            <>
-              {dpad}
-              <View style={styles.buttonCluster}>
-                <TapControl testID="jump-button" label="JUMP" onPress={() => onAction('jump')} />
-                {(!exploration || explorationCombat) && <TapControl testID="attack-button" label="ATTACK" danger onPress={() => onAction('attack')} />}
-                <TapControl testID="action-button" label="INTERACT" accent onPress={() => onAction('interact')} />
-              </View>
-            </>
+            <TouchDeck
+              layout={touchControlLayout}
+              enabled={{ jump: !endingActive, attack: !endingActive && (!exploration || explorationCombat), interact: true }}
+              useTarget={useTarget}
+              onHeldControl={onHeldControl}
+              onAction={onAction}
+            />
           )
         ) : (
           <TapControl testID="restart-button" label={laboratoryRetry ? 'RETRY PHASE' : roomRetry ? 'RETRY ROOM' : 'TRY AGAIN'} wide accent onPress={onRestart} />
@@ -290,14 +276,6 @@ function Outcome({ session }: { session: HauntedSessionState }) {
   const success = session.objective.phase === 'completed';
   const title = success ? 'ESCAPED!' : session.objective.reason === 'house-awake' ? 'HOUSE AWAKE!' : session.objective.reason === 'too-late' ? 'TOO LATE!' : session.objective.reason === 'haunted' ? 'HAUNTED!' : 'OUT OF ENERGY!';
   return <View style={[styles.outcome, { borderColor: success ? VISUAL_TOKENS.feedback.success : VISUAL_TOKENS.feedback.failure }]}><Text style={styles.outcomeText}>{title}</Text></View>;
-}
-
-function HeldControl({ testID, label, onChange }: { testID: string; label: string; onChange: (pressed: boolean) => void }) {
-  return (
-    <Pressable testID={testID} accessibilityRole="button" onPressIn={() => onChange(true)} onPressOut={() => onChange(false)} style={({ pressed }) => [styles.dpadKey, pressed && styles.pressed]}>
-      <Text style={styles.dpadText}>{label}</Text>
-    </Pressable>
-  );
 }
 
 function TapControl({ testID, label, onPress, accent = false, danger = false, wide = false }: { testID: string; label: string; onPress: () => void; accent?: boolean; danger?: boolean; wide?: boolean }) {
@@ -441,10 +419,6 @@ const styles = StyleSheet.create({
   outcome: { minWidth: '70%', minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderRadius: 2, backgroundColor: ARCADE.cabinet },
   outcomeText: { color: ARCADE.ink, fontFamily: 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
   deck: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, minHeight: 132 },
-  dpad: { flexDirection: 'row', gap: 4, padding: 6, borderRadius: 40, backgroundColor: '#1b1730' },
-  dpadKey: { width: 62, height: 62, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: ARCADE.bezelLight, borderRadius: 8, backgroundColor: ARCADE.bezel },
-  dpadText: { color: ARCADE.ink, fontSize: 22, fontWeight: '900' },
-  buttonCluster: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10, maxWidth: 200 },
   roundButton: { width: 58, height: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#5c86a8', borderRadius: 29, backgroundColor: '#1f8fa8' },
   accentButton: { borderColor: '#fff2a0', backgroundColor: '#c89a2a' },
   dangerButton: { width: 66, height: 66, borderRadius: 33, borderColor: '#ff9aa8', backgroundColor: '#d23a5a' },
