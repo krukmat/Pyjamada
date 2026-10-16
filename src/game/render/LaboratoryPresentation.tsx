@@ -55,6 +55,11 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
   const nightmareState = adventure && hauntedSession
     ? resolveVesperNightmareState(adventure, hauntedSession.elapsedMs)
     : undefined;
+  // Presentation only: where the Nightmare's core glows, and how it shakes while charging and lunges as it strikes.
+  const nightmareCoreX = spreadX(VESPER_NIGHTMARE_TARGET.x);
+  const nightmareCoreY = NIGHTMARE_ORIGIN.y + NIGHTMARE_CORE.y;
+  const nightmareLunge = nightmareState?.phase === 'telegraph' ? (Math.floor(nowMs / 50) % 2 === 0 ? -1 : 1)
+    : nightmareState?.phase === 'active' ? -3 : 0;
 
   return (
     <>
@@ -133,13 +138,13 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
             y={px(nightmareState.attack === 'center-rift' ? 25 : 86)}
             width={px(spreadX(nightmareState.maxX - nightmareState.minX))}
             height={px(nightmareState.attack === 'center-rift' ? 76 : 17)}
-            color={nightmareState.phase === 'active' ? 'rgba(255,93,105,0.23)' : 'rgba(211,107,255,0.10)'}
+            color={nightmareState.phase === 'active' ? 'rgba(255,93,105,0.23)' : 'rgba(211,107,255,0.18)'}
           />
           <Line
             p1={vec(px(spreadX(nightmareState.minX)), px(89))}
             p2={vec(px(spreadX(nightmareState.maxX)), px(89))}
             color={nightmareState.phase === 'active' ? '#ff5d69' : '#d36bff'}
-            strokeWidth={px(nightmareState.phase === 'active' ? 2 : 0.9)}
+            strokeWidth={px(nightmareState.phase === 'active' ? 2 : 1.4)}
           />
         </>
       )}
@@ -342,12 +347,40 @@ export function LaboratoryPresentation({ adventure, hauntedSession, playerX, pla
               color="rgba(255,241,168,0.14)"
             />
           )}
+          {/* The attack comes from Vesper: its core charges while it telegraphs, then a beam strikes the lane. */}
+          {nightmareState?.phase === 'telegraph' && (
+            <Circle cx={px(nightmareCoreX)} cy={px(nightmareCoreY)} r={px(6 + (Math.floor(nowMs / 60) % 3))} color="rgba(211,107,255,0.45)" />
+          )}
           <PixelSpritePicture
             sprite={nightmareSprite(nowMs, Boolean(nightmareState?.vulnerable))}
-            x={NIGHTMARE_ORIGIN.x + spreadX(VESPER_NIGHTMARE_TARGET.x) - VESPER_NIGHTMARE_TARGET.x}
+            x={NIGHTMARE_ORIGIN.x + spreadX(VESPER_NIGHTMARE_TARGET.x) - VESPER_NIGHTMARE_TARGET.x + nightmareLunge}
             y={NIGHTMARE_ORIGIN.y}
             px={px}
           />
+          {nightmareState?.phase === 'active' && nightmareState.minX !== undefined && nightmareState.maxX !== undefined && (
+            <>
+              <Line
+                p1={vec(px(nightmareCoreX), px(nightmareCoreY))}
+                p2={vec(px(spreadX((nightmareState.minX + nightmareState.maxX) / 2)), px(89))}
+                color="#ff5d69"
+                strokeWidth={px(3)}
+              />
+              <Line
+                p1={vec(px(nightmareCoreX), px(nightmareCoreY))}
+                p2={vec(px(spreadX((nightmareState.minX + nightmareState.maxX) / 2)), px(89))}
+                color="#fff1a8"
+                strokeWidth={px(1)}
+              />
+              <Circle cx={px(nightmareCoreX)} cy={px(nightmareCoreY)} r={px(5)} color="#fff1a8" />
+              <Rect
+                x={px(spreadX(nightmareState.minX))}
+                y={px(84)}
+                width={px(spreadX(nightmareState.maxX - nightmareState.minX))}
+                height={px(6)}
+                color={Math.floor(nowMs / 70) % 2 === 0 ? 'rgba(255,241,168,0.55)' : 'rgba(255,93,105,0.45)'}
+              />
+            </>
+          )}
           {[0, 1, 2].map(index => (
             <Circle
               key={`nightmare-hit-${index}`}
