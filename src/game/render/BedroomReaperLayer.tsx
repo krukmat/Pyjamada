@@ -56,8 +56,8 @@ type Props = {
 
 /**
  * The reaper floats a little above the floor. While it raises the scythe the
- * floor it will sweep is marked red; the sweep leaves a pale slash; once spent
- * it is ringed in yellow, the moment a Dream Spark can dispel it.
+ * floor it will sweep is marked red; the sweep leaves a pale slash. A Dream
+ * Spark dispels it whenever it is out; then it blinks away.
  */
 export function BedroomReaperLayer({ reaper, nowMs, px }: Props) {
   const { phase, progress, dispelled } = reaper;
@@ -70,7 +70,7 @@ export function BedroomReaperLayer({ reaper, nowMs, px }: Props) {
   const top = PLAYER_GROUND_Y - lift - height;
   const blink = Math.floor(nowMs / 90) % 2 === 0;
   const opacity = dispelled
-    ? (blink ? 0.6 : 0.25) * (phase === 'recovery' ? 1 - progress : 0.4)
+    ? (blink ? 0.8 : 0.35) * (1 - reaper.dispelProgress)
     : phase === 'rise' ? progress * 0.9 : phase === 'fade' ? 1 - progress : 0.95;
   const reachLeft = spreadX(reaper.x - BEDROOM_REAPER.reach);
   const reachRight = spreadX(reaper.x + BEDROOM_REAPER.reach);
@@ -86,9 +86,6 @@ export function BedroomReaperLayer({ reaper, nowMs, px }: Props) {
       </Group>
       {phase === 'sweep' && !dispelled && (
         <Line p1={vec(px(reachLeft), px(PLAYER_GROUND_Y - 3))} p2={vec(px(reachRight), px(PLAYER_GROUND_Y - 3))} color="#e8f4ff" strokeWidth={px(2)} opacity={1 - progress * 0.6} />
-      )}
-      {reaper.vulnerable && (
-        <Oval x={px(x - width / 2 - 2)} y={px(top - 2)} width={px(width + 4)} height={px(height + 4)} color="#ffd84a" style="stroke" strokeWidth={px(1)} opacity={blink ? 0.9 : 0.5} />
       )}
     </Group>
   );

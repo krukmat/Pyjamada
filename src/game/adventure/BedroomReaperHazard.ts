@@ -8,8 +8,9 @@ import { getRoomState, type AdventureState } from './AdventureState';
  *
  * Each cycle one reaper rises at the wall farther from Wally, glides toward
  * him, raises its scythe (the warning), sweeps it along the floor (jump it)
- * and stands spent for a moment: a Dream Spark then dispels it. Sparks at any
- * other time pass through its smoke. The next reaper follows whatever happens;
+ * and stands spent for a moment. One Dream Spark dispels it any time it is
+ * out (gliding, warning, sweeping or spent); only while it rises or fades do
+ * sparks pass through its smoke. The next reaper follows whatever happens;
  * there is no last one.
  *
  * The cycle is derived from the room clock; only the reaper's position, which
@@ -32,12 +33,14 @@ export const BEDROOM_REAPER = {
   sparkHitRadius: 9,
   leftSpawnX: 12,
   rightSpawnX: 116,
+  /** How long a dispelled reaper takes to blink away. */
+  dispelFadeMs: 400,
 } as const;
 
 export type BedroomReaperPhase = 'gap' | 'rise' | 'glide' | 'telegraph' | 'sweep' | 'recovery' | 'fade';
 
 /** Carried in the session's threats between steps; transient, never needed to resume a save. */
-export type BedroomReaperState = { cycle: number; x: number; dispelled: boolean };
+export type BedroomReaperState = { cycle: number; x: number; dispelled: boolean; dispelledAtMs?: number };
 
 export type BedroomReaperSnapshot = {
   phase: BedroomReaperPhase;
@@ -45,6 +48,8 @@ export type BedroomReaperSnapshot = {
   /** 0..1 through the current phase. */
   progress: number;
   dispelled: boolean;
+  /** 0..1 through the blink-away after a dispel; 1 once it is gone. */
+  dispelProgress: number;
   /** The sweep is on the floor right now. */
   dangerous: boolean;
   vulnerable: boolean;
@@ -129,33 +134,35 @@ export function resolveBedroomReaper(
     x: state.x,
     progress,
     dispelled: state.dispelled,
+    dispelProgress: state.dispelled ? Math.min(1, Math.max(0, elapsedMs - (state.dispelledAtMs ?? elapsedMs)) / BEDROOM_REAPER.dispelFadeMs) : 0,
     dangerous: alive && phase === 'sweep',
-    vulnerable: alive && phase === 'recovery',
+    vulnerable: alive && phase !== 'gap' && phase !== 'rise' && phase !== 'fade',
     facing: playerX >= state.x ? 1 : -1,
   };
 }
 
 /** Whether a reaper is on screen: hidden between reapers and once its dispel fade is over. */
 export function isBedroomReaperVisible(reaper: BedroomReaperSnapshot | undefined): reaper is BedroomReaperSnapshot {
-  return reaper !== undefined && reaper.phase !== 'gap' && !(reaper.dispelled && reaper.phase === 'fade');
+  return reaper !== undefined && reaper.phase !== 'gap' && !(reaper.dispelled && (reaper.dispelProgress >= 1 || reaper.phase === 'fade'));
 }
 
 export function isPlayerHitByBedroomReaper(player: { x: number; grounded: boolean }, reaper: BedroomReaperSnapshot | undefined): boolean {
   return Boolean(reaper?.dangerous && player.grounded && Math.abs(player.x - reaper.x) <= BEDROOM_REAPER.reach);
 }
 
-/** A spark that reaches a spent reaper dispels it; other sparks pass through. */
+/** A spark that reaches a reaper that is out dispels it; while it rises or fades sparks pass through. */
 export function resolveBedroomReaperSparks(
   combat: HauntedCombatState,
   reaper: BedroomReaperSnapshot | undefined,
   state: BedroomReaperState | undefined,
+  elapsedMs: number,
 ): { combat: HauntedCombatState; state: BedroomReaperState | undefined; events: BedroomReaperEvent[] } {
   if (!reaper?.vulnerable || !state || combat.projectiles.length === 0) return { combat, state, events: [] };
   const hit = combat.projectiles.find(projectile => Math.abs(projectile.x - reaper.x) <= BEDROOM_REAPER.sparkHitRadius);
   if (!hit) return { combat, state, events: [] };
   return {
     combat: { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) },
-    state: { ...state, dispelled: true },
+    state: { ...state, dispelled: true, dispelledAtMs: elapsedMs },
     events: [{ type: 'BEDROOM_REAPER_DISPELLED' }],
   };
 }

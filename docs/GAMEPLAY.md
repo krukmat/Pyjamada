@@ -70,8 +70,8 @@ After the false escape the Bedroom keeps sending reapers, one at a time and
 without end, until Wally leaves through the Hallway door. Each rises at the wall
 farther from Wally, glides to him, raises its scythe (the floor it will sweep is
 marked red), sweeps it along the floor — jump it; a hit costs one heart — and
-stands spent for a moment, ringed in yellow: only then does a Dream Spark dispel
-it. The warning shrinks to the level's reaction window and the glide speeds up
+stands spent for a moment. One Dream Spark dispels it any time it is out; only
+while it rises or fades do sparks pass through. The warning shrinks to the level's reaction window and the glide speeds up
 with its hunt (`BedroomReaperHazard`).
 
 ## Room bosses

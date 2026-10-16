@@ -26,7 +26,7 @@ export type HauntedThreatState = {
   /** The Roach's crawl this leg (see RoomBossHazard); transient, exploration only. */
   roomBossChase?: { leg: string; crawl: number };
   /** The altered Bedroom's current reaper (see BedroomReaperHazard); transient, exploration only. */
-  bedroomReaper?: { cycle: number; x: number; dispelled: boolean };
+  bedroomReaper?: { cycle: number; x: number; dispelled: boolean; dispelledAtMs?: number };
 };
 
 export type HauntedThreatEvent =

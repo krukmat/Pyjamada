@@ -565,7 +565,7 @@ export function stepAdventureExploration(
   }
 
   const bedroomReaper = stepBedroomReaper(nextAdventure, elapsedMs, player.x, session.threats.bedroomReaper, dtMs);
-  const reaperSparks = resolveBedroomReaperSparks(combat, resolveBedroomReaper(nextAdventure, elapsedMs, bedroomReaper, player.x), bedroomReaper);
+  const reaperSparks = resolveBedroomReaperSparks(combat, resolveBedroomReaper(nextAdventure, elapsedMs, bedroomReaper, player.x), bedroomReaper, elapsedMs);
   combat = reaperSparks.combat;
   events.push(...reaperSparks.events);
   const reaper = resolveBedroomReaper(nextAdventure, elapsedMs, reaperSparks.state, player.x);
