@@ -6,6 +6,7 @@ import { isAdventureExplorationActive } from './AdventureExplorationRuntime';
 import { ATTIC_CRATES, resolveAtticCrates } from './AtticCrateHazard';
 import { BASEMENT_ELECTRICAL_HAZARD, resolveBasementElectricalHazard } from './BasementElectricalHazard';
 import { BATHROOM_TWIN, isBathroomTwinActive } from './BathroomTwinHazard';
+import { BEDROOM_REAPER, resolveBedroomReaper } from './BedroomReaperHazard';
 import type { FloorWaveConfig } from './FloorWaveHazard';
 import { KITCHEN_SURGE, resolveKitchenSurge } from './KitchenSurgeHazard';
 import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstability';
@@ -28,7 +29,8 @@ export type ThreatKind =
   | 'room-boss'
   | 'vesper-pressure'
   | 'resonator-electrical'
-  | 'nightmare-attack';
+  | 'nightmare-attack'
+  | 'bedroom-reaper';
 
 /**
  * One floor zone of a live room threat, as the player can see it right now.
@@ -62,6 +64,7 @@ export const TELEGRAPHED_THREAT_KINDS: readonly ThreatKind[] = [
   'vesper-pressure',
   'resonator-electrical',
   'nightmare-attack',
+  'bedroom-reaper',
 ];
 
 /** Pure read of the live exploration hazards in the current room; empty in the haunted bedroom run. */
@@ -99,6 +102,14 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
   }
 
   switch (adventure.currentRoom) {
+    case 'bedroom': {
+      // The raised scythe warns the floor it is about to sweep; only a grounded Wally is cut.
+      const reaper = resolveBedroomReaper(adventure, elapsedMs, session.threats.bedroomReaper, session.player.x);
+      const { reach } = BEDROOM_REAPER;
+      if (reaper?.dangerous) push('bedroom-reaper', 'danger', reaper.x - reach, reaper.x + reach, true);
+      else if (reaper && !reaper.dispelled && reaper.phase === 'telegraph') push('bedroom-reaper', 'warning', reaper.x - reach, reaper.x + reach, true);
+      break;
+    }
     case 'living-room': {
       const wave = resolveLivingRoomStatic(adventure, elapsedMs);
       observeFloorWave(push, 'living-room-static', LIVING_ROOM_STATIC, wave.phase === 'telegraph' || wave.phase === 'wave', wave.dangerous ? wave.fronts : []);

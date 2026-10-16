@@ -12,6 +12,8 @@ import type { SystemicRunState } from '../systemic/SystemicState';
 import { bathroomTwinX, isBathroomTwinActive, isBathroomTwinWounded } from '../adventure/BathroomTwinHazard';
 import { isBossDispelled, resolveRoomBoss } from '../adventure/RoomBossHazard';
 import { RoomBossLayer, useRoomBossFx } from './RoomBossLayer';
+import { isBedroomReaperVisible, resolveBedroomReaper } from '../adventure/BedroomReaperHazard';
+import { BedroomReaperLayer } from './BedroomReaperLayer';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { HauntedEnemyLayer } from './HauntedEnemyLayer';
 import { HauntedHitFeedback } from './HauntedStagePresentation';
@@ -87,12 +89,15 @@ export function GameCanvas({
   const hitDirection = resolveHauntedHitDirection(hauntedSession, playerX, playerInvulnerable);
   const laboratoryPhase = roomId === 'laboratory' && adventure ? getLaboratoryEncounterPhase(adventure) : undefined;
   const twinActive = Boolean(adventure && isBathroomTwinActive(adventure));
+  const reaper = exploration && adventure && hauntedSession ? resolveBedroomReaper(adventure, hauntedSession.elapsedMs, hauntedSession.threats.bedroomReaper, playerX) : undefined;
+  const reaperVisible = isBedroomReaperVisible(reaper);
   const twinFlicker = Boolean(adventure && isBathroomTwinWounded(adventure)) && Math.floor(nowMs / 90) % 3 === 0;
   const combat = Boolean(
     (hauntedSession && !exploration && hauntedSession.threats.ghosts.some((ghost) => ghost.phase !== 'dying'))
     || laboratoryPhase === 'vesper-control' || laboratoryPhase === 'resonator' || laboratoryPhase === 'nightmare'
     || twinActive
-    || roomBoss !== undefined,
+    || roomBoss !== undefined
+    || reaperVisible,
   );
 
   return (
@@ -128,6 +133,7 @@ export function GameCanvas({
           )}
 
           {roomBoss && <RoomBossLayer boss={roomBoss} nowMs={nowMs} px={px} flash={bossFx.flash} />}
+          {reaper && reaperVisible && <BedroomReaperLayer reaper={reaper} nowMs={nowMs} px={px} />}
           {bossFx.dispelling && bossFx.dispelling.boss.config !== roomBoss?.config && (
             <RoomBossLayer boss={bossFx.dispelling.boss} nowMs={nowMs} px={px} dispelProgress={bossFx.dispelling.progress} />
           )}
@@ -169,7 +175,7 @@ export function GameCanvas({
             />
           ) : null}
 
-          {(!exploration || roomId === 'laboratory' || twinActive || roomBoss) && dreamSparks.map((projectile) => (
+          {(!exploration || roomId === 'laboratory' || twinActive || roomBoss || reaper) && dreamSparks.map((projectile) => (
             <PixelDreamSpark
               key={projectile.id}
               projectile={projectile}

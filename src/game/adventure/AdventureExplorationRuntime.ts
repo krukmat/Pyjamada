@@ -21,6 +21,13 @@ import {
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import { getLaboratoryEncounterPhase } from './LaboratoryEncounter';
 import {
+  isBedroomReaperLive,
+  isPlayerHitByBedroomReaper,
+  resolveBedroomReaper,
+  resolveBedroomReaperSparks,
+  stepBedroomReaper,
+} from './BedroomReaperHazard';
+import {
   getRoomState,
   markRoomInteraction,
   setStoryFlag,
@@ -110,6 +117,8 @@ export type AdventureExplorationEvent =
   | { type: 'LABORATORY_NIGHTMARE_HIT_ACCEPTED'; hit: 1 | 2 | 3 }
   | { type: 'LABORATORY_VESPER_NIGHTMARE_DEFEATED' }
   | { type: 'LABORATORY_NIGHTMARE_ATTACK_HIT' }
+  | { type: 'BEDROOM_REAPER_DISPELLED' }
+  | { type: 'BEDROOM_REAPER_HIT' }
   | RoomInteractionEffectEvent;
 
 export type AdventureExplorationStep = {
@@ -221,7 +230,7 @@ export function applyFirstVisitRecovery(
 
 /** Dream Sparks are available in exploration during the Laboratory fight, against the Bathroom reflection and room bosses. */
 export function isExplorationCombatEnabled(adventure: AdventureState): boolean {
-  return isLaboratoryCombatEnabled(adventure) || isBathroomTwinActive(adventure) || activeRoomBoss(adventure) !== undefined;
+  return isLaboratoryCombatEnabled(adventure) || isBathroomTwinActive(adventure) || activeRoomBoss(adventure) !== undefined || isBedroomReaperLive(adventure);
 }
 
 export function isKitchenCircuitOverloaded(adventure: AdventureState): boolean {
@@ -324,7 +333,8 @@ export function stepAdventureExploration(
   const laboratoryCombat = isLaboratoryCombatEnabled(adventure);
   const twinCombat = isBathroomTwinActive(adventure);
   const bossCombat = activeRoomBoss(adventure) !== undefined;
-  const combatEnabled = laboratoryCombat || twinCombat || bossCombat;
+  const reaperCombat = isBedroomReaperLive(adventure);
+  const combatEnabled = laboratoryCombat || twinCombat || bossCombat || reaperCombat;
   let clockAdvanced = false;
   if (bossCombat) {
     elapsedMs += dtMs;
@@ -554,6 +564,21 @@ export function stepAdventureExploration(
     }
   }
 
+  const bedroomReaper = stepBedroomReaper(nextAdventure, elapsedMs, player.x, session.threats.bedroomReaper, dtMs);
+  const reaperSparks = resolveBedroomReaperSparks(combat, resolveBedroomReaper(nextAdventure, elapsedMs, bedroomReaper, player.x), bedroomReaper);
+  combat = reaperSparks.combat;
+  events.push(...reaperSparks.events);
+  const reaper = resolveBedroomReaper(nextAdventure, elapsedMs, reaperSparks.state, player.x);
+  if (isPlayerHitByBedroomReaper(player, reaper) && objective.phase !== 'failed') {
+    const hit = applyHauntedPlayerHit(combat, elapsedMs);
+    combat = hit.combat;
+    if (hit.accepted) {
+      player = applyHauntedKnockback(player, player.x < (reaper?.x ?? player.x) ? -1 : 1);
+      events.push({ type: 'BEDROOM_REAPER_HIT' });
+      if (combat.hp <= 0) objective = { phase: 'failed', reason: 'haunted' };
+    }
+  }
+
   // A room whose threat clock stopped (or never ran) cannot keep Wally
   // invulnerable: the frozen clock would otherwise hold the hit pose forever.
   if (!clockAdvanced && combat.invulnerableUntilMs > elapsedMs) {
@@ -586,7 +611,7 @@ export function stepAdventureExploration(
         player: { x: Math.round(player.x), facing: player.facing },
       },
       input: consumeTransientActions(session.input),
-      threats: withRoomBossChase(session.threats, roomBossChase),
+      threats: withBedroomReaper(withRoomBossChase(session.threats, roomBossChase), reaperSparks.state),
     },
   };
 }
@@ -595,4 +620,10 @@ function withRoomBossChase(threats: HauntedSessionState['threats'], roomBossChas
   if (threats.roomBossChase === roomBossChase) return threats;
   const { roomBossChase: _previous, ...rest } = threats;
   return roomBossChase === undefined ? rest : { ...rest, roomBossChase };
+}
+
+function withBedroomReaper(threats: HauntedSessionState['threats'], bedroomReaper: HauntedSessionState['threats']['bedroomReaper']): HauntedSessionState['threats'] {
+  if (threats.bedroomReaper === bedroomReaper) return threats;
+  const { bedroomReaper: _previous, ...rest } = threats;
+  return bedroomReaper === undefined ? rest : { ...rest, bedroomReaper };
 }

@@ -75,6 +75,8 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
   if (!Array.isArray(value.threats.ghosts) || value.threats.ghosts.length > 4) return invalid('Invalid haunted Ghost list.');
   const chase = value.threats.roomBossChase;
   if (chase !== undefined && !(isRecord(chase) && typeof chase.leg === 'string' && nonNegative(chase.crawl))) return invalid('Invalid room boss chase.');
+  const reaper = value.threats.bedroomReaper;
+  if (reaper !== undefined && !(isRecord(reaper) && nonNegative(reaper.cycle) && Number.isInteger(reaper.cycle) && finite(reaper.x) && reaper.x >= 0 && reaper.x <= 128 && typeof reaper.dispelled === 'boolean')) return invalid('Invalid bedroom reaper.');
   const ghostIds = new Set<number>();
   for (const ghost of value.threats.ghosts) {
     if (!isRecord(ghost)) return invalid('Invalid Ghost state.');

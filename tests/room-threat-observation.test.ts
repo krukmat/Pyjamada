@@ -57,13 +57,14 @@ void test('every telegraphed danger is preceded by a warning on the same floor',
   console.log(`  shortest warning before danger: ${leads.join(', ')}`);
 });
 
-void test('floor waves are the only jumpable threats, and their fronts stay inside the charged path', () => {
+void test('floor waves and the reaper\'s floor sweep are the only jumpable threats; wave fronts stay inside the charged path', () => {
   for (const scenario of THREAT_SCENARIOS) {
-    const jumpable = scenario.kind === 'kitchen-surge' || scenario.kind === 'living-room-static';
+    const wave = scenario.kind === 'kitchen-surge' || scenario.kind === 'living-room-static';
+    const jumpable = wave || scenario.kind === 'bedroom-reaper';
     for (let t = scenario.startMs; t < scenario.startMs + scenario.cycleMs; t += 13) {
       const observations = observeAt(scenario.adventure, t);
       ok(observations.every(observation => observation.jumpable === jumpable), `${scenario.kind}: jumpable flag at t=${t}`);
-      for (const danger of observations.filter(observation => observation.phase === 'danger' && jumpable)) {
+      for (const danger of observations.filter(observation => observation.phase === 'danger' && wave)) {
         ok(observations.some(warning => warning.phase === 'warning' && warning.minX <= danger.minX && warning.maxX >= danger.maxX),
           `${scenario.kind}: wave front at t=${t} lies inside the charged path`);
       }

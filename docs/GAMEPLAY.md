@@ -64,6 +64,16 @@ Failure occurs when:
 
 The same room must support efficient, near-miss and chaos runs without random behavior.
 
+## Altered Bedroom reapers
+
+After the false escape the Bedroom keeps sending reapers, one at a time and
+without end, until Wally leaves through the Hallway door. Each rises at the wall
+farther from Wally, glides to him, raises its scythe (the floor it will sweep is
+marked red), sweeps it along the floor — jump it; a hit costs one heart — and
+stands spent for a moment, ringed in yellow: only then does a Dream Spark dispel
+it. The warning shrinks to the level's reaction window and the glide speeds up
+with its hunt (`BedroomReaperHazard`).
+
 ## Room bosses
 
 Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then one shielded attack cycle (it shows its pattern and blocks Dream Sparks, but still hurts) and three vulnerable ones that take one wound each: after a wound the shield is back until the next cycle, so a fight lasts several attacks (missed cycles can be caught up). Bosses are drawn at 1.5x the pixel size (Wally at 0.8x his atlas size), with a health bar across the top of the room, a white flash and a jolt on each wound, and a burst when dispelled:

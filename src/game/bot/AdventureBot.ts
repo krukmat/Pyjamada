@@ -223,6 +223,7 @@ const HIT_EVENT_THREATS: Partial<Record<BotEvent['type'], ThreatKind>> = {
   LABORATORY_VESPER_PULSE_HIT: 'vesper-pressure',
   LABORATORY_RESONATOR_SURGE_HIT: 'resonator-electrical',
   LABORATORY_NIGHTMARE_ATTACK_HIT: 'nightmare-attack',
+  BEDROOM_REAPER_HIT: 'bedroom-reaper',
 };
 
 /** Wally is standing still at a usable object (where a player stops to read its text). */

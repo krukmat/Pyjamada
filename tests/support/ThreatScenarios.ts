@@ -39,6 +39,13 @@ import {
   resolveLivingRoomStatic,
 } from '../../src/game/adventure/LivingRoomStaticHazard';
 import {
+  bedroomReaperCycle,
+  bedroomReaperCycleMs,
+  isPlayerHitByBedroomReaper,
+  resolveBedroomReaper,
+  type BedroomReaperState,
+} from '../../src/game/adventure/BedroomReaperHazard';
+import {
   isInsideObservedDanger,
   observeRoomThreats,
   TELEGRAPHED_THREAT_KINDS,
@@ -70,8 +77,16 @@ export function laboratoryIn(phase: 'vesper-control' | 'resonator' | 'nightmare'
   return adventure;
 }
 
+/** The reaper carried in the session's threats: in the altered Bedroom, the current one standing at REAPER_X. */
+const REAPER_X = 64;
+function reaperAt(adventure: AdventureState, elapsedMs: number): BedroomReaperState | undefined {
+  return adventure.currentRoom === 'bedroom' ? { cycle: bedroomReaperCycle(adventure, elapsedMs), x: REAPER_X, dispelled: false } : undefined;
+}
+
 export function observeAt(adventure: AdventureState, elapsedMs: number): ThreatObservation[] {
-  return observeRoomThreats({ ...THREAT_SESSION, elapsedMs }, adventure);
+  const bedroomReaper = reaperAt(adventure, elapsedMs);
+  const threats = bedroomReaper ? { ...THREAT_SESSION.threats, bedroomReaper } : THREAT_SESSION.threats;
+  return observeRoomThreats({ ...THREAT_SESSION, elapsedMs, threats }, adventure);
 }
 
 export type ThreatScenario = {
@@ -91,6 +106,7 @@ const basement = armBasementElectricalHazard(setRoomSwitch(explorationIn('baseme
 const vesperControl = laboratoryIn('vesper-control');
 const resonator = laboratoryIn('resonator');
 const nightmare = laboratoryIn('nightmare');
+const alteredBedroom = explorationIn('bedroom');
 export const BATHROOM_TWIN_LIVE = setRoomSwitch(explorationIn('bathroom'), 'bathroom', 'bathroom-light-off', true);
 
 export const THREAT_SCENARIOS: readonly ThreatScenario[] = [
@@ -146,6 +162,16 @@ export const THREAT_SCENARIOS: readonly ThreatScenario[] = [
     startMs: 0,
     cycleMs: RESONATOR_INSTABILITY_CYCLE_MS,
     hit: t => { const electrical = resolveResonatorInstabilityState(resonator, t).electrical; return x => isPlayerInsideResonatorElectricalPressure(x, electrical); },
+  },
+  {
+    kind: 'bedroom-reaper',
+    adventure: alteredBedroom,
+    startMs: 0,
+    cycleMs: bedroomReaperCycleMs(alteredBedroom),
+    hit: t => {
+      const reaper = resolveBedroomReaper(alteredBedroom, t, reaperAt(alteredBedroom, t), REAPER_X);
+      return (x, grounded) => isPlayerHitByBedroomReaper({ x, grounded }, reaper);
+    },
   },
   {
     kind: 'nightmare-attack',
