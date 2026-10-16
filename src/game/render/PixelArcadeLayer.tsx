@@ -1,4 +1,5 @@
 import React, { type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { Group, Paint, RuntimeShader, Skia, type SkRuntimeEffect } from '@shopify/react-native-skia';
 import { PIXEL_PALETTE_SIZE } from './PixelArcadePalette';
 
@@ -42,7 +43,9 @@ const NO_PALETTE: number[] = new Array(PIXEL_PALETTE_SIZE * 3).fill(0);
 let cachedEffect: SkRuntimeEffect | null | undefined;
 
 function pixelArcadeEffect(): SkRuntimeEffect | null {
-  if (cachedEffect === undefined) cachedEffect = Skia.RuntimeEffect.Make(PIXEL_ARCADE_SKSL);
+  // Skia's web build (CanvasKit) does not implement runtime-shader image
+  // filters, so the web version draws the stage unpixelated.
+  if (cachedEffect === undefined) cachedEffect = Platform.OS === 'web' ? null : Skia.RuntimeEffect.Make(PIXEL_ARCADE_SKSL);
   return cachedEffect;
 }
 
