@@ -383,7 +383,9 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   // A Roach that crawled out charges the shorter rest of the way at the same speed, then waits at the wall.
   const runMs = chargeMs * (Math.abs(to - from) / (rightX - leftX));
   const progress = Math.min(1, (local - waitMs) / runMs);
-  return { config, pose: progress < 1 ? 'charge' : 'wait', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing, leg: legKey };
+  if (progress < 1) return { config, pose: 'charge', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing, leg: legKey };
+  // Arrived early: it turns around at the wall, facing back into the kitchen.
+  return { config, pose: 'wait', hits, dangerous: true, hittable: true, x: to, lift: 0, facing: facing === 1 ? -1 : 1, leg: legKey };
 }
 
 function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile, aimX?: number): Omit<RoomBossSnapshot, 'shielded'> {
