@@ -32,10 +32,11 @@ import {
 } from './src/game/adventure/AdventureEnding';
 import { AdventureSaveCoordinator, type AdventureSaveReason } from './src/game/adventure/AdventureSaveCoordinator';
 import { createAdventureGameSession, type AdventureGameSessionState } from './src/game/adventure/AdventureGameSession';
+import { getAdventureDifficulty, type AdventureDifficulty } from './src/game/adventure/AdventureDifficulty';
 import { AdventureSessionCoordinator } from './src/game/adventure/AdventureSessionCoordinator';
 import { createAdventureState, type AdventureState } from './src/game/adventure/AdventureState';
 import { shouldUseLaboratoryCheckpoint } from './src/game/adventure/LaboratoryEncounter';
-import { restoreRoomCheckpoint, shouldUseRoomCheckpoint } from './src/game/adventure/RoomCheckpoint';
+import { restoreRoomCheckpointState, shouldUseRoomCheckpoint } from './src/game/adventure/RoomCheckpoint';
 import { toInput } from './src/game/bot/AdventureBot';
 import { HumanBot } from './src/game/bot/HumanBot';
 import type { RoomEntryPoint } from './src/game/adventure/RoomRegistry';
@@ -353,12 +354,12 @@ export default function App() {
     setView(isAdventureEndingComplete(nextAdventure) ? 'ending' : 'game');
   }
 
-  async function handleNewGame(overwrite = false) {
+  async function handleNewGame(difficulty: AdventureDifficulty, overwrite = false) {
     leaveScreenshotMode();
     if (canContinue && !overwrite) {
       Alert.alert('Replace saved game?', 'Starting a new game will replace the current haunted run.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Replace', style: 'destructive', onPress: () => void handleNewGame(true) },
+        { text: 'Replace', style: 'destructive', onPress: () => void handleNewGame(difficulty, true) },
       ]);
       return;
     }
@@ -366,7 +367,7 @@ export default function App() {
     setBusy(true);
     try {
       clearTransitionTimers();
-      const next = createAdventureGameSession(`run-${Date.now()}`);
+      const next = createAdventureGameSession(`run-${Date.now()}`, difficulty);
       await saves.save(next);
       saveCoordinator.markRestored(next);
       resetRuntimeClocks();
@@ -399,7 +400,7 @@ export default function App() {
       }
       // A save from a death in the house, or mid Laboratory phase, resumes at its checkpoint.
       let restoredState = shouldUseLaboratoryCheckpoint(result.state.adventure) || shouldUseRoomCheckpoint(result.state.haunted, result.state.adventure)
-        ? gameState(restoreRoomCheckpoint(result.state.haunted, result.state.adventure), result.state.adventure)
+        ? checkpointState(result.state.haunted, result.state.adventure)
         : result.state;
       if (shouldBeginAdventureEnding(restoredState.adventure)) {
         const started = beginAdventureEnding(restoredState.haunted, restoredState.adventure);
@@ -516,7 +517,7 @@ export default function App() {
     const currentAdventure = adventureRef.current;
 
     if (shouldUseLaboratoryCheckpoint(currentAdventure) || shouldUseRoomCheckpoint(current, currentAdventure)) {
-      const restored = gameState(restoreRoomCheckpoint(current, currentAdventure), currentAdventure);
+      const restored = checkpointState(current, currentAdventure);
       resetRuntimeClocks();
       activateGameSession(restored);
       try {
@@ -527,7 +528,7 @@ export default function App() {
       return;
     }
 
-    const next = createAdventureGameSession(current.runId);
+    const next = createAdventureGameSession(current.runId, getAdventureDifficulty(currentAdventure));
     resetRuntimeClocks();
     activateGameSession(next);
     try {
@@ -588,7 +589,7 @@ export default function App() {
           canContinue={canContinue}
           completedRun={completedRun}
           onContinue={() => void handleContinue()}
-          onNewGame={() => void handleNewGame(false)}
+          onNewGame={(difficulty) => void handleNewGame(difficulty)}
           onDemo={handleDemo}
           onSettings={() => setView('settings')}
         />
@@ -605,7 +606,7 @@ export default function App() {
       )}
       {view === 'ending' && (
         <EndingScreen
-          onPlayAgain={() => void handleNewGame(true)}
+          onPlayAgain={() => void handleNewGame(getAdventureDifficulty(adventureRef.current), true)}
           onMenu={() => setView('menu')}
         />
       )}
@@ -637,6 +638,11 @@ export default function App() {
 
 function gameState(haunted: HauntedSessionState, adventure: AdventureState): AdventureGameSessionState {
   return { schemaVersion: 3, haunted, adventure };
+}
+
+function checkpointState(haunted: HauntedSessionState, adventure: AdventureState): AdventureGameSessionState {
+  const restored = restoreRoomCheckpointState(haunted, adventure);
+  return gameState(restored.session, restored.adventure);
 }
 
 function applyRoomSpawn(state: HauntedSessionState, spawn: RoomEntryPoint): HauntedSessionState {

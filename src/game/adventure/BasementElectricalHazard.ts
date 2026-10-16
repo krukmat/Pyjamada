@@ -1,3 +1,4 @@
+import { difficultyProfile, reactionWindowMs } from './AdventureDifficulty';
 import {
   getRoomState,
   markRoomInteraction,
@@ -80,8 +81,9 @@ export function resolveBasementElectricalHazard(
 
   const rules = BASEMENT_ELECTRICAL_HAZARD;
   const cycleElapsedMs = positiveModulo(elapsedMs, rules.cycleMs);
-  const telegraphStartMs = rules.safeLeadMs;
-  const dischargeStartMs = telegraphStartMs + rules.telegraphMs;
+  // Higher levels start the warning later; the discharge keeps its beat.
+  const dischargeStartMs = rules.safeLeadMs + rules.telegraphMs;
+  const telegraphStartMs = dischargeStartMs - reactionWindowMs(rules.telegraphMs, difficultyProfile(adventure));
   const dischargeEndMs = dischargeStartMs + rules.dischargeMs;
 
   if (cycleElapsedMs < telegraphStartMs) {

@@ -1,5 +1,6 @@
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import type { AdventureState } from './AdventureState';
+import { difficultyProfile } from './AdventureDifficulty';
 import { isAdventureExplorationActive } from './AdventureExplorationRuntime';
 import { ATTIC_CRATES, resolveAtticCrates } from './AtticCrateHazard';
 import { BASEMENT_ELECTRICAL_HAZARD, resolveBasementElectricalHazard } from './BasementElectricalHazard';
@@ -77,7 +78,7 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
     if (boss.config.kind === 'roach' && boss.pose === 'telegraph') {
       // The twitch announces the charge: the stretch it covers in its first
       // moments is already worth jumping, as a player near that wall would.
-      const lane = (ROACH_CHARGE.rightX - ROACH_CHARGE.leftX) * Math.min(1, ROACH_TWITCH_LANE_MS / roachChargeMs(boss.hits));
+      const lane = (ROACH_CHARGE.rightX - ROACH_CHARGE.leftX) * Math.min(1, ROACH_TWITCH_LANE_MS / roachChargeMs(boss.hits, difficultyProfile(adventure).rush));
       const minX = boss.facing > 0 ? boss.x - reach : boss.x - reach - lane;
       const maxX = boss.facing > 0 ? boss.x + reach + lane : boss.x + reach;
       push('room-boss', 'danger', minX, maxX, true);

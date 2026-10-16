@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Canvas, useImage } from '@shopify/react-native-skia';
 import { HAUNTED_WALLY_ATLAS_SOURCE } from '../game/presentation/AssetSources';
@@ -6,6 +6,7 @@ import { AtlasSprite } from '../game/presentation/atlas/AtlasSprite';
 import { HAUNTED_WALLY_ATLAS } from '../game/presentation/atlas/HauntedWallyAtlas';
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../game/presentation/atlas/SpriteAtlas';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
+import { ADVENTURE_DIFFICULTIES, DIFFICULTY_PROFILES, type AdventureDifficulty } from '../game/adventure/AdventureDifficulty';
 
 // The menu portrait reuses Wally's sleepy eye-rubbing gameplay frame.
 const PORTRAIT_FRAME = requireAtlasFrame(createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS), 'pajamas_15');
@@ -16,7 +17,7 @@ type Props = {
   canContinue: boolean;
   completedRun: boolean;
   onContinue: () => void;
-  onNewGame: () => void;
+  onNewGame: (difficulty: AdventureDifficulty) => void;
   /** Watch the QA bot play a throwaway run (never saved). */
   onDemo: () => void;
   onSettings: () => void;
@@ -25,6 +26,7 @@ type Props = {
 type MenuTier = 'primary' | 'secondary';
 
 export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGame, onDemo, onSettings }: Props) {
+  const [choosingLevel, setChoosingLevel] = useState(false);
   return (
     <View testID="main-menu-screen" style={styles.container}>
       <View style={styles.backdropStripeA} />
@@ -64,7 +66,23 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
           <Text style={styles.sectionLabel}>SELECT RUN</Text>
           <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
           {!canContinue && !busy && <Text style={styles.disabledHint}>NO SAVE YET — START SOMETHING MESSY</Text>}
-          <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={onNewGame} />
+          {choosingLevel ? (
+            <>
+              {ADVENTURE_DIFFICULTIES.map(level => (
+                <MenuButton
+                  key={level}
+                  testID={`new-game-level-${level}`}
+                  label={`LEVEL ${level} · ${DIFFICULTY_PROFILES[level].name}`}
+                  tier="primary"
+                  disabled={busy}
+                  onPress={() => { setChoosingLevel(false); onNewGame(level); }}
+                />
+              ))}
+              <MenuButton testID="new-game-back" label="BACK" tier="secondary" disabled={busy} onPress={() => setChoosingLevel(false)} />
+            </>
+          ) : (
+            <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={() => setChoosingLevel(true)} />
+          )}
           <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={onDemo} />
           <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
         </View>

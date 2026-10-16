@@ -32,15 +32,18 @@ export type AdventureState = {
   visitedRooms: RoomId[];
   storyFlags: Record<StoryFlag, boolean>;
   rooms: Partial<Record<RoomId, RoomPersistentState>>;
+  /** Difficulty level chosen at NEW GAME (AdventureDifficulty); absent means level 1. */
+  difficulty?: 1 | 2 | 3;
 };
 
 export function createRoomPersistentState(): RoomPersistentState {
   return { inspected: [], interactions: [], switches: {} };
 }
 
-export function createAdventureState(): AdventureState {
+export function createAdventureState(difficulty: 1 | 2 | 3 = 1): AdventureState {
   return {
     schemaVersion: 1,
+    ...(difficulty === 1 ? {} : { difficulty }),
     currentRoom: 'bedroom',
     currentEntry: 'bedroom-default',
     visitedRooms: ['bedroom'],

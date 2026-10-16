@@ -1,4 +1,5 @@
 import type { DreamSparkProjectile, HauntedCombatState } from '../haunted/HauntedCombat';
+import { difficultyProfile, reactionWindowMs } from './AdventureDifficulty';
 import { getRoomState, setRoomSwitch, type AdventureState } from './AdventureState';
 import { getLaboratoryEncounterPhase, LABORATORY_ENCOUNTER_SWITCHES } from './LaboratoryEncounter';
 
@@ -93,10 +94,11 @@ export function resolveVesperNightmareState(
     const t = cycleMs - attackIndex * VESPER_NIGHTMARE_ATTACK.slotMs;
     const slot = (attackIndex + 1) as 1 | 2 | 3;
     const { telegraphMs, activeMs, recoveryMs } = VESPER_NIGHTMARE_ATTACK;
-    const warnFromMs = VESPER_NIGHTMARE_RAGE.telegraphCutMs * Math.min(hits, 2);
+    // Higher levels start every warning later too (the strike keeps its beat).
+    const warnFromMs = telegraphMs - reactionWindowMs(telegraphMs - VESPER_NIGHTMARE_RAGE.telegraphCutMs * Math.min(hits, 2), difficultyProfile(adventure));
     if (t >= warnFromMs && t < telegraphMs) return attackState(cycleMs, attack, 'telegraph', slot, hits);
     if (t >= telegraphMs && t < telegraphMs + activeMs) return attackState(cycleMs, attack, 'active', slot, hits);
-    if (t < telegraphMs + activeMs + recoveryMs) return attackState(cycleMs, attack, 'recovery', slot, hits);
+    if (t >= telegraphMs + activeMs && t < telegraphMs + activeMs + recoveryMs) return attackState(cycleMs, attack, 'recovery', slot, hits);
   }
 
   return {

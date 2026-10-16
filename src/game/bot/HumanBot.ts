@@ -248,10 +248,11 @@ export class HumanBot implements BotPolicy {
     const zones = seen.threats.filter(threat => !threat.jumpable);
     const area = mergedZoneAt(zones, x);
     if (!area) return undefined;
-    const left = area.minX - ESCAPE_MARGIN;
-    const right = area.maxX + ESCAPE_MARGIN;
-    const canLeft = left >= HAUNTED_PLAYER_BOUNDS.minX;
-    const canRight = right <= HAUNTED_PLAYER_BOUNDS.maxX;
+    // A zone that stops short of a wall can be escaped by squeezing against it.
+    const left = Math.max(HAUNTED_PLAYER_BOUNDS.minX, area.minX - ESCAPE_MARGIN);
+    const right = Math.min(HAUNTED_PLAYER_BOUNDS.maxX, area.maxX + ESCAPE_MARGIN);
+    const canLeft = area.minX > HAUNTED_PLAYER_BOUNDS.minX;
+    const canRight = area.maxX < HAUNTED_PLAYER_BOUNDS.maxX;
     let direction: -1 | 1 | undefined;
     if (canLeft && canRight) {
       direction = x - left <= right - x ? -1 : 1;

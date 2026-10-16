@@ -1,4 +1,5 @@
 import { createHauntedSession, type HauntedSessionState } from '../haunted/HauntedSessionRuntime';
+import type { AdventureDifficulty } from './AdventureDifficulty';
 import { createAdventureState, type AdventureState } from './AdventureState';
 
 export type AdventureGameSessionState = {
@@ -7,10 +8,10 @@ export type AdventureGameSessionState = {
   adventure: AdventureState;
 };
 
-export function createAdventureGameSession(runId = 'adventure-run'): AdventureGameSessionState {
+export function createAdventureGameSession(runId = 'adventure-run', difficulty: AdventureDifficulty = 1): AdventureGameSessionState {
   return {
     schemaVersion: 3,
     haunted: createHauntedSession(runId),
-    adventure: createAdventureState(),
+    adventure: createAdventureState(difficulty),
   };
 }

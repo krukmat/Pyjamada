@@ -1,4 +1,5 @@
 import { decodeHauntedSession, encodeHauntedSession } from '../haunted/HauntedSessionCodec';
+import { isAdventureDifficulty } from './AdventureDifficulty';
 import {
   ROOM_IDS,
   STORY_FLAGS,
@@ -84,6 +85,7 @@ function validateAdventureState(value: unknown): string | null {
     if (roomError) return `${roomId}: ${roomError}`;
   }
   if (!value.rooms[value.currentRoom]) return 'Current room must have persisted room state.';
+  if (value.difficulty !== undefined && !isAdventureDifficulty(value.difficulty)) return 'Invalid difficulty level.';
 
   return null;
 }

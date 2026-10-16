@@ -1,4 +1,5 @@
 import type { HauntedCombatState } from '../haunted/HauntedCombat';
+import { difficultyProfile, reactionWindowMs, type DifficultyProfile } from './AdventureDifficulty';
 import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } from './AdventureState';
 
 /**
@@ -118,8 +119,8 @@ export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs
 export const ROACH_HUNT = { chargeCutMs: 150, telegraphCutMs: 175 } as const;
 
 /** How long a Roach with this many wounds takes to cross the kitchen. */
-export function roachChargeMs(hits: number): number {
-  return ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits;
+export function roachChargeMs(hits: number, rush = 1): number {
+  return (ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits) / rush;
 }
 
 /** Harmless, untouchable rise at the start of every round. */
@@ -151,10 +152,18 @@ export type RoomBossSnapshot = {
   /** Attacking behind a shield that blocks Dream Sparks. */
   shielded: boolean;
   hits: number;
+  /** A Dream Spark repelled this attack: it stays harmless until the next cycle. */
+  repelled?: boolean;
+  /** This round's one repel is already spent: the shield only swallows sparks. */
+  repelSpent?: boolean;
+  /** Identifies the current attack cycle (round and cycle), for the repel mark. */
+  attackKey?: string;
 };
 
 const armedMark = (config: RoomBossConfig) => `${config.markPrefix}-armed`;
 const hitMark = (config: RoomBossConfig, hit: number) => `${config.markPrefix}-hit-${hit}`;
+const roundFromMark = (config: RoomBossConfig, hits: number) => `${config.markPrefix}-round-from-${hits}`;
+const repelRoundPrefix = (config: RoomBossConfig, round: number) => `${config.markPrefix}-repel-${round}-`;
 const dispelledMark = (config: RoomBossConfig) => `${config.markPrefix}-dispelled`;
 
 /** The room's first boss, if the room has any. */
@@ -205,6 +214,28 @@ export function armRoomBoss(adventure: AdventureState, elapsedMs: number): { adv
   };
 }
 
+/**
+ * After a knock-out the boss starts a fresh round (wounds kept): Wally wakes at
+ * the door to its harmless rise and has time to cross back to the fight.
+ */
+export function restartRoomBossRound(adventure: AdventureState, elapsedMs: number): { adventure: AdventureState; elapsedMs: number } {
+  const config = activeRoomBoss(adventure);
+  if (!config || !getRoomState(adventure, config.room).interactions.includes(armedMark(config))) return { adventure, elapsedMs };
+  const roundMs = roomBossRoundMs(config);
+  return {
+    adventure: markRoomInteraction(adventure, config.room, roundFromMark(config, roomBossHits(adventure, config))),
+    elapsedMs: Math.ceil(Math.max(0, elapsedMs) / roundMs) * roundMs,
+  };
+}
+
+/** Wounds the boss had when its round was last restarted: its vulnerable cycles count from there. */
+function roundStartHits(adventure: AdventureState, config: RoomBossConfig): number {
+  const interactions = getRoomState(adventure, config.room).interactions;
+  let start = 0;
+  for (let hit = 1; hit < config.hp; hit += 1) if (interactions.includes(roundFromMark(config, hit))) start = hit;
+  return start;
+}
+
 /** `playerX` lets the boss hunt Wally; without it the pattern is the bare one. */
 export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, playerX?: number): RoomBossSnapshot | undefined {
   const config = activeRoomBoss(adventure);
@@ -222,18 +253,27 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
   // so a fight lasts several attacks instead of one burst of sparks.
   const cycle = Math.floor((roundT - ROOM_BOSS_RISE_MS) / config.cycleMs);
   const vulnerableCycle = cycle - SHIELDED_CYCLES;
-  const shielded = vulnerableCycle < 0 || hits > vulnerableCycle;
+  const shielded = vulnerableCycle < 0 || hits - roundStartHits(adventure, config) > vulnerableCycle;
+  const level = difficultyProfile(adventure);
   const pose = config.kind === 'cuckoo'
-    ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX)
-    : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX);
-  return { ...pose, shielded, hittable: pose.hittable && !shielded };
+    ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level)
+    : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level);
+  // A spark that met the attack behind the shield cancels the rest of it, once per round.
+  const roundPrefix = repelRoundPrefix(config, Math.floor(Math.max(0, elapsedMs) / roomBossRoundMs(config)));
+  const attackKey = `${roundPrefix}${cycle}`;
+  const interactions = getRoomState(adventure, config.room).interactions;
+  if (interactions.includes(attackKey)) {
+    return { ...pose, shielded, attackKey, repelled: true, repelSpent: true, dangerous: false, hittable: false };
+  }
+  const repelSpent = interactions.some(mark => mark.startsWith(roundPrefix));
+  return { ...pose, shielded, attackKey, repelSpent, hittable: pose.hittable && !shielded };
 }
 
-function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined): Omit<RoomBossSnapshot, 'shielded'> {
+function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined, level: DifficultyProfile): Omit<RoomBossSnapshot, 'shielded'> {
   if (config.kind === 'moth') {
     const phase = (2 * Math.PI * t) / config.cycleMs;
     const pathX = MOTH_PATH.centerX + MOTH_PATH.amplitude * Math.cos(phase);
-    const lean = MOTH_HUNT.leanBase + MOTH_HUNT.leanPerHit * hits;
+    const lean = Math.min(1, (MOTH_HUNT.leanBase + MOTH_HUNT.leanPerHit * hits) * level.hunt);
     return {
       config, pose: 'fly', hits, dangerous: true, hittable: true,
       x: playerX === undefined ? pathX : pathX + (playerX - pathX) * lean,
@@ -244,11 +284,11 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   if (config.kind === 'wraith') {
     const blink = Math.floor(t / WRAITH_BLINK.blinkMs);
     const local = t % WRAITH_BLINK.blinkMs;
-    const telegraphMs = WRAITH_BLINK.telegraphMs - WRAITH_HUNT.telegraphCutMs * hits;
+    const telegraphMs = reactionWindowMs(WRAITH_BLINK.telegraphMs - WRAITH_HUNT.telegraphCutMs * hits, level);
     const solid = local >= telegraphMs;
     const spot = WRAITH_BLINK.spots[blink % WRAITH_BLINK.spots.length];
     // Once solid it drifts toward Wally, a little further after every wound.
-    const reach = WRAITH_HUNT.driftMax + WRAITH_HUNT.driftPerHit * hits;
+    const reach = (WRAITH_HUNT.driftMax + WRAITH_HUNT.driftPerHit * hits) * level.hunt;
     const drift = solid && playerX !== undefined
       ? Math.max(-reach, Math.min(reach, playerX - spot)) * ((local - telegraphMs) / (WRAITH_BLINK.blinkMs - telegraphMs))
       : 0;
@@ -258,8 +298,8 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
     };
   }
   const { leftX, rightX } = ROACH_CHARGE;
-  const telegraphMs = ROACH_CHARGE.telegraphMs - ROACH_HUNT.telegraphCutMs * hits;
-  const chargeMs = roachChargeMs(hits);
+  const telegraphMs = reactionWindowMs(Math.max(0, ROACH_CHARGE.telegraphMs - ROACH_HUNT.telegraphCutMs * hits), level);
+  const chargeMs = roachChargeMs(hits, level.rush);
   const waitMs = ROACH_CHARGE.waitMs + ROACH_CHARGE.chargeMs - chargeMs;
   const leg = waitMs + chargeMs;
   const outbound = t < leg;
@@ -274,10 +314,12 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   return { config, pose: 'charge', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing };
 }
 
-function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined): Omit<RoomBossSnapshot, 'shielded'> {
-  const { clockX, doorLift, reachLift, landX, callMs, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
+function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile): Omit<RoomBossSnapshot, 'shielded'> {
+  const { clockX, doorLift, reachLift, landX, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
+  // Higher levels cut the call short: the bird dives sooner.
+  const callMs = reactionWindowMs(CUCKOO_FLIGHT.callMs, level);
   const base = landX[cycle % landX.length];
-  const land = playerX === undefined ? base : base + (playerX - base) * (leanBase + leanPerHit * hits);
+  const land = playerX === undefined ? base : base + (playerX - base) * Math.min(1, (leanBase + leanPerHit * hits) * level.hunt);
   const facing: 1 | -1 = (playerX ?? base) >= land ? 1 : -1;
   const outward: 1 | -1 = land < clockX ? -1 : 1;
   const flight = (pose: RoomBossPose, x: number, lift: number, heading: 1 | -1) => ({
@@ -311,7 +353,8 @@ const SPARK_REACH_LIFT = 36;
 
 export type RoomBossEvent =
   | { type: 'ROOM_BOSS_HIT'; room: RoomBossRoom }
-  | { type: 'ROOM_BOSS_DISPELLED'; room: RoomBossRoom };
+  | { type: 'ROOM_BOSS_DISPELLED'; room: RoomBossRoom }
+  | { type: 'ROOM_BOSS_REPELLED'; room: RoomBossRoom };
 
 /** Consumes a Dream Spark that reaches the boss (or its shield); the last wound needed dispels it. */
 export function resolveRoomBossSparks(
@@ -324,8 +367,18 @@ export function resolveRoomBossSparks(
   }
   const hit = combat.projectiles.find(projectile => Math.abs(projectile.x - boss.x) <= boss.config.sparkHitRadius);
   if (!hit) return { adventure, combat, events: [] };
-  // The shield swallows the spark without a wound.
-  if (!boss.hittable) return { adventure, combat: { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) }, events: [] };
+  // The shield swallows the spark without a wound, but the first spark of a
+  // round that meets a shielded attack repels it: the boss is harmless until
+  // its next cycle.
+  if (!boss.hittable) {
+    const blocked = { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) };
+    if (!boss.dangerous || boss.repelSpent || boss.attackKey === undefined) return { adventure, combat: blocked, events: [] };
+    return {
+      adventure: markRoomInteraction(adventure, boss.config.room, boss.attackKey),
+      combat: blocked,
+      events: [{ type: 'ROOM_BOSS_REPELLED', room: boss.config.room }],
+    };
+  }
   const { config } = boss;
   const room = config.room;
   const remaining = { ...combat, projectiles: combat.projectiles.filter(projectile => projectile !== hit) };

@@ -1,4 +1,5 @@
 import { getRoomState, markRoomInteraction, type AdventureState } from './AdventureState';
+import { difficultyProfile, reactionWindowMs, type DifficultyProfile } from './AdventureDifficulty';
 
 export type AtticCrateStage = 'shadow' | 'falling' | 'impact' | 'debris';
 
@@ -57,8 +58,11 @@ export function armAtticCrates(
   return { adventure: markRoomInteraction(adventure, 'attic', ARMED_INTERACTION), elapsedMs: aligned };
 }
 
-function dropAt(x: number, t: number): AtticCrateDrop | undefined {
-  const { shadowMs, fallMs, impactMs, debrisMs, dangerLeadMs } = ATTIC_CRATES;
+function dropAt(x: number, t: number, level: DifficultyProfile): AtticCrateDrop | undefined {
+  const { fallMs, impactMs, debrisMs, dangerLeadMs } = ATTIC_CRATES;
+  // Higher levels show the shadow later; the crate lands on the same beat.
+  const shadowMs = reactionWindowMs(ATTIC_CRATES.shadowMs, level);
+  t -= ATTIC_CRATES.shadowMs - shadowMs;
   if (t < 0) return undefined;
   if (t < shadowMs) return { x, stage: 'shadow', progress: t / shadowMs, dangerous: false };
   const fallT = t - shadowMs;
@@ -80,7 +84,7 @@ export function resolveAtticCrates(adventure: AdventureState, elapsedMs: number)
   const drops: AtticCrateDrop[] = [];
   dropOffsetsMs.forEach((offset, index) => {
     const x = positions[(cycle * dropOffsetsMs.length + index) % positions.length];
-    const drop = dropAt(x, t - offset);
+    const drop = dropAt(x, t - offset, difficultyProfile(adventure));
     if (drop) drops.push(drop);
   });
   return { active: true, drops };

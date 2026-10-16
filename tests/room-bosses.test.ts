@@ -65,7 +65,11 @@ void test('Dream Sparks wound the boss and the last one needed dispels it', () =
     if (hit > 1) {
       const guarded = resolveRoomBoss(state, cycleMs - 1)!;
       equal(guarded.shielded, true, `after wound ${hit - 1} the shield is back for the rest of the cycle`);
-      equal(resolveRoomBossSparks(state, sparkAt(guarded.x), guarded).events.length, 0, `the shield swallows spark ${hit} early`);
+      // The round's first early spark repels the attack; later ones are only swallowed.
+      const early = resolveRoomBossSparks(state, sparkAt(guarded.x), guarded);
+      equal(early.events[0]?.type, hit === 2 ? 'ROOM_BOSS_REPELLED' : undefined, `the shield takes spark ${hit} early without a wound`);
+      equal(early.combat.projectiles.length, 0, `early spark ${hit} is consumed`);
+      state = early.adventure;
     }
     const boss = resolveRoomBoss(state, cycleMs)!;
     const result = resolveRoomBossSparks(state, sparkAt(boss.x), boss);
@@ -82,11 +86,18 @@ void test('the first attack cycle is shielded: it hurts, and sparks vanish on th
   for (const room of Object.keys(ROOM_BOSSES) as RoomBossRoom[]) {
     const { adventure, startMs } = awake(room);
     const config = ROOM_BOSSES[room];
+    let state = adventure;
+    let spent = false;
     for (const t of [ROOM_BOSS_RISE_MS, ROOM_BOSS_RISE_MS + config.cycleMs - 1]) {
-      const boss = resolveRoomBoss(adventure, startMs + t)!;
+      const boss = resolveRoomBoss(state, startMs + t)!;
       equal(boss.shielded && !boss.hittable, true, `${room} +${t}ms: shielded`);
-      const result = resolveRoomBossSparks(adventure, sparkAt(boss.x), boss);
-      equal(result.events.length + result.combat.projectiles.length, 0, `${room} +${t}ms: the spark is blocked without a wound`);
+      const result = resolveRoomBossSparks(state, sparkAt(boss.x), boss);
+      equal(result.combat.projectiles.length, 0, `${room} +${t}ms: the spark is blocked`);
+      // The first spark that meets the attack repels it (harmless until the next cycle); later ones are only swallowed.
+      equal(result.events[0]?.type, boss.dangerous && !spent ? 'ROOM_BOSS_REPELLED' : undefined, `${room} +${t}ms: no wound`);
+      if (spent) equal(boss.repelled === true && !boss.dangerous, true, `${room}: a repelled attack is harmless`);
+      spent ||= boss.dangerous;
+      state = result.adventure;
     }
     equal(resolveRoomBoss(adventure, startMs + ROOM_BOSS_RISE_MS + config.cycleMs)!.shielded, false, `${room}: the shield drops after one cycle`);
   }

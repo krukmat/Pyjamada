@@ -94,6 +94,7 @@ export type AdventureExplorationEvent =
   | { type: 'BATHROOM_TWIN_CONTACT_HIT' }
   | { type: 'ROOM_BOSS_HIT'; room: RoomBossRoom }
   | { type: 'ROOM_BOSS_DISPELLED'; room: RoomBossRoom }
+  | { type: 'ROOM_BOSS_REPELLED'; room: RoomBossRoom }
   | { type: 'ROOM_BOSS_CONTACT_HIT'; room: RoomBossRoom }
   | { type: 'LABORATORY_CONTROL_DEVICE_BLOCKED'; deviceId: VesperControlDeviceId }
   | { type: 'LABORATORY_CONTROL_DEVICE_DISABLED'; deviceId: VesperControlDeviceId }
