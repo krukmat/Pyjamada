@@ -49,6 +49,7 @@ import type { TouchControlLayout } from '../settings/core/GameSettings';
 import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { activeGhostHint } from './HauntedThreatHint';
 import { TouchDeck } from './TouchDeck';
+import { useKeyboardControls } from './useKeyboardControls';
 import { shouldUseRoomCheckpoint } from '../game/adventure/RoomCheckpoint';
 import { livesLeft } from '../game/adventure/AdventureDifficulty';
 import { PixelMeter } from './RetroUiKit';
@@ -123,6 +124,8 @@ export function HauntedGameScreen({
   const useTarget = exitTarget ? 'EXIT' : adventureTarget?.displayLabel ?? domesticTarget?.label;
 
   const deckVisible = !done && endingPhase !== 'ghost-sting';
+  const deckEnabled = { jump: !endingActive, attack: !endingActive && (!exploration || explorationCombat), interact: true };
+  useKeyboardControls(deckVisible, { enabled: deckEnabled, onHeldControl, onAction });
   const hp = `HP ${'♥'.repeat(session.combat.hp)}${'·'.repeat(session.combat.maxHp - session.combat.hp)}`;
 
   return (
@@ -133,7 +136,7 @@ export function HauntedGameScreen({
           style={StyleSheet.absoluteFill}
           columns={{ centerWidth: viewport.width + CABINET_CHROME, top: COLUMN_TOP }}
           layout={touchControlLayout}
-          enabled={{ jump: !endingActive, attack: !endingActive && (!exploration || explorationCombat), interact: true }}
+          enabled={deckEnabled}
           useTarget={useTarget}
           onHeldControl={onHeldControl}
           onAction={onAction}

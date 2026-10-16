@@ -1,4 +1,5 @@
 import { deepEqual, equal, test } from './assert';
+import { keyBinding } from '../src/app/KeyboardControls';
 import { layoutControlZones, updateDeckTouches, zoneAt, type DeckTouchState } from '../src/app/TouchControlZones';
 
 const ALL = { jump: true, attack: true, interact: true };
@@ -52,4 +53,13 @@ void test('landscape columns: pad left, actions stacked right, nothing over the 
   const mirrored = layoutControlZones(800, 400, 'mirrored', ALL, { centerWidth: 500, top: 100 });
   equal(zoneAt(mirrored, 30, 350)?.id, 'jump', 'mirrored puts the actions on the left');
   equal(zoneAt(mirrored, 770, 300)?.id, 'right', 'and the pad on the right');
+});
+
+void test('the web keyboard sends the same commands as the deck: arrows/WASD steer and jump, X attacks, E/Enter uses', () => {
+  deepEqual([keyBinding('ArrowLeft'), keyBinding('A')], [{ kind: 'held', control: 'left' }, { kind: 'held', control: 'left' }], 'left, any case');
+  deepEqual(keyBinding('d'), { kind: 'held', control: 'right' }, 'right');
+  deepEqual([' ', 'ArrowUp', 'W'].map(key => keyBinding(key)?.control), ['jump', 'jump', 'jump'], 'jump');
+  deepEqual(['x', 'J'].map(key => keyBinding(key)?.control), ['attack', 'attack'], 'attack');
+  deepEqual(['e', 'Enter', 'ArrowDown'].map(key => keyBinding(key)?.control), ['interact', 'interact', 'interact'], 'use');
+  equal(keyBinding('Tab'), undefined, 'unbound keys keep their browser meaning');
 });

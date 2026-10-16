@@ -3,7 +3,9 @@ node_modules/
 android/
 ios/
 .test-dist/
+public/canvaskit.wasm
 dist/
+public/canvaskit.wasm
 *.log
 .DS_Store
 .scratch/

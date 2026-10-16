@@ -12,6 +12,12 @@
     "backgroundColor": "#0b0a12",
     "plugins": [
       "./plugins/withDarkLaunchWindow"
-    ]
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "Pyjamada",
+      "backgroundColor": "#0b0a12"
+    }
   }
 }

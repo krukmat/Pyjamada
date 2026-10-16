@@ -163,6 +163,21 @@ For the Expo development server separately:
 npm start
 ```
 
+### Web
+
+```bash
+npm install          # react-dom, react-native-web, @expo/metro-runtime
+npm run web          # copies canvaskit.wasm to public/, then expo start --web
+npm run export:web   # static build in dist/
+```
+
+Skia draws through CanvasKit (WebAssembly); `index.ts` loads it before importing
+`App`. Keyboard: ←/→ or A/D move, ↑/W/Space jump, X/J attack, E/Enter/↓ use; the
+touch deck still works on phones. Saves go to the browser's `localStorage`.
+`.github/workflows/web.yml` publishes `main` to GitHub Pages under `/Pyjamada`
+(Settings → Pages → Source: GitHub Actions). If `npm install` complains about a
+version, `npx expo install --fix` aligns them with Expo 57.
+
 ## Validate it
 
 Run the complete automated suite:
