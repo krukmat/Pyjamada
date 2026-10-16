@@ -86,7 +86,9 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   const blink = Math.floor(nowMs / 90) % 2 === 0;
   const opacity = dispelling
     ? (1 - dispelProgress) * (blink ? 1 : 0.5)
-    : boss.pose === 'rise' ? (blink ? 0.25 : 0.5) : boss.pose === 'telegraph' ? (blink ? 0.2 : 0.45) : 1;
+    : boss.pose === 'rise' ? (blink ? 0.25 : 0.5)
+    // The Wraith phases in faintly; the Cuckoo's call is the bird itself, out at its door.
+    : boss.pose === 'telegraph' && boss.config.kind !== 'cuckoo' ? (blink ? 0.2 : 0.45) : 1;
   // The Roach twitches in place before it charges.
   const twitch = boss.config.kind === 'roach' && boss.pose === 'telegraph' && blink ? 1 : 0;
   const shadowWidth = width * (boss.lift > 0 ? 0.5 : 0.8);
