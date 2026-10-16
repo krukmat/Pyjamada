@@ -16,6 +16,7 @@ import {
   isPlayerInsideVesperNightmareAttack,
   resolveVesperNightmareProjectileHits,
   resolveVesperNightmareState,
+  VESPER_NIGHTMARE_STRIKE_EXTRA_DAMAGE,
 } from './LaboratoryVesperNightmare';
 import { applyHauntedKnockback, stepHauntedPlayerPhysics } from '../haunted/PlayerPhysics';
 import { getLaboratoryEncounterPhase } from './LaboratoryEncounter';
@@ -449,6 +450,8 @@ export function stepAdventureExploration(
     const hit = applyHauntedPlayerHit(combat, elapsedMs);
     combat = hit.combat;
     if (hit.accepted) {
+      // The final nightmare hits hard: each strike costs an extra heart.
+      combat = { ...combat, hp: Math.max(0, combat.hp - VESPER_NIGHTMARE_STRIKE_EXTRA_DAMAGE) };
       const attackCenter = ((nightmare.minX ?? player.x) + (nightmare.maxX ?? player.x)) / 2;
       player = applyHauntedKnockback(player, player.x <= attackCenter ? 1 : -1);
       events.push({ type: 'LABORATORY_NIGHTMARE_ATTACK_HIT' });
@@ -532,6 +535,10 @@ export function stepAdventureExploration(
   nextAdventure = bossSparks.adventure;
   combat = bossSparks.combat;
   events.push(...bossSparks.events);
+  // Beating a boss refills one heart: a little margin for the next fight.
+  if (bossSparks.events.some(event => event.type === 'ROOM_BOSS_DISPELLED')) {
+    combat = { ...combat, hp: Math.min(combat.maxHp, combat.hp + 1) };
+  }
   if (boss && bossSparks.events.length === 0 && isPlayerTouchingRoomBoss(player, boss) && objective.phase !== 'failed') {
     const hit = applyHauntedPlayerHit(combat, elapsedMs);
     combat = hit.combat;

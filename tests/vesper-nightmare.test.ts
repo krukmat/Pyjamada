@@ -109,7 +109,7 @@ void test('active Nightmare attack damages only its telegraphed zone', () => {
     domestic: { ...base.session.domestic, player: { x: 40, facing: 'right' } },
   };
   const hit = stepAdventureExploration(exposed, base.adventure, 33);
-  equal(hit.session.combat.hp, base.session.combat.hp - 1, 'left slam damages Wally inside active left zone');
+  equal(hit.session.combat.hp, base.session.combat.hp - 2, 'left slam costs Wally two hearts inside the active left zone');
   equal(hit.events.some(event => event.type === 'LABORATORY_NIGHTMARE_ATTACK_HIT'), true, 'Nightmare attack emits explicit hit event');
 
   const safe: HauntedSessionState = {

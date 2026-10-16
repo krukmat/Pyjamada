@@ -27,6 +27,15 @@ export type VesperNightmareEvent =
  * 600 ms recovery in which Vesper is open to the next Dream Spark.
  */
 export const VESPER_NIGHTMARE_ATTACK = { slotMs: 2_000, telegraphMs: 900, activeMs: 450, recoveryMs: 600 } as const;
+/**
+ * Every Dream Spark that lands enrages Vesper: the warning before each attack
+ * starts this much later (the strike itself keeps its beat), so the last hit
+ * is won by reading the rhythm rather than waiting for the glow, and every
+ * attack covers widenPerHit more floor on each side.
+ */
+export const VESPER_NIGHTMARE_RAGE = { telegraphCutMs: 275, widenPerHit: 8 } as const;
+/** Hearts a nightmare strike takes on top of the usual one: two of them knock Wally out. */
+export const VESPER_NIGHTMARE_STRIKE_EXTRA_DAMAGE = 1;
 export const VESPER_NIGHTMARE_ATTACK_ORDER: readonly VesperNightmareAttackId[] = ['left-slam', 'center-rift', 'right-slam'];
 export const VESPER_NIGHTMARE_CYCLE_MS = 6_300;
 
@@ -84,8 +93,9 @@ export function resolveVesperNightmareState(
     const t = cycleMs - attackIndex * VESPER_NIGHTMARE_ATTACK.slotMs;
     const slot = (attackIndex + 1) as 1 | 2 | 3;
     const { telegraphMs, activeMs, recoveryMs } = VESPER_NIGHTMARE_ATTACK;
-    if (t < telegraphMs) return attackState(cycleMs, attack, 'telegraph', slot, hits);
-    if (t < telegraphMs + activeMs) return attackState(cycleMs, attack, 'active', slot, hits);
+    const warnFromMs = VESPER_NIGHTMARE_RAGE.telegraphCutMs * Math.min(hits, 2);
+    if (t >= warnFromMs && t < telegraphMs) return attackState(cycleMs, attack, 'telegraph', slot, hits);
+    if (t >= telegraphMs && t < telegraphMs + activeMs) return attackState(cycleMs, attack, 'active', slot, hits);
     if (t < telegraphMs + activeMs + recoveryMs) return attackState(cycleMs, attack, 'recovery', slot, hits);
   }
 
@@ -173,7 +183,8 @@ function attackState(
   vulnerabilitySlot: 1 | 2 | 3,
   hits: number,
 ): VesperNightmareState {
-  const bounds = VESPER_NIGHTMARE_HAZARDS[attack];
+  const widen = VESPER_NIGHTMARE_RAGE.widenPerHit * Math.min(hits, 2);
+  const bounds = { minX: VESPER_NIGHTMARE_HAZARDS[attack].minX - widen, maxX: VESPER_NIGHTMARE_HAZARDS[attack].maxX + widen };
   const vulnerable = phase === 'recovery' && hits + 1 === vulnerabilitySlot;
   return {
     active: true,

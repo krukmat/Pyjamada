@@ -369,7 +369,10 @@ export function runBot(start: BotWorld, policy: BotPolicy, options: BotRunOption
     const room = world.adventure.currentRoom;
     const stats = (rooms[room] ??= { timeMs: 0, hits: 0, deaths: 0, hitsAtObjects: 0 });
     const action = policy.act(world);
-    const atObject = isStandingAtObject(world) || policy.isReading?.() === true;
+    // In a room boss fight Wally stands still to shoot, often beside an object:
+    // only actual reading counts there.
+    const bossFight = resolveRoomBoss(world.adventure, world.session.elapsedMs) !== undefined;
+    const atObject = (!bossFight && isStandingAtObject(world)) || policy.isReading?.() === true;
     const step = stepBotWorld(world, action);
     for (const violation of checkBotInvariants(world, step)) {
       if (violations.length < 20) violations.push(`${violation} (${describeWorld(step.world)} t=${Math.round(gameTimeMs)}ms)`);

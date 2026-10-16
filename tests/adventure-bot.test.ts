@@ -176,17 +176,24 @@ void test('the haunted bedroom is played for real: HumanBot escapes and every po
   }
 });
 
-void test('room threats are fair to the human model: no deaths, at most one hit per visit (two against a room boss), reading spots safe (W1-3)', () => {
+void test('room threats are fair to the human model: no deaths before the final fight, at most one hit per visit (two against a room boss), reading spots safe (W1-3)', () => {
   for (const room of ACTIVE_ROOM_IDS) {
     if (room === 'bedroom') continue;
     const entry = withFullHp(route.roomEntries[room]!);
     // A room boss (and Vesper's final fight) is meant to be a fight: it may land
     // a second blow, never a third.
-    const maxHits = roomBossFor(room) || room === 'laboratory' ? 2 : 1;
+    // Vesper's nightmare is the one fight allowed to knock Wally out: its phase
+    // checkpoint keeps every landed spark, so a retry always gets closer.
+    const finalFight = room === 'laboratory';
+    const maxHits = roomBossFor(room) ? 2 : 1;
     for (const startDelayMs of [0, 1_000, 2_000]) {
       const human = runBot(entry, new HumanBot({ startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
-      equal(human.deaths, 0, `${room} +${startDelayMs}ms: HumanBot never dies in a room entered at full HP`);
-      ok(human.hits <= maxHits, `${room} +${startDelayMs}ms: HumanBot takes at most ${maxHits} hit(s) (${human.hits})`);
+      if (finalFight) {
+        ok(human.deaths <= 2, `${room} +${startDelayMs}ms: HumanBot wins the final fight within two retries (${human.deaths})`);
+      } else {
+        equal(human.deaths, 0, `${room} +${startDelayMs}ms: HumanBot never dies in a room entered at full HP`);
+        ok(human.hits <= maxHits, `${room} +${startDelayMs}ms: HumanBot takes at most ${maxHits} hit(s) (${human.hits})`);
+      }
       const reader = runBot(entry, new HumanBot({ threatResponse: 'not-while-reading', startDelayMs, seed: `fair-${room}` }), ROOM_OPTIONS);
       equal(reader.hitsAtObjects, 0, `${room} +${startDelayMs}ms: standing at an object to read it is safe`);
     }

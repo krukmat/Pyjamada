@@ -102,15 +102,20 @@ export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
 export const WRAITH_BLINK = { spots: [28, 68, 46], blinkMs: 1_500, telegraphMs: 450 } as const;
 /**
  * Per wound the Wraith's warning shrinks by telegraphCutMs and its drift toward
- * Wally grows; it never drifts past maxX, so reading the television stays safe.
+ * Wally grows. It stays between minX and maxX, so the hallway door Wally wakes
+ * at after a knock-out is always safe.
  */
-export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 12, maxX: 96 } as const;
+export const WRAITH_HUNT = { telegraphCutMs: 75, driftMax: 20, driftPerHit: 20, minX: 34, maxX: 104 } as const;
 /** Share of the gap to Wally the Moth closes: leanBase plus leanPerHit per wound. */
 export const MOTH_HUNT = { leanBase: 0.08, leanPerHit: 0.08 } as const;
 /** Roach: waits at a wall (the last telegraphMs twitching), then charges to the other one. */
 export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs: 450, chargeMs: 900 } as const;
-/** Each wound takes this off the Roach's charge and adds it to its wait, so the cycle keeps its length. */
-export const ROACH_HUNT = { chargeCutMs: 150 } as const;
+/**
+ * Each wound takes chargeCutMs off the Roach's charge (adding it to its wait, so
+ * the cycle keeps its length) and telegraphCutMs off its twitch: the last
+ * wounds are won by reading its rhythm, not by waiting for the warning.
+ */
+export const ROACH_HUNT = { chargeCutMs: 150, telegraphCutMs: 175 } as const;
 
 /** How long a Roach with this many wounds takes to cross the kitchen. */
 export function roachChargeMs(hits: number): number {
@@ -249,10 +254,11 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
       : 0;
     return {
       config, pose: solid ? 'solid' : 'telegraph', hits, dangerous: solid, hittable: solid,
-      x: Math.min(WRAITH_HUNT.maxX, spot + drift), lift: 14, facing: playerX !== undefined && playerX > spot ? 1 : -1,
+      x: Math.max(WRAITH_HUNT.minX, Math.min(WRAITH_HUNT.maxX, spot + drift)), lift: 14, facing: playerX !== undefined && playerX > spot ? 1 : -1,
     };
   }
-  const { leftX, rightX, telegraphMs } = ROACH_CHARGE;
+  const { leftX, rightX } = ROACH_CHARGE;
+  const telegraphMs = ROACH_CHARGE.telegraphMs - ROACH_HUNT.telegraphCutMs * hits;
   const chargeMs = roachChargeMs(hits);
   const waitMs = ROACH_CHARGE.waitMs + ROACH_CHARGE.chargeMs - chargeMs;
   const leg = waitMs + chargeMs;

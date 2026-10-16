@@ -76,6 +76,8 @@ Every wound makes a boss meaner: the Moth leans harder, the Wraith warns for 75 
 
 The Hallway clock is a cuckoo clock. Once the Moth is dispelled its bird bursts out as a mini boss (**Cuckoo**, 2 hits) and keeps the door sealed: it calls from the clock door (harmless), dives toward a landing spot bent toward Wally, hops after him pecking (the only time it can be hit), then flies home and hides. Each attack can cost at most one heart. The old phantom pendulum is gone.
 
+Difficulty climbs room by room. Dispelling any boss refills one heart (one per boss, so the Hallway gives two). The Wraith's drift and the Roach's twitch grow meaner per wound (the Wraith never reaches the Hallway door Wally wakes at), and Vesper's nightmare is the final wall: each landed spark shortens its warning and widens its attacks, and every strike costs two hearts, so a first attempt usually ends in a knock-out and a retry from the phase checkpoint, which keeps every landed spark. A bot that sees danger 800 ms ahead still finishes without dying.
+
 The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.
 
 ## Screen
