@@ -202,7 +202,11 @@ function attackState(
   hits: number,
 ): VesperNightmareState {
   const widen = VESPER_NIGHTMARE_RAGE.widenPerHit * Math.min(hits, 2);
-  const bounds = { minX: VESPER_NIGHTMARE_HAZARDS[attack].minX - widen, maxX: VESPER_NIGHTMARE_HAZARDS[attack].maxX + widen };
+  // The slams widen toward the room's centre only: their outer edge is already the wall.
+  const bounds = {
+    minX: VESPER_NIGHTMARE_HAZARDS[attack].minX - (attack === 'left-slam' ? 0 : widen),
+    maxX: VESPER_NIGHTMARE_HAZARDS[attack].maxX + (attack === 'right-slam' ? 0 : widen),
+  };
   const vulnerable = phase === 'recovery' && hits + 1 === vulnerabilitySlot;
   return {
     active: true,

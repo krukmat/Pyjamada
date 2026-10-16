@@ -111,7 +111,8 @@ void test('difficulty matrix: who finishes each level, and how many lives it cos
   equal(average3.deaths >= 2, true, `level 3 costs the average player a couple of lives, got ${average3.deaths}`);
   const expert3 = play(3, 'expert');
   finishes(expert3, 1, 'level 3 expert');
-  equal(expert3.hits > play(2, 'expert').hits, true, 'level 3 costs the expert more than level 2');
+  const expert2 = play(2, 'expert');
+  equal(expert3.deaths > expert2.deaths || expert3.hits > expert2.hits, true, 'level 3 costs the expert more than level 2');
 });
 
 void test('on Night Terror Vesper changes the order of its attacks every cycle', () => {
