@@ -50,6 +50,7 @@ import { HauntedRenderReadyProbe } from './HauntedRenderReadyProbe';
 import { activeGhostHint } from './HauntedThreatHint';
 import { TouchDeck } from './TouchDeck';
 import { shouldUseRoomCheckpoint } from '../game/adventure/RoomCheckpoint';
+import { livesLeft } from '../game/adventure/AdventureDifficulty';
 import { PixelMeter } from './RetroUiKit';
 import { RoomTransitionOverlay, type RoomTransitionPhase } from './RoomTransitionOverlay';
 import { isTestHooksEnabled } from './testHooks';
@@ -385,7 +386,13 @@ function reactionFor(session: HauntedSessionState, adventure?: AdventureState): 
   if (session.objective.phase === 'completed') return 'Out. Barely.';
   if (session.objective.phase === 'failed') {
     if (session.objective.reason === 'house-awake') return 'Too loud. The whole house knows.';
-    if (session.objective.reason === 'haunted') return adventure && shouldUseRoomCheckpoint(session, adventure) ? 'Knocked out. Wally wakes at the door - every clue stays found.' : 'The haunting got Wally.';
+    if (session.objective.reason === 'haunted') {
+      if (!adventure || !shouldUseRoomCheckpoint(session, adventure)) return 'The haunting got Wally.';
+      const lives = livesLeft(adventure);
+      return lives === undefined
+        ? 'Knocked out. Wally wakes at the door - every clue stays found.'
+        : `Knocked out. Wally wakes at the door - ${lives} ${lives === 1 ? 'life' : 'lives'} left.`;
+    }
     if (session.objective.reason === 'too-late') return 'Morning won. Try a sharper route.';
     return 'No energy left. Heroics were a mistake.';
   }

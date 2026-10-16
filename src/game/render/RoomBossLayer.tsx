@@ -94,8 +94,22 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   const white = flash || (dispelling && dispelProgress < 0.3 && blink);
   const ring = 3 + (blink ? 1 : 0);
 
+  // A Cuckoo with a locked aim marks its landing spot on the floor from the call on.
+  const landing = boss.config.kind === 'cuckoo' && boss.aimX !== undefined && (boss.pose === 'telegraph' || boss.pose === 'dive') ? spreadX(boss.aimX) : undefined;
+  const landingWidth = 2 * boss.config.contactHalfWidth;
+
   return (
     <Group>
+      {landing !== undefined && (
+        <Oval
+          x={px(landing - landingWidth / 2)}
+          y={px(PLAYER_GROUND_Y - 2)}
+          width={px(landingWidth)}
+          height={px(4)}
+          color="#d23a3a"
+          opacity={blink ? 0.7 : 0.4}
+        />
+      )}
       <Oval
         x={px(x - shadowWidth / 2)}
         y={px(PLAYER_GROUND_Y - 2)}

@@ -86,6 +86,7 @@ function validateAdventureState(value: unknown): string | null {
   }
   if (!value.rooms[value.currentRoom]) return 'Current room must have persisted room state.';
   if (value.difficulty !== undefined && !isAdventureDifficulty(value.difficulty)) return 'Invalid difficulty level.';
+  if (value.knockouts !== undefined && !(Number.isInteger(value.knockouts) && (value.knockouts as number) >= 0)) return 'Invalid knock-out count.';
 
   return null;
 }

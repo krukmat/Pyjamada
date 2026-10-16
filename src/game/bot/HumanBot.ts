@@ -22,7 +22,7 @@ import {
   isAdventureExplorationActive,
 } from '../adventure/AdventureExplorationRuntime';
 import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
-import { activeRoomBoss } from '../adventure/RoomBossHazard';
+import { activeRoomBoss, resolveRoomBoss } from '../adventure/RoomBossHazard';
 import { getLaboratoryEncounterPhase } from '../adventure/LaboratoryEncounter';
 import { resolveResonatorInstabilityState } from '../adventure/LaboratoryResonatorInstability';
 import { findActiveRoom } from '../adventure/RoomRegistry';
@@ -350,6 +350,11 @@ export class HumanBot implements BotPolicy {
     if (boss) {
       const key = `${phaseKey(world)}:boss:${boss.kind}`;
       if (!this.firing || this.firing.key !== key) this.firing = { key, x: roomBossFiringSpot(boss) };
+      // A Cuckoo that lands where Wally stood is shot from wherever he stepped aside to.
+      const snapshot = resolveRoomBoss(world.adventure, world.session.elapsedMs, x);
+      if (snapshot?.aimX !== undefined && snapshot.pose === 'hop' && Math.abs(snapshot.x - x) >= MIN_FIRING_DISTANCE + snapshot.config.contactHalfWidth) {
+        return { x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(x)}` };
+      }
       return { x: this.firing.x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(this.firing.x)}` };
     }
     const twin = isBathroomTwinActive(world.adventure);

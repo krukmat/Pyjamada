@@ -34,6 +34,8 @@ export type AdventureState = {
   rooms: Partial<Record<RoomId, RoomPersistentState>>;
   /** Difficulty level chosen at NEW GAME (AdventureDifficulty); absent means level 1. */
   difficulty?: 1 | 2 | 3;
+  /** Knock-outs survived this run (counted against the level's lives). */
+  knockouts?: number;
 };
 
 export function createRoomPersistentState(): RoomPersistentState {

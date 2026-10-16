@@ -19,12 +19,19 @@ export type DifficultyProfile = {
   hunt: number;
   /** Multiplier on how fast charging threats cross the room. */
   rush: number;
+  /**
+   * Flying bosses pick their target when an attack starts (where Wally stands
+   * then) instead of following him: a quick step aside dodges them.
+   */
+  lockAim: boolean;
+  /** Knock-outs the run survives before the house wins; undefined is unlimited. */
+  lives?: number;
 };
 
 export const DIFFICULTY_PROFILES: Readonly<Record<AdventureDifficulty, DifficultyProfile>> = {
-  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1 },
-  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15 },
-  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4 },
+  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, lockAim: false },
+  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, lockAim: false },
+  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, lockAim: true, lives: 4 },
 };
 
 export function isAdventureDifficulty(value: unknown): value is AdventureDifficulty {
@@ -42,4 +49,19 @@ export function difficultyProfile(adventure: AdventureState): DifficultyProfile 
 /** A reaction window of baseMs, cut to the level's longest one. */
 export function reactionWindowMs(baseMs: number, level: DifficultyProfile): number {
   return Math.min(baseMs, level.reactMs);
+}
+
+/**
+ * Whether Wally wakes from this knock-out (at the room door or the Laboratory
+ * checkpoint). On a level with lives, the last one ends the run.
+ */
+export function wakesFromKnockout(adventure: AdventureState): boolean {
+  const { lives } = difficultyProfile(adventure);
+  return lives === undefined || (adventure.knockouts ?? 0) + 1 < lives;
+}
+
+/** Knock-outs left before the one that ends the run; undefined when unlimited. */
+export function livesLeft(adventure: AdventureState): number | undefined {
+  const { lives } = difficultyProfile(adventure);
+  return lives === undefined ? undefined : Math.max(0, lives - 1 - (adventure.knockouts ?? 0));
 }

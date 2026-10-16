@@ -66,6 +66,7 @@ import {
   activeRoomBoss,
   armRoomBoss,
   isPlayerTouchingRoomBoss,
+  lockRoomBossAim,
   resolveRoomBoss,
   resolveRoomBossSparks,
   type RoomBossRoom,
@@ -531,6 +532,7 @@ export function stepAdventureExploration(
     }
   }
 
+  nextAdventure = lockRoomBossAim(nextAdventure, elapsedMs, player.x);
   const boss = resolveRoomBoss(nextAdventure, elapsedMs, player.x);
   const bossSparks = resolveRoomBossSparks(nextAdventure, combat, boss);
   nextAdventure = bossSparks.adventure;

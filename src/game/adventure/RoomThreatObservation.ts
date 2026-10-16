@@ -11,7 +11,7 @@ import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstabili
 import { resolveVesperControlState } from './LaboratoryVesperControl';
 import { resolveVesperNightmareState } from './LaboratoryVesperNightmare';
 import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from './LivingRoomStaticHazard';
-import { ROACH_CHARGE, resolveRoomBoss, roachChargeMs } from './RoomBossHazard';
+import { CUCKOO_FLIGHT, LOCKED_AIM, ROACH_CHARGE, resolveRoomBoss, roachChargeMs } from './RoomBossHazard';
 
 /** How much of the Roach's opening charge its twitch marks as a jump zone. */
 const ROACH_TWITCH_LANE_MS = 400;
@@ -84,6 +84,11 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
       push('room-boss', 'danger', minX, maxX, true);
     } else if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
     else push('room-boss', 'warning', boss.x - reach, boss.x + reach);
+    // A Cuckoo with a locked aim marks its landing spot (and the low end of its dive) from the call on.
+    if (boss.config.kind === 'cuckoo' && boss.aimX !== undefined && (boss.pose === 'telegraph' || boss.pose === 'dive')) {
+      const tail = (CUCKOO_FLIGHT.clockX - boss.aimX) * (LOCKED_AIM.landReachLift / CUCKOO_FLIGHT.doorLift);
+      push('room-boss', 'warning', Math.min(boss.aimX, boss.aimX + tail) - reach, Math.max(boss.aimX, boss.aimX + tail) + reach);
+    }
   }
 
   switch (adventure.currentRoom) {

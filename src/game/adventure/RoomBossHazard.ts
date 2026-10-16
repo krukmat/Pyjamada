@@ -1,6 +1,6 @@
 import type { HauntedCombatState } from '../haunted/HauntedCombat';
 import { difficultyProfile, reactionWindowMs, type DifficultyProfile } from './AdventureDifficulty';
-import { getRoomState, markRoomInteraction, type AdventureState, type RoomId } from './AdventureState';
+import { getRoomState, markRoomInteraction, updateRoomState, type AdventureState, type RoomId } from './AdventureState';
 
 /**
  * Room bosses before the Bathroom: solving a room's puzzle wakes its guardian,
@@ -158,6 +158,8 @@ export type RoomBossSnapshot = {
   repelSpent?: boolean;
   /** Identifies the current attack cycle (round and cycle), for the repel mark. */
   attackKey?: string;
+  /** Where a boss with a locked aim is heading this attack (it lands or passes there). */
+  aimX?: number;
 };
 
 const armedMark = (config: RoomBossConfig) => `${config.markPrefix}-armed`;
@@ -165,6 +167,44 @@ const hitMark = (config: RoomBossConfig, hit: number) => `${config.markPrefix}-h
 const roundFromMark = (config: RoomBossConfig, hits: number) => `${config.markPrefix}-round-from-${hits}`;
 const repelRoundPrefix = (config: RoomBossConfig, round: number) => `${config.markPrefix}-repel-${round}-`;
 const dispelledMark = (config: RoomBossConfig) => `${config.markPrefix}-dispelled`;
+const aimPrefix = (config: RoomBossConfig) => `${config.markPrefix}-aim-`;
+
+/**
+ * Locked aim: on levels that lock it, the Cuckoo picks its landing spot as it
+ * calls (where Wally stands then) and lands right there; it only hurts in the
+ * last part of the dive (lift at most landReachLift) and while it hops, so a
+ * quick step away from the marked spot dodges it. Only the current aim is stored, as one room
+ * interaction.
+ */
+export const LOCKED_AIM = { landReachLift: 6 } as const;
+
+function aimSegment(config: RoomBossConfig, elapsedMs: number): string | undefined {
+  if (config.kind !== 'cuckoo') return undefined;
+  const roundMs = roomBossRoundMs(config);
+  const roundT = Math.max(0, elapsedMs) % roundMs;
+  if (roundT < ROOM_BOSS_RISE_MS) return undefined;
+  return `${Math.floor(Math.max(0, elapsedMs) / roundMs)}-${Math.floor((roundT - ROOM_BOSS_RISE_MS) / config.cycleMs)}`;
+}
+
+function lockedAim(adventure: AdventureState, config: RoomBossConfig, segment: string): number | undefined {
+  const prefix = `${aimPrefix(config)}${segment}@`;
+  const mark = getRoomState(adventure, config.room).interactions.find(item => item.startsWith(prefix));
+  return mark === undefined ? undefined : Number(mark.slice(prefix.length));
+}
+
+/** Stores where Wally stands as a new aim segment starts, on levels that lock the aim. */
+export function lockRoomBossAim(adventure: AdventureState, elapsedMs: number, playerX: number): AdventureState {
+  const config = activeRoomBoss(adventure);
+  if (!config || !difficultyProfile(adventure).lockAim) return adventure;
+  if (!getRoomState(adventure, config.room).interactions.includes(armedMark(config))) return adventure;
+  const segment = aimSegment(config, elapsedMs);
+  if (segment === undefined || lockedAim(adventure, config, segment) !== undefined) return adventure;
+  const prefix = aimPrefix(config);
+  return updateRoomState(adventure, config.room, room => ({
+    ...room,
+    interactions: [...room.interactions.filter(item => !item.startsWith(prefix)), `${prefix}${segment}@${Math.round(playerX)}`],
+  }));
+}
 
 /** The room's first boss, if the room has any. */
 export function roomBossFor(room: RoomId): RoomBossConfig | undefined {
@@ -255,18 +295,20 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
   const vulnerableCycle = cycle - SHIELDED_CYCLES;
   const shielded = vulnerableCycle < 0 || hits - roundStartHits(adventure, config) > vulnerableCycle;
   const level = difficultyProfile(adventure);
+  const segment = level.lockAim ? aimSegment(config, elapsedMs) : undefined;
+  const aimX = segment === undefined ? undefined : lockedAim(adventure, config, segment) ?? playerX;
   const pose = config.kind === 'cuckoo'
-    ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level)
+    ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level, aimX)
     : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level);
   // A spark that met the attack behind the shield cancels the rest of it, once per round.
   const roundPrefix = repelRoundPrefix(config, Math.floor(Math.max(0, elapsedMs) / roomBossRoundMs(config)));
   const attackKey = `${roundPrefix}${cycle}`;
   const interactions = getRoomState(adventure, config.room).interactions;
   if (interactions.includes(attackKey)) {
-    return { ...pose, shielded, attackKey, repelled: true, repelSpent: true, dangerous: false, hittable: false };
+    return { ...pose, shielded, attackKey, aimX, repelled: true, repelSpent: true, dangerous: false, hittable: false };
   }
   const repelSpent = interactions.some(mark => mark.startsWith(roundPrefix));
-  return { ...pose, shielded, attackKey, repelSpent, hittable: pose.hittable && !shielded };
+  return { ...pose, shielded, attackKey, aimX, repelSpent, hittable: pose.hittable && !shielded };
 }
 
 function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined, level: DifficultyProfile): Omit<RoomBossSnapshot, 'shielded'> {
@@ -314,16 +356,19 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   return { config, pose: 'charge', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing };
 }
 
-function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile): Omit<RoomBossSnapshot, 'shielded'> {
+function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile, aimX?: number): Omit<RoomBossSnapshot, 'shielded'> {
   const { clockX, doorLift, reachLift, landX, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
   // Higher levels cut the call short: the bird dives sooner.
   const callMs = reactionWindowMs(CUCKOO_FLIGHT.callMs, level);
   const base = landX[cycle % landX.length];
-  const land = playerX === undefined ? base : base + (playerX - base) * Math.min(1, (leanBase + leanPerHit * hits) * level.hunt);
+  // A locked aim lands right where Wally stood when the bird called.
+  const land = aimX !== undefined ? Math.max(landX[0] - 28, Math.min(landX[1] + 24, aimX))
+    : playerX === undefined ? base : base + (playerX - base) * Math.min(1, (leanBase + leanPerHit * hits) * level.hunt);
   const facing: 1 | -1 = (playerX ?? base) >= land ? 1 : -1;
   const outward: 1 | -1 = land < clockX ? -1 : 1;
+  const flightReach = aimX === undefined ? reachLift : LOCKED_AIM.landReachLift;
   const flight = (pose: RoomBossPose, x: number, lift: number, heading: 1 | -1) => ({
-    config, pose, hits, x, lift, facing: heading, dangerous: lift <= reachLift, hittable: false,
+    config, pose, hits, x, lift, facing: heading, dangerous: lift <= flightReach, hittable: false,
   });
   if (t < callMs) return { config, pose: 'telegraph', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
   if (t < callMs + diveMs) {
@@ -337,7 +382,9 @@ function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: nu
   }
   if (t < callMs + diveMs + hopMs + returnMs) {
     const progress = (t - callMs - diveMs - hopMs) / returnMs;
-    return flight('fly', land + (clockX - land) * progress, doorLift * progress, outward === 1 ? -1 : 1);
+    // A bird with a locked aim takes off straight up: only its landing hurts.
+    const back = flight('fly', land + (clockX - land) * progress, doorLift * progress, outward === 1 ? -1 : 1);
+    return aimX === undefined ? back : { ...back, dangerous: false };
   }
   return { config, pose: 'hide', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
 }

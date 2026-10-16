@@ -5,6 +5,7 @@ import type { AdventureState } from './AdventureState';
 import { restoreLaboratoryCheckpoint, shouldUseLaboratoryCheckpoint } from './LaboratoryEncounter';
 import { getRoomEntry } from './RoomRegistry';
 import { restartRoomBossRound } from './RoomBossHazard';
+import { wakesFromKnockout } from './AdventureDifficulty';
 
 /**
  * A death in the house costs the room, not the run: Wally wakes at the door he
@@ -13,11 +14,12 @@ import { restartRoomBossRound } from './RoomBossHazard';
  * so the save format is unchanged. An awake room boss restarts its round
  * (wounds kept), so Wally wakes to its harmless rise. The Laboratory encounter keeps its own
  * phase checkpoint; the haunted bedroom run still restarts from the bed.
+ * Every wake-up is counted: on a level with lives, the last knock-out ends the run.
  */
 export const ROOM_CHECKPOINT = { invulnerabilityMs: 1_500 } as const;
 
 export function shouldUseRoomCheckpoint(session: HauntedSessionState, adventure: AdventureState): boolean {
-  return session.objective.phase === 'failed' && isAdventureExplorationActive(adventure);
+  return session.objective.phase === 'failed' && isAdventureExplorationActive(adventure) && wakesFromKnockout(adventure);
 }
 
 export function restoreRoomCheckpoint(session: HauntedSessionState, adventure: AdventureState): HauntedSessionState {
@@ -29,11 +31,12 @@ export function restoreRoomCheckpointState(
   session: HauntedSessionState,
   adventure: AdventureState,
 ): { session: HauntedSessionState; adventure: AdventureState } {
-  if (shouldUseLaboratoryCheckpoint(adventure)) return { session: restoreLaboratoryCheckpoint(session, adventure), adventure };
+  const counted = { ...adventure, knockouts: (adventure.knockouts ?? 0) + 1 };
+  if (shouldUseLaboratoryCheckpoint(adventure)) return { session: restoreLaboratoryCheckpoint(session, adventure), adventure: counted };
   if (!shouldUseRoomCheckpoint(session, adventure)) return { session, adventure };
   const entry = getRoomEntry(adventure.currentRoom, adventure.currentEntry);
   if (!entry) return { session, adventure };
-  const restart = restartRoomBossRound(adventure, session.elapsedMs);
+  const restart = restartRoomBossRound(counted, session.elapsedMs);
   const { elapsedMs } = restart;
   return { adventure: restart.adventure, session: {
     ...session,

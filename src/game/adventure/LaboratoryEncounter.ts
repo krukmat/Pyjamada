@@ -1,3 +1,4 @@
+import { wakesFromKnockout } from './AdventureDifficulty';
 import { createHauntedInputState } from '../haunted/HauntedInput';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import { getRoomState, type AdventureState } from './AdventureState';
@@ -41,7 +42,7 @@ export function isLaboratoryEncounterActive(adventure: AdventureState): boolean 
 }
 
 export function shouldUseLaboratoryCheckpoint(adventure: AdventureState): boolean {
-  return adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure);
+  return adventure.currentRoom === 'laboratory' && isLaboratoryEncounterActive(adventure) && wakesFromKnockout(adventure);
 }
 
 export function restoreLaboratoryCheckpoint(
