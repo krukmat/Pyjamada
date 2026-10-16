@@ -67,6 +67,7 @@ import {
   armRoomBoss,
   isPlayerTouchingRoomBoss,
   lockRoomBossAim,
+  stepRoomBossChase,
   resolveRoomBoss,
   resolveRoomBossSparks,
   type RoomBossRoom,
@@ -533,7 +534,8 @@ export function stepAdventureExploration(
   }
 
   nextAdventure = lockRoomBossAim(nextAdventure, elapsedMs, player.x);
-  const boss = resolveRoomBoss(nextAdventure, elapsedMs, player.x);
+  const roomBossChase = stepRoomBossChase(nextAdventure, elapsedMs, player.x, session.threats.roomBossChase, dtMs);
+  const boss = resolveRoomBoss(nextAdventure, elapsedMs, player.x, roomBossChase);
   const bossSparks = resolveRoomBossSparks(nextAdventure, combat, boss);
   nextAdventure = bossSparks.adventure;
   combat = bossSparks.combat;
@@ -584,6 +586,13 @@ export function stepAdventureExploration(
         player: { x: Math.round(player.x), facing: player.facing },
       },
       input: consumeTransientActions(session.input),
+      threats: withRoomBossChase(session.threats, roomBossChase),
     },
   };
+}
+
+function withRoomBossChase(threats: HauntedSessionState['threats'], roomBossChase: HauntedSessionState['threats']['roomBossChase']): HauntedSessionState['threats'] {
+  if (threats.roomBossChase === roomBossChase) return threats;
+  const { roomBossChase: _previous, ...rest } = threats;
+  return roomBossChase === undefined ? rest : { ...rest, roomBossChase };
 }

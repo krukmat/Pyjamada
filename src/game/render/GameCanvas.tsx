@@ -69,7 +69,7 @@ export function GameCanvas({
   const fx = exploration ? [] : resolveFxFrames(activeVisualEvents, nowMs);
   const domesticShake = exploration ? { x: 0, y: 0 } : resolveScreenShake(activeVisualEvents, nowMs);
   const impactShake = resolveCombatImpactShake(hauntedSession, nowMs);
-  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX) : undefined;
+  const roomBoss = exploration && adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX, hauntedSession.threats.roomBossChase) : undefined;
   const bossFx = useRoomBossFx(
     roomBoss,
     (config) => Boolean(adventure && adventure.currentRoom === config.room && isBossDispelled(adventure, config)),

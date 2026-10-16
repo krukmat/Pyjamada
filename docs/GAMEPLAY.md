@@ -80,11 +80,13 @@ Difficulty climbs room by room. Dispelling any boss refills one heart (one per b
 
 Jumping while running, either way, is a leap: Wally takes off at full speed in that direction and keeps it in the air even when the thumb leaves the pad for JUMP, carrying him about 30 units. A standing jump stays vertical, and holding a direction in the air still steers.
 
+The Roach hunts along the floor: while it waits at a wall it crawls out toward Wally (8, 12 or 16 units/s by level, never more than 48 units), then charges the rest of the way. It only reaches a grounded Wally, so a leap over it is the answer. The Dust Moth, the Cuckoo and the Roach are drawn 15% smaller than the other bosses, and their hit widths shrink with them.
+
 NEW GAME offers three levels, saved with the run (older saves load as level 1). Every level keeps the same rooms, threats and bosses; higher ones raise the floor:
 
 - **Level 1, RESTLESS:** the base pattern, with unlimited knock-outs.
 - **Level 2, HAUNTED:** no warning lasts longer than 420 ms (boss telegraphs, the Cuckoo's call, Vesper's warning, attic shadows, basement telegraphs). Bosses lean 20% harder toward Wally and the Roach charges 15% faster.
-- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and hurts only on landing: a quick step aside dodges it. Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. The run has four lives; the fourth knock-out ends it.
+- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and hurts only on landing: a quick step aside dodges it. Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. The run has three lives; the third knock-out ends it.
 
 A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`). The profiles differ in reflexes and in how far ahead they know the level 1 rhythm (`anticipateMs`: 0, 250 and 600 ms):
 

@@ -3,7 +3,7 @@ import { BlendColor, Group, Oval, Paint, Rect } from '@shopify/react-native-skia
 import { PLAYER_GROUND_Y } from '../core/World';
 import type { RoomBossSnapshot } from '../adventure/RoomBossHazard';
 import { PixelSpritePicture } from './PixelSpritePicture';
-import { ROOM_BOSS_SCALE, roomBossFrame } from './RoomBossSprites';
+import { roomBossFrame, roomBossScale } from './RoomBossSprites';
 import { ROOM_VIEW_WIDTH, spreadX } from './StageViewport';
 
 const HIT_FLASH_MS = 140;
@@ -77,8 +77,9 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
   if (boss.pose === 'hide') return <RoomBossHealthBar boss={boss} px={px} />;
   const fast = boss.pose === 'charge' || boss.pose === 'fly' || boss.pose === 'telegraph' || boss.pose === 'dive' || boss.pose === 'hop';
   const sprite = roomBossFrame(boss.config.kind, nowMs, fast);
-  const width = sprite.width * ROOM_BOSS_SCALE;
-  const height = sprite.height * ROOM_BOSS_SCALE;
+  const scale = roomBossScale(boss.config.kind);
+  const width = sprite.width * scale;
+  const height = sprite.height * scale;
   const x = spreadX(boss.x);
   const left = x - width / 2;
   const top = PLAYER_GROUND_Y - boss.lift - height;
@@ -123,7 +124,7 @@ export function RoomBossLayer({ boss, nowMs, px, flash = false, dispelProgress }
         transform={boss.facing < 0 ? [{ translateX: px(x) * 2 }, { scaleX: -1 }] : undefined}
         layer={white ? <Paint><BlendColor color="#ffffff" mode="srcIn" /></Paint> : undefined}
       >
-        <PixelSpritePicture sprite={sprite} x={left + twitch} y={top} px={px} scale={ROOM_BOSS_SCALE} />
+        <PixelSpritePicture sprite={sprite} x={left + twitch} y={top} px={px} scale={scale} />
       </Group>
       {boss.shielded && !dispelling && (
         <Oval

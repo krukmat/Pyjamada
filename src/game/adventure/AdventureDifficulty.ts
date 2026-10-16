@@ -19,6 +19,8 @@ export type DifficultyProfile = {
   hunt: number;
   /** Multiplier on how fast charging threats cross the room. */
   rush: number;
+  /** How fast (units/s) the Roach crawls toward Wally while it waits; well below his running speed (36). */
+  crawlSpeed: number;
   /**
    * Flying bosses pick their target when an attack starts (where Wally stands
    * then) instead of following him: a quick step aside dodges them.
@@ -31,9 +33,9 @@ export type DifficultyProfile = {
 };
 
 export const DIFFICULTY_PROFILES: Readonly<Record<AdventureDifficulty, DifficultyProfile>> = {
-  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, lockAim: false, vesperShuffle: false },
-  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, lockAim: false, vesperShuffle: false },
-  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, lockAim: true, lives: 4, vesperShuffle: true },
+  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, crawlSpeed: 8, lockAim: false, vesperShuffle: false },
+  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, crawlSpeed: 12, lockAim: false, vesperShuffle: false },
+  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, crawlSpeed: 16, lockAim: true, lives: 3, vesperShuffle: true },
 };
 
 export function isAdventureDifficulty(value: unknown): value is AdventureDifficulty {

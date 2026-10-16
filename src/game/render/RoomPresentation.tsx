@@ -240,7 +240,7 @@ function HallwayPresentation({ adventure, hauntedSession, playerX, playerY, nowM
   const hallway = adventure ? getRoomState(adventure, 'hallway') : undefined;
   const clockInspected = hallway?.inspected.includes('backward-clock') === true;
   const livingUnlocked = hallway?.switches['living-room-unlocked'] === true;
-  const boss = adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX) : undefined;
+  const boss = adventure && hauntedSession ? resolveRoomBoss(adventure, hauntedSession.elapsedMs, playerX, hauntedSession.threats.roomBossChase) : undefined;
   const cuckooOut = boss?.config.kind === 'cuckoo' && boss.pose !== 'hide';
   const clockStep = Math.floor(nowMs / 260) % 12;
   const minuteAngle = (-clockStep / 12) * Math.PI * 2 - Math.PI / 2;

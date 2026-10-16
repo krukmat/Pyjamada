@@ -473,7 +473,7 @@ export function combatTargets(world: BotWorld): number[] {
   const { adventure, session } = world;
   if (isBathroomTwinActive(adventure)) return [bathroomTwinX(session.player.x)];
   // A rising boss cannot be hit yet: finish reading the object that woke it first.
-  const boss = resolveRoomBoss(adventure, session.elapsedMs, session.player.x);
+  const boss = resolveRoomBoss(adventure, session.elapsedMs, session.player.x, session.threats.roomBossChase);
   if (boss) return boss.pose === 'rise' ? [] : [boss.x];
   if (adventure.currentRoom !== 'laboratory' || !isLaboratoryCombatEnabled(adventure)) return [];
   const phase = getLaboratoryEncounterPhase(adventure);

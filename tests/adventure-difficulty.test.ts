@@ -6,6 +6,8 @@ import { createAdventureState, setRoomSwitch, type AdventureState } from '../src
 import { restoreRoomCheckpointState, shouldUseRoomCheckpoint } from '../src/game/adventure/RoomCheckpoint';
 import {
   armRoomBoss,
+  ROACH_CHARGE,
+  stepRoomBossChase,
   CUCKOO_FLIGHT,
   dispelBoss,
   lockRoomBossAim,
@@ -37,10 +39,10 @@ void test('Night Terror runs out of lives; the other levels never do', () => {
   const dead = { ...createHauntedSession('lives'), objective: { phase: 'failed' as const, reason: 'haunted' as const } };
   const kitchen = (difficulty: 1 | 3, knockouts: number): AdventureState => ({ ...explorationIn('kitchen'), currentEntry: 'kitchen-from-living-room', difficulty, knockouts });
   equal(wakesFromKnockout(kitchen(1, 50)), true, 'level 1 has unlimited knock-outs');
-  equal(livesLeft(kitchen(3, 0)), 3, 'Night Terror starts with three lives to spare');
-  equal(wakesFromKnockout(kitchen(3, 2)), true, 'the third knock-out still wakes at the door');
-  equal(wakesFromKnockout(kitchen(3, 3)), false, 'the fourth ends the run');
-  equal(shouldUseRoomCheckpoint(dead, kitchen(3, 3)), false, 'no room checkpoint once the lives are gone');
+  equal(livesLeft(kitchen(3, 0)), 2, 'Night Terror starts with two lives to spare');
+  equal(wakesFromKnockout(kitchen(3, 1)), true, 'the second knock-out still wakes at the door');
+  equal(wakesFromKnockout(kitchen(3, 2)), false, 'the third ends the run');
+  equal(shouldUseRoomCheckpoint(dead, kitchen(3, 2)), false, 'no room checkpoint once the lives are gone');
   equal(restoreRoomCheckpointState(dead, kitchen(3, 1)).adventure.knockouts, 2, 'every wake-up is counted');
 });
 
@@ -105,8 +107,8 @@ void test('difficulty matrix: who finishes each level, and how many lives it cos
   equal(casual3.outcome, 'died', `level 3 casual runs out of lives (${casual3.diagnostic})`);
   equal(casual3.rooms.kitchen !== undefined && casual3.rooms.bathroom === undefined, true, 'around the middle of the house');
   const average3 = play(3, 'average');
-  finishes(average3, 3, 'level 3 average');
-  equal(average3.deaths >= 1, true, `level 3 costs the average player lives, got ${average3.deaths}`);
+  finishes(average3, 2, 'level 3 average');
+  equal(average3.deaths >= 2, true, `level 3 costs the average player a couple of lives, got ${average3.deaths}`);
   const expert3 = play(3, 'expert');
   finishes(expert3, 1, 'level 3 expert');
   equal(expert3.hits > play(2, 'expert').hits, true, 'level 3 costs the expert more than level 2');
@@ -119,4 +121,17 @@ void test('on Night Terror Vesper changes the order of its attacks every cycle',
   });
   equal(new Set(firstAttacks(1)).size, 1, 'level 1 always opens with the same attack');
   equal(new Set(firstAttacks(3)).size, 3, 'Night Terror opens with every attack in turn');
+});
+
+void test('the Roach crawls toward Wally while it waits, then charges from there', () => {
+  const kitchen = setRoomSwitch({ ...createAdventureState(3), currentRoom: 'kitchen' }, 'kitchen', ROOM_BOSSES.kitchen.guardSwitch, true);
+  const { adventure, elapsedMs } = armRoomBoss(kitchen, 1_000);
+  let chase: ReturnType<typeof stepRoomBossChase>;
+  let t = elapsedMs + ROOM_BOSS_RISE_MS;
+  for (let step = 0; step < 30; step += 1, t += 33) chase = stepRoomBossChase(adventure, t, 100, chase, 33);
+  const crawling = resolveRoomBoss(adventure, t, 100, chase)!;
+  equal(crawling.pose, 'wait', 'still waiting');
+  equal(crawling.x > ROACH_CHARGE.leftX + 10, true, `it crawled out toward Wally (x=${crawling.x})`);
+  equal(crawling.x < 100, true, 'but stays behind him');
+  equal(resolveRoomBoss(adventure, t, 100)!.x, ROACH_CHARGE.leftX, 'without its crawl it waits at the wall');
 });

@@ -121,6 +121,12 @@ const FRAMES: Record<RoomBossKind, readonly [PixelSprite, PixelSprite]> = {
 
 /** Sprites are drawn this many stage units per sprite pixel: bosses tower over Wally. */
 export const ROOM_BOSS_SCALE = 1.5;
+/** The Moth, the Cuckoo and the Roach are drawn 15% smaller (their hit widths shrink with them). */
+const ROOM_BOSS_KIND_SCALE: Record<RoomBossKind, number> = { moth: 0.85, cuckoo: 0.85, roach: 0.85, wraith: 1 };
+
+export function roomBossScale(kind: RoomBossKind): number {
+  return ROOM_BOSS_SCALE * ROOM_BOSS_KIND_SCALE[kind];
+}
 
 /** Animation frame for a boss; `fast` (charging, fluttering) doubles the frame rate. */
 export function roomBossFrame(kind: RoomBossKind, nowMs: number, fast: boolean): PixelSprite {

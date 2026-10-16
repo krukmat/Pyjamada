@@ -370,7 +370,7 @@ export class HumanBot implements BotPolicy {
       const key = `${phaseKey(world)}:boss:${boss.kind}`;
       if (!this.firing || this.firing.key !== key) this.firing = { key, x: roomBossFiringSpot(boss) };
       // A Cuckoo that lands where Wally stood is shot from wherever he stepped aside to.
-      const snapshot = resolveRoomBoss(world.adventure, world.session.elapsedMs, x);
+      const snapshot = resolveRoomBoss(world.adventure, world.session.elapsedMs, x, world.session.threats.roomBossChase);
       if (snapshot?.aimX !== undefined && snapshot.pose === 'hop' && Math.abs(snapshot.x - x) >= MIN_FIRING_DISTANCE + snapshot.config.contactHalfWidth) {
         return { x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(x)}` };
       }

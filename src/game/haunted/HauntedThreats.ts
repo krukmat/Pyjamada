@@ -23,6 +23,8 @@ export type HauntedThreatState = {
   ghosts: HauntedGhostState[];
   nextEnemyId: number;
   nextSpawnAtMs: number;
+  /** The Roach's crawl this leg (see RoomBossHazard); transient, exploration only. */
+  roomBossChase?: { leg: string; crawl: number };
 };
 
 export type HauntedThreatEvent =

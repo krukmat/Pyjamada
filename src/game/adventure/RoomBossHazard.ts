@@ -49,7 +49,7 @@ export type RoomBossConfig = {
 export const ROOM_BOSSES: Record<RoomBossRoom, RoomBossConfig> = {
   hallway: {
     kind: 'moth', room: 'hallway', name: 'DUST MOTH', markPrefix: 'hallway-boss', guardSwitch: 'living-room-unlocked',
-    exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 11, sparkHitRadius: 12,
+    exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 9.5, sparkHitRadius: 10,
   },
   'living-room': {
     kind: 'wraith', room: 'living-room', name: 'STATIC WRAITH', markPrefix: 'living-room-boss', guardSwitch: 'source-hum-traced',
@@ -57,14 +57,14 @@ export const ROOM_BOSSES: Record<RoomBossRoom, RoomBossConfig> = {
   },
   kitchen: {
     kind: 'roach', room: 'kitchen', name: 'GIANT ROACH', markPrefix: 'kitchen-boss', guardSwitch: 'power-rerouted',
-    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 13, sparkHitRadius: 14,
+    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 11, sparkHitRadius: 12,
   },
 };
 
 /** The Hallway's mini boss, woken when the Dust Moth is dispelled. */
 export const CUCKOO_BOSS: RoomBossConfig = {
   kind: 'cuckoo', room: 'hallway', name: 'CUCKOO', markPrefix: 'hallway-cuckoo', guardSwitch: 'living-room-unlocked',
-  exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_200, contactHalfWidth: 10, sparkHitRadius: 11,
+  exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_200, contactHalfWidth: 8.5, sparkHitRadius: 9.5,
 };
 
 /** Each room's bosses in the order they wake; the next one wakes when the previous is dispelled. */
@@ -118,6 +118,16 @@ export const ROACH_CHARGE = { leftX: 24, rightX: 104, waitMs: 1_300, telegraphMs
  */
 export const ROACH_HUNT = { chargeCutMs: 150, telegraphCutMs: 175 } as const;
 
+/**
+ * While it waits, the Roach crawls out from its wall toward Wally (at the
+ * level's crawlSpeed, at most maxCrawl, stopping to twitch), then charges
+ * from there to the other wall at its usual speed: it hunts along the floor,
+ * and only a jump clears it. How far it crawled this leg is the one piece of
+ * boss state kept between steps (session.threats.roomBossChase, transient).
+ */
+export const ROACH_CRAWL = { maxCrawl: 48 } as const;
+export type RoomBossChase = { leg: string; crawl: number };
+
 /** How long a Roach with this many wounds takes to cross the kitchen. */
 export function roachChargeMs(hits: number, rush = 1): number {
   return (ROACH_CHARGE.chargeMs - ROACH_HUNT.chargeCutMs * hits) / rush;
@@ -160,6 +170,8 @@ export type RoomBossSnapshot = {
   attackKey?: string;
   /** Where a boss with a locked aim is heading this attack (it lands or passes there). */
   aimX?: number;
+  /** The Roach's current leg (wall to wall), for its crawl. */
+  leg?: string;
 };
 
 const armedMark = (config: RoomBossConfig) => `${config.markPrefix}-armed`;
@@ -276,8 +288,22 @@ function roundStartHits(adventure: AdventureState, config: RoomBossConfig): numb
   return start;
 }
 
-/** `playerX` lets the boss hunt Wally; without it the pattern is the bare one. */
-export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, playerX?: number): RoomBossSnapshot | undefined {
+/** The Roach's crawl after dtMs more of hunting Wally; undefined when no Roach is out. */
+export function stepRoomBossChase(adventure: AdventureState, elapsedMs: number, playerX: number, chase: RoomBossChase | undefined, dtMs: number): RoomBossChase | undefined {
+  const boss = resolveRoomBoss(adventure, elapsedMs, playerX, chase);
+  if (!boss || boss.config.kind !== 'roach' || boss.leg === undefined) return undefined;
+  const crawl = chase?.leg === boss.leg ? chase.crawl : 0;
+  if (boss.pose !== 'wait') return { leg: boss.leg, crawl };
+  const gap = (playerX - boss.x) * boss.facing;
+  const step = Math.min(difficultyProfile(adventure).crawlSpeed * (Math.max(0, dtMs) / 1000), Math.max(0, gap));
+  return { leg: boss.leg, crawl: Math.min(ROACH_CRAWL.maxCrawl, crawl + step) };
+}
+
+/**
+ * `playerX` lets the boss hunt Wally; without it the pattern is the bare one.
+ * `chase` is the Roach's crawl this leg (see stepRoomBossChase).
+ */
+export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, playerX?: number, chase?: RoomBossChase): RoomBossSnapshot | undefined {
   const config = activeRoomBoss(adventure);
   if (!config || !getRoomState(adventure, config.room).interactions.includes(armedMark(config))) return undefined;
   const hits = roomBossHits(adventure, config);
@@ -299,7 +325,7 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
   const aimX = segment === undefined ? undefined : lockedAim(adventure, config, segment) ?? playerX;
   const pose = config.kind === 'cuckoo'
     ? cuckooPoseAt(config, hits, cycle, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level, aimX)
-    : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level);
+    : poseAt(config, hits, (roundT - ROOM_BOSS_RISE_MS) % config.cycleMs, playerX, level, `${Math.floor(Math.max(0, elapsedMs) / roomBossRoundMs(config))}-${cycle}`, chase);
   // A spark that met the attack behind the shield cancels the rest of it, once per round.
   const roundPrefix = repelRoundPrefix(config, Math.floor(Math.max(0, elapsedMs) / roomBossRoundMs(config)));
   const attackKey = `${roundPrefix}${cycle}`;
@@ -311,7 +337,7 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
   return { ...pose, shielded, attackKey, aimX, repelSpent, hittable: pose.hittable && !shielded };
 }
 
-function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined, level: DifficultyProfile): Omit<RoomBossSnapshot, 'shielded'> {
+function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined, level: DifficultyProfile, cycleKey = '', chase?: RoomBossChase): Omit<RoomBossSnapshot, 'shielded'> {
   if (config.kind === 'moth') {
     const phase = (2 * Math.PI * t) / config.cycleMs;
     const pathX = MOTH_PATH.centerX + MOTH_PATH.amplitude * Math.cos(phase);
@@ -346,14 +372,18 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
   const leg = waitMs + chargeMs;
   const outbound = t < leg;
   const local = outbound ? t : t - leg;
-  const from = outbound ? leftX : rightX;
+  const wall = outbound ? leftX : rightX;
   const to = outbound ? rightX : leftX;
-  const facing: 1 | -1 = to > from ? 1 : -1;
+  const facing: 1 | -1 = to > wall ? 1 : -1;
+  const legKey = `${cycleKey}-${outbound ? 'out' : 'back'}`;
+  const from = wall + facing * (chase?.leg === legKey ? chase.crawl : 0);
   if (local < waitMs) {
-    return { config, pose: local >= waitMs - telegraphMs ? 'telegraph' : 'wait', hits, dangerous: true, hittable: true, x: from, lift: 0, facing };
+    return { config, pose: local >= waitMs - telegraphMs ? 'telegraph' : 'wait', hits, dangerous: true, hittable: true, x: from, lift: 0, facing, leg: legKey };
   }
-  const progress = (local - waitMs) / chargeMs;
-  return { config, pose: 'charge', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing };
+  // A Roach that crawled out charges the shorter rest of the way at the same speed, then waits at the wall.
+  const runMs = chargeMs * (Math.abs(to - from) / (rightX - leftX));
+  const progress = Math.min(1, (local - waitMs) / runMs);
+  return { config, pose: progress < 1 ? 'charge' : 'wait', hits, dangerous: true, hittable: true, x: from + (to - from) * progress, lift: 0, facing, leg: legKey };
 }
 
 function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile, aimX?: number): Omit<RoomBossSnapshot, 'shielded'> {
