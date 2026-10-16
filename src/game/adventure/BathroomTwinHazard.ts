@@ -11,7 +11,8 @@ import { getRoomState, markRoomInteraction, type AdventureState } from './Advent
  */
 export const BATHROOM_TWIN = {
   mirrorX: 64,
-  contactHalfWidth: 8,
+  /** Two of Wally's drawn half widths (3.7 each), less one unit of forgiveness. */
+  contactHalfWidth: 6.5,
   sparkHitRadius: 6,
 } as const;
 

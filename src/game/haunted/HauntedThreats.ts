@@ -39,7 +39,8 @@ export const GHOST_RULES = {
   dyingMs: 220,
   speed: 12,
   maxActive: 2,
-  contactRadiusX: 7,
+  /** Drawn body half width (about 6.9 world units) plus Wally's (3.7), less one unit of forgiveness. */
+  contactRadiusX: 9.5,
   contactRadiusY: 12,
   sparkHitRadiusX: 8,
   sparkHitRadiusY: 10,

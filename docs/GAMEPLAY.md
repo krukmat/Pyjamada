@@ -82,7 +82,7 @@ Jumping while running, either way, is a leap: Wally takes off at full speed in t
 
 The Roach hunts along the floor: while it waits at a wall it crawls out toward Wally (6, 12 and 16 units/s by level, never more than 48 units), then charges the rest of the way. It only reaches a grounded Wally, so a leap over it is the answer. The Dust Moth, the Cuckoo and the Roach are drawn 15% smaller than the other bosses, and their hit widths shrink with them.
 
-Boss contact matches the drawings: a boss hurts Wally where its drawn body overlaps his (about 30 units tall and 3.7 to each side), so a flyer over his head misses and a jump into it hurts, and one wing tip on his shoulder counts. The Roach is the exception: it reaches only as wide as its body and any jump clears it.
+Boss contact matches the drawings: a boss hurts Wally where its drawn body overlaps his (about 30 units tall and 3.7 to each side), so a flyer over his head misses and a jump into it hurts, and one wing tip on his shoulder counts. The Roach is the exception: it reaches only as wide as its body and any jump clears it. Ghosts, the bathroom reflection, the living-room static and the kitchen surge follow the same width rule; the static and the surge are drawn low because any jump clears them.
 
 NEW GAME offers three levels, saved with the run (older saves load as level 1). Every level keeps the same rooms, threats and bosses; higher ones raise the floor:
 

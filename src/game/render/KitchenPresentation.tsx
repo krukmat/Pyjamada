@@ -156,11 +156,12 @@ export function KitchenPresentation({ adventure, hauntedSession, playerX, player
       {surge?.phase === 'surge' && surge.frontX !== undefined && (
         <>
           <Rect x={px(spreadX(surge.frontX))} y={px(101)} width={px(spreadX(KITCHEN_SURGE.sourceX - surge.frontX))} height={px(1)} color="rgba(255,216,74,0.45)" />
-          <Line p1={vec(px(spreadX(surge.frontX) - 4), px(101))} p2={vec(px(spreadX(surge.frontX) - 2), px(90))} color="#44d9e6" strokeWidth={px(1.4)} />
-          <Line p1={vec(px(spreadX(surge.frontX) - 2), px(90))} p2={vec(px(spreadX(surge.frontX)), px(100))} color="#f4f1de" strokeWidth={px(1.4)} />
-          <Line p1={vec(px(spreadX(surge.frontX)), px(100))} p2={vec(px(spreadX(surge.frontX) + 2), px(88 + sparkPhase))} color="#44d9e6" strokeWidth={px(1.4)} />
-          <Line p1={vec(px(spreadX(surge.frontX) + 2), px(88 + sparkPhase))} p2={vec(px(spreadX(surge.frontX) + 4), px(101))} color="#f4f1de" strokeWidth={px(1.4)} />
-          <Circle cx={px(spreadX(surge.frontX))} cy={px(98)} r={px(5)} color="rgba(68,217,230,0.22)" />
+          {/* Kept low (8 units) so a jump visibly clears it: any jump does. */}
+          <Line p1={vec(px(spreadX(surge.frontX) - 4), px(101))} p2={vec(px(spreadX(surge.frontX) - 2), px(97))} color="#44d9e6" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(spreadX(surge.frontX) - 2), px(97))} p2={vec(px(spreadX(surge.frontX)), px(101))} color="#f4f1de" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(spreadX(surge.frontX)), px(101))} p2={vec(px(spreadX(surge.frontX) + 2), px(96 + sparkPhase))} color="#44d9e6" strokeWidth={px(1.4)} />
+          <Line p1={vec(px(spreadX(surge.frontX) + 2), px(96 + sparkPhase))} p2={vec(px(spreadX(surge.frontX) + 4), px(101))} color="#f4f1de" strokeWidth={px(1.4)} />
+          <Circle cx={px(spreadX(surge.frontX))} cy={px(100)} r={px(4)} color="rgba(68,217,230,0.22)" />
         </>
       )}
 

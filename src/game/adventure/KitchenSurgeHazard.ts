@@ -33,7 +33,7 @@ export const KITCHEN_SURGE = {
   waveOffsetsMs: [0],
   sourceX: 94,
   targetX: 79,
-  halfWidth: 4,
+  halfWidth: 4.5,
 } as const satisfies FloorWaveConfig;
 
 const ARMED_INTERACTION = 'kitchen-surge-armed';

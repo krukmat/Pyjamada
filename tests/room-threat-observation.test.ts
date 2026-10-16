@@ -1,3 +1,4 @@
+import { BATHROOM_TWIN } from '../src/game/adventure/BathroomTwinHazard';
 import { equal, test } from './assert';
 import { createAdventureState, setRoomSwitch } from '../src/game/adventure/AdventureState';
 import { isInsideObservedDanger, observeRoomThreats, TELEGRAPHED_THREAT_KINDS } from '../src/game/adventure/RoomThreatObservation';
@@ -74,8 +75,9 @@ void test('the bathroom reflection zone is the mirror contact band and needs no 
   const observations = observeAt(BATHROOM_TWIN_LIVE, 0);
   equal(observations.length, 1, 'one zone while the reflection is out');
   equal(observations[0].phase, 'danger', 'the reflection is dangerous on contact');
-  equal(observations[0].minX, 60, 'contact starts 4 units left of the mirror');
-  equal(observations[0].maxX, 68, 'contact ends 4 units right of the mirror');
+  const reach = BATHROOM_TWIN.contactHalfWidth / 2;
+  equal(observations[0].minX, BATHROOM_TWIN.mirrorX - reach, 'contact starts half the contact width left of the mirror');
+  equal(observations[0].maxX, BATHROOM_TWIN.mirrorX + reach, 'contact ends half the contact width right of the mirror');
   const confirmed = setRoomSwitch(BATHROOM_TWIN_LIVE, 'bathroom', 'mirror-route-revealed', true);
   equal(observeAt(confirmed, 0).length, 0, 'no zone once the reflected route is confirmed');
 });

@@ -23,7 +23,7 @@ export const LIVING_ROOM_STATIC = {
   waveOffsetsMs: [0, 900],
   sourceX: 101,
   targetX: 24,
-  halfWidth: 4,
+  halfWidth: 4.5,
 } as const satisfies FloorWaveConfig;
 
 const ARMED_INTERACTION = 'living-room-static-armed';

@@ -183,12 +183,13 @@ export function LivingRoomPresentation({ adventure, hauntedSession, playerX, pla
       )}
       {staticWave?.fronts.map((front, index) => (
         <React.Fragment key={`static-wave-${index}`}>
-          <Rect x={px(spreadX(front) - 3)} y={px(83)} width={px(7)} height={px(19)} color="rgba(68,217,230,0.45)" />
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(row => (
+          {/* Kept low (8 units) so a jump visibly clears it: any jump does. */}
+          <Rect x={px(spreadX(front) - 3)} y={px(96)} width={px(7)} height={px(6)} color="rgba(68,217,230,0.45)" />
+          {[0, 1, 2].map(row => (
             <Rect
               key={`static-${index}-${row}`}
               x={px(spreadX(front) - 3 + ((row * 2 + jitter + index) % 5))}
-              y={px(84 + row * 2)}
+              y={px(97 + row * 2)}
               width={px(2)}
               height={px(1)}
               color={(row + jitter) % 2 === 0 ? '#f4f1de' : '#44d9e6'}
