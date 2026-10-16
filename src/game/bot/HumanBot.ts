@@ -87,8 +87,15 @@ type HumanGoal = Goal & { domestic?: SystemicObjectId | 'exit' };
 type Decision = { action: BotAction; goal?: HumanGoal };
 
 const STEP_S = BOT_STEP_MS / 1000;
-/** Jump when a floor wave's edge is seen this close in time (contact window is generous: ~0.7 s of airtime). */
-const JUMP_LEAD_S = 0.75;
+/**
+ * A jump should leave the floor about this long before a floor wave's edge
+ * reaches Wally (contact window is generous: ~0.7 s of airtime). The player
+ * judges it on what they saw reactionMs ago and their thumb lands latencyMs
+ * later, so a slower player jumps on an earlier sight.
+ */
+const JUMP_LEAD_S = 0.4;
+/** A timed jump leaves the floor this long before the Roach reaches Wally: its pass falls mid-air. */
+const TIMED_JUMP_LEAD_S = 0.25;
 const ESCAPE_MARGIN = 2;
 const ENTRY_LOOKAHEAD = 8;
 const MIN_FIRING_DISTANCE = 12;
@@ -266,8 +273,15 @@ export class HumanBot implements BotPolicy {
     }
 
     if (player.grounded && this.canTap('jump')) {
+      const timed = this.timedLungeJump(world, seen, x);
+      if (timed) {
+        this.intent = 'jumping a room-boss charge on its rhythm';
+        this.lastTap.jump = this.stepIndex;
+        return { move: 0, jump: true, attack: false, interact: false };
+      }
       for (const danger of seen.threats) {
         if (danger.phase !== 'danger' || !danger.jumpable || danger.crawling) continue;
+        if (danger.kind === 'room-boss' && timed === false) continue;
         if (this.isImminent(danger, before, x, player.vx)) {
           // Jumping while running is a leap; this player clears threats in place, so brakes first.
           // (A charging Roach is fast enough to pass under a leap too, so that one is jumped at once.)
@@ -320,6 +334,31 @@ export class HumanBot implements BotPolicy {
     return direction === undefined ? IDLE_ACTION : this.walk(direction);
   }
 
+  /**
+   * A player who knows the Roach's rhythm well enough to see its charge
+   * coming (anticipateMs covers the jump's lead plus their own reflexes) times
+   * the jump from it: they leave the floor TIMED_JUMP_LEAD_S before its charge
+   * reaches them, however short its twitch. Undefined when they cannot, or no
+   * Roach is out: they jump on the twitch like anyone else.
+   */
+  private timedLungeJump(world: BotWorld, seen: Frame, x: number): boolean | undefined {
+    const delayS = (this.reactionSteps + this.latencySteps) * STEP_S;
+    const roach = activeRoomBoss(world.adventure)?.kind === 'roach';
+    if (!roach || this.anticipateMs / 1000 < TIMED_JUMP_LEAD_S + delayS || !seen.threats.some(threat => threat.kind === 'room-boss')) return undefined;
+    // Looking ahead from what was seen (reactionMs ago) for the charge reaching Wally.
+    const seenMs = world.session.elapsedMs - this.reactionSteps * BOT_STEP_MS;
+    let previous: number | undefined;
+    for (let aheadMs = 0; aheadMs <= this.anticipateMs; aheadMs += BOT_STEP_MS) {
+      const body = observeRoomThreats({ ...world.session, elapsedMs: seenMs + aheadMs }, world.adventure)
+        .find(threat => threat.kind === 'room-boss' && threat.phase === 'danger' && !threat.lunge);
+      const center = body === undefined ? undefined : (body.minX + body.maxX) / 2;
+      const charging = center !== undefined && previous !== undefined && Math.abs(center - previous) / STEP_S >= CRAWL_MAX_SPEED;
+      if (charging && x >= body!.minX && x <= body!.maxX) return aheadMs / 1000 - delayS <= TIMED_JUMP_LEAD_S;
+      previous = center;
+    }
+    return undefined;
+  }
+
   /** A floor wave seen approaching close enough (in time) that jumping now clears it; own motion counts. */
   private isImminent(danger: ThreatObservation, before: Frame | undefined, x: number, ownVx: number): boolean {
     const center = (danger.minX + danger.maxX) / 2;
@@ -334,7 +373,7 @@ export class HumanBot implements BotPolicy {
     if (previous === undefined) return Math.abs(distance) <= 16;
     const closing = (center - previous) / STEP_S - ownVx;
     if (closing === 0 || Math.sign(closing) === Math.sign(distance)) return false;
-    return (Math.abs(distance) - half) / Math.abs(closing) <= JUMP_LEAD_S;
+    return (Math.abs(distance) - half) / Math.abs(closing) <= JUMP_LEAD_S + (this.reactionSteps + this.latencySteps) * STEP_S;
   }
 
   private reactToGhosts(world: BotWorld, seen: Frame): BotAction | undefined {
@@ -347,9 +386,12 @@ export class HumanBot implements BotPolicy {
   }
 
   private wouldEnterZone(world: BotWorld, seen: Frame, action: BotAction): boolean {
-    const x = world.session.player.x;
+    const { x, vx } = world.session.player;
     const direction = this.inverted ? -action.move : action.move;
-    const ahead = x + direction * ENTRY_LOOKAHEAD;
+    // Where Wally would come to rest: still coasting through the thumb's latency, then braking.
+    const latencyS = this.latencySteps * STEP_S;
+    const stopX = x + vx * latencyS + Math.sign(vx) * (vx * vx) / (2 * HAUNTED_PLAYER_PHYSICS.friction);
+    const ahead = (direction > 0 ? Math.max(x, stopX) : Math.min(x, stopX)) + direction * ENTRY_LOOKAHEAD;
     const zones = avoidZones(seen);
     return zones.some(zone => ahead >= zone.minX - 1 && ahead <= zone.maxX + 1 && !(x >= zone.minX - 1 && x <= zone.maxX + 1));
   }
@@ -415,7 +457,7 @@ export class HumanBot implements BotPolicy {
     const zones = this.zoneMemory.get(phaseKey(world)) ?? [];
     const spotUnsafe = (spot: number) => zones.some(zone => spot >= zone.minX - SPOT_ZONE_MARGIN && spot <= zone.maxX + SPOT_ZONE_MARGIN);
     if (!this.firing || this.firing.key !== key || spotUnsafe(this.firing.x)) {
-      this.firing = { key, x: twin ? this.twinSpot(x) : this.laboratorySpot(x, target, targets, spotUnsafe) };
+      this.firing = { key, x: twin ? this.twinSpot(x) : this.laboratorySpot(x, target, targets, spotUnsafe, zones) };
     }
     const aimX = twin ? bathroomTwinX(this.firing.x) : target;
     return { x: this.firing.x, aimX, label: `fight target@${Math.round(aimX)} from ${Math.round(this.firing.x)}` };
@@ -428,19 +470,33 @@ export class HumanBot implements BotPolicy {
     return x < 64 ? 50 : 78;
   }
 
-  private laboratorySpot(x: number, target: number, targets: number[], unsafe: (spot: number) => boolean): number {
+  private laboratorySpot(x: number, target: number, targets: number[], unsafe: (spot: number) => boolean, zones: readonly Zone[]): number {
     let best: { x: number; score: number } | undefined;
     let fallback: { x: number; score: number } | undefined;
     for (let spot = HAUNTED_PLAYER_BOUNDS.minX; spot <= HAUNTED_PLAYER_BOUNDS.maxX; spot += 1) {
       if (Math.abs(spot - target) < MIN_FIRING_DISTANCE) continue;
       // A spark is consumed by the first live target it meets.
       if (targets.some(other => other !== target && isBetween(other, spot, target))) continue;
+      // With no spot clear of every lane seen, stand where they are quickest to leave.
       const score = Math.abs(spot - x);
-      if (!fallback || score < fallback.score) fallback = { x: spot, score };
+      const fallbackScore = this.escapeDistance(spot, zones) * 100 + score;
+      if (!fallback || fallbackScore < fallback.score) fallback = { x: spot, score: fallbackScore };
       if (unsafe(spot)) continue;
       if (!best || score < best.score) best = { x: spot, score };
     }
     return (best ?? fallback)?.x ?? clampX(target - 28);
+  }
+
+  /** How far Wally would have to run from this spot to leave the remembered zones that cover it. */
+  private escapeDistance(spot: number, zones: readonly Zone[]): number {
+    let worst = 0;
+    for (const zone of zones) {
+      if (spot < zone.minX || spot > zone.maxX) continue;
+      const left = zone.minX > HAUNTED_PLAYER_BOUNDS.minX ? spot - zone.minX : Infinity;
+      const right = zone.maxX < HAUNTED_PLAYER_BOUNDS.maxX ? zone.maxX - spot : Infinity;
+      worst = Math.max(worst, Math.min(left, right));
+    }
+    return worst;
   }
 
   private pursue(world: BotWorld, goal: HumanGoal): Decision {
