@@ -115,7 +115,7 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction,
   return (
     <View
       testID="touch-deck"
-      style={[styles.deck, style]}
+      style={[styles.deck, Platform.OS === 'web' && WEB_NO_GESTURES, style]}
       onLayout={(event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
       {...(Platform.OS === 'web'
         ? { onPointerDown: handlePointer, onPointerMove: handlePointer, onPointerUp: handlePointer, onPointerCancel: handlePointer }
@@ -125,6 +125,10 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction,
     </View>
   );
 }
+
+// Mobile browsers would otherwise claim a held or sliding finger for scroll/zoom
+// and cancel its pointer mid-run.
+const WEB_NO_GESTURES = { touchAction: 'none', userSelect: 'none' } as unknown as ViewStyle;
 
 const styles = StyleSheet.create({
   // flex: 1 so the deck fills its row; without it the halves collapse to zero width.
