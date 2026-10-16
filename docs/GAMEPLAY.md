@@ -82,12 +82,12 @@ NEW GAME offers three levels, saved with the run (older saves load as level 1). 
 
 - **Level 1, RESTLESS:** the base pattern, with unlimited knock-outs.
 - **Level 2, HAUNTED:** no warning lasts longer than 420 ms (boss telegraphs, the Cuckoo's call, Vesper's warning, attic shadows, basement telegraphs). Bosses lean 20% harder toward Wally and the Roach charges 15% faster.
-- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and hurts only on landing: a quick step aside dodges it. The run has four lives; the fourth knock-out ends it.
+- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and hurts only on landing: a quick step aside dodges it. Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. The run has four lives; the fourth knock-out ends it.
 
-A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`):
+A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`). The profiles differ in reflexes and in how far ahead they know the level 1 rhythm (`anticipateMs`: 0, 250 and 600 ms):
 
 - On level 1, everyone finishes with at most one knock-out.
-- On level 2, the casual player loses a few lives.
+- On level 2, the casual player loses a few lives, the average player loses at most one, and the expert takes only a few hits.
 - On level 3, the casual player runs out of lives around the Kitchen, the average player finishes after a couple of knock-outs, and the expert loses at most one life.
 
 The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.

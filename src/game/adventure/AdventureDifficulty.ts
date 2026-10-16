@@ -26,12 +26,14 @@ export type DifficultyProfile = {
   lockAim: boolean;
   /** Knock-outs the run survives before the house wins; undefined is unlimited. */
   lives?: number;
+  /** Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. */
+  vesperShuffle: boolean;
 };
 
 export const DIFFICULTY_PROFILES: Readonly<Record<AdventureDifficulty, DifficultyProfile>> = {
-  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, lockAim: false },
-  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, lockAim: false },
-  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, lockAim: true, lives: 4 },
+  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, lockAim: false, vesperShuffle: false },
+  2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, lockAim: false, vesperShuffle: false },
+  3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, lockAim: true, lives: 4, vesperShuffle: true },
 };
 
 export function isAdventureDifficulty(value: unknown): value is AdventureDifficulty {

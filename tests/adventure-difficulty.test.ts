@@ -16,7 +16,8 @@ import {
 import { createBotStart, RouteBot, runBot, type BotRunResult } from '../src/game/bot/AdventureBot';
 import { HumanBot, type HumanBotOptions } from '../src/game/bot/HumanBot';
 import { createHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
-import { explorationIn } from './support/ThreatScenarios';
+import { resolveVesperNightmareState, VESPER_NIGHTMARE_ATTACK, VESPER_NIGHTMARE_CYCLE_MS } from '../src/game/adventure/LaboratoryVesperNightmare';
+import { explorationIn, laboratoryIn } from './support/ThreatScenarios';
 
 void test('the level is saved with the run; saves without one are level 1', () => {
   const session = createAdventureGameSession('difficulty-codec', 3);
@@ -62,15 +63,16 @@ void test('on Night Terror the Cuckoo lands where Wally stood when it called', (
 
 /**
  * The difficulty target, measured with three HumanBot skill profiles (casual,
- * average, expert). Level 1 is easy for everyone; level 2 costs the casual
+ * average, expert): they differ in reflexes and in how much of the rooms'
+ * rhythm they have learned (anticipateMs). Level 1 is easy for everyone; level 2 costs the casual
  * player a few knock-outs; on level 3 the casual player runs out of lives
  * around the middle of the house, the average player finishes after a couple
  * of knock-outs and the expert loses at most one life.
  */
 const PROFILES: Record<'casual' | 'average' | 'expert', HumanBotOptions> = {
   casual: { reactionMs: 350, latencyMs: 120, tapIntervalMs: 260, tapJitterMs: 200, readMs: 1_800 },
-  average: {},
-  expert: { reactionMs: 170, latencyMs: 70, tapIntervalMs: 140, tapJitterMs: 80, readMs: 800 },
+  average: { anticipateMs: 250 },
+  expert: { reactionMs: 170, latencyMs: 70, tapIntervalMs: 140, tapJitterMs: 80, readMs: 800, anticipateMs: 600 },
 };
 const OPTIONS = { maxGameMs: 20 * 60_000, stallMs: 180_000 };
 const start = (difficulty: 1 | 2 | 3) => {
@@ -106,5 +108,16 @@ void test('difficulty matrix: who finishes each level, and how many lives it cos
   const average3 = play(3, 'average');
   finishes(average3, 3, 'level 3 average');
   equal(average3.deaths >= 1, true, `level 3 costs the average player lives, got ${average3.deaths}`);
-  finishes(play(3, 'expert'), 1, 'level 3 expert');
+  const expert3 = play(3, 'expert');
+  finishes(expert3, 1, 'level 3 expert');
+  equal(expert3.hits > play(2, 'expert').hits, true, 'level 3 costs the expert more than level 2');
+});
+
+void test('on Night Terror Vesper changes the order of its attacks every cycle', () => {
+  const firstAttacks = (difficulty: 1 | 3) => [0, 1, 2, 3, 4, 5].map(cycle => {
+    const strikeMs = cycle * VESPER_NIGHTMARE_CYCLE_MS + VESPER_NIGHTMARE_ATTACK.telegraphMs;
+    return resolveVesperNightmareState({ ...laboratoryIn('nightmare'), difficulty }, strikeMs).attack;
+  });
+  equal(new Set(firstAttacks(1)).size, 1, 'level 1 always opens with the same attack');
+  equal(new Set(firstAttacks(3)).size, 3, 'Night Terror opens with every attack in turn');
 });

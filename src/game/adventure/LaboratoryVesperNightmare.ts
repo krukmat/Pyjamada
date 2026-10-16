@@ -38,6 +38,19 @@ export const VESPER_NIGHTMARE_RAGE = { telegraphCutMs: 275, widenPerHit: 8 } as 
 /** Hearts a nightmare strike takes on top of the usual one: two of them knock Wally out. */
 export const VESPER_NIGHTMARE_STRIKE_EXTRA_DAMAGE = 1;
 export const VESPER_NIGHTMARE_ATTACK_ORDER: readonly VesperNightmareAttackId[] = ['left-slam', 'center-rift', 'right-slam'];
+/**
+ * On levels that shuffle it, cycle n strikes in VESPER_NIGHTMARE_SHUFFLED_ORDERS[n % 6]:
+ * every order once, never the same attack twice in a row across cycles. The
+ * vulnerability slots keep their beat; only the attack in each slot changes.
+ */
+export const VESPER_NIGHTMARE_SHUFFLED_ORDERS: readonly (readonly VesperNightmareAttackId[])[] = [
+  ['left-slam', 'center-rift', 'right-slam'],
+  ['center-rift', 'left-slam', 'right-slam'],
+  ['left-slam', 'right-slam', 'center-rift'],
+  ['right-slam', 'center-rift', 'left-slam'],
+  ['center-rift', 'right-slam', 'left-slam'],
+  ['right-slam', 'left-slam', 'center-rift'],
+];
 export const VESPER_NIGHTMARE_CYCLE_MS = 6_300;
 
 export const VESPER_NIGHTMARE_TARGET = {
@@ -89,7 +102,10 @@ export function resolveVesperNightmareState(
   }
 
   const attackIndex = Math.floor(cycleMs / VESPER_NIGHTMARE_ATTACK.slotMs);
-  const attack = VESPER_NIGHTMARE_ATTACK_ORDER[attackIndex];
+  const order = difficultyProfile(adventure).vesperShuffle
+    ? VESPER_NIGHTMARE_SHUFFLED_ORDERS[positiveModulo(Math.floor(elapsedMs / VESPER_NIGHTMARE_CYCLE_MS), VESPER_NIGHTMARE_SHUFFLED_ORDERS.length)]
+    : VESPER_NIGHTMARE_ATTACK_ORDER;
+  const attack = order[attackIndex];
   if (attack) {
     const t = cycleMs - attackIndex * VESPER_NIGHTMARE_ATTACK.slotMs;
     const slot = (attackIndex + 1) as 1 | 2 | 3;

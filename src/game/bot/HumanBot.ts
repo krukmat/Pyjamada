@@ -67,6 +67,13 @@ export type HumanBotOptions = {
   tapJitterMs?: number;
   /** Seeds the tap irregularity so runs stay deterministic. */
   seed?: string;
+  /**
+   * How far ahead (ms) the player knows the room's rhythm: a non-jumpable
+   * danger the level 1 pattern puts this soon is avoided as if already
+   * announced. 0 (default) only reacts to what is on screen; an experienced
+   * player has learned the beat, but not what a higher level shuffles.
+   */
+  anticipateMs?: number;
 };
 
 type PerceivedGhost = { x: number; phase: GhostPhase };
@@ -103,12 +110,17 @@ function phaseKey(world: BotWorld): string {
   return room === 'laboratory' ? `${room}:${getLaboratoryEncounterPhase(world.adventure)}` : room;
 }
 
-function perceive(world: BotWorld): Frame {
+function perceive(world: BotWorld, anticipateMs: number): Frame {
   const exploring = isAdventureExplorationActive(world.adventure);
+  const ahead = exploring && anticipateMs > 0
+    ? observeRoomThreats({ ...world.session, elapsedMs: world.session.elapsedMs + anticipateMs }, { ...world.adventure, difficulty: 1 })
+      .filter(threat => threat.phase === 'danger' && !threat.jumpable)
+      .map(threat => ({ ...threat, phase: 'warning' as const }))
+    : [];
   const distortion = resolveResonatorInstabilityState(world.adventure, world.session.elapsedMs).distortion;
   return {
     phaseKey: phaseKey(world),
-    threats: exploring ? observeRoomThreats(world.session, world.adventure) : [],
+    threats: exploring ? [...observeRoomThreats(world.session, world.adventure), ...ahead] : [],
     ghosts: exploring ? [] : world.session.threats.ghosts.map(ghost => ({ x: ghost.x, phase: ghost.phase })),
     distortion: distortion.phase === 'active' && distortion.minX !== undefined && distortion.maxX !== undefined
       ? { minX: distortion.minX, maxX: distortion.maxX }
@@ -120,6 +132,7 @@ export class HumanBot implements BotPolicy {
   readonly planner = new RoutePlanner(true);
   readonly shadowed = this.planner.shadowed;
   private readonly reactionSteps: number;
+  private readonly anticipateMs: number;
   private readonly latencySteps: number;
   private readonly readSteps: number;
   private readonly startDelaySteps: number;
@@ -146,6 +159,7 @@ export class HumanBot implements BotPolicy {
 
   constructor(options: HumanBotOptions = {}) {
     this.reactionSteps = steps(options.reactionMs ?? HUMAN_REACTION_MS);
+    this.anticipateMs = options.anticipateMs ?? 0;
     this.latencySteps = steps(options.latencyMs ?? HUMAN_LATENCY_MS);
     this.readSteps = steps(options.readMs ?? HUMAN_READ_MS);
     this.startDelaySteps = steps(options.startDelayMs ?? 0);
@@ -180,7 +194,7 @@ export class HumanBot implements BotPolicy {
       this.firing = undefined;
       this.turnSettlesAt = -1;
     }
-    this.frames.push(perceive(world));
+    this.frames.push(perceive(world, this.anticipateMs));
     if (this.frames.length > this.reactionSteps + 2) this.frames.shift();
     const seenIndex = this.frames.length - 1 - this.reactionSteps;
     const seen = seenIndex >= 0 ? this.frames[seenIndex] : undefined;
