@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "web": "npm run web:skia && expo start --web",
+    "web": "npm run web:skia && expo start --web --no-dev --minify",
+    "web:dev": "npm run web:skia && expo start --web",
     "web:skia": "setup-skia-web public",
     "export:web": "npm run web:skia && expo export --platform web",
     "screenshots:android": "bash scripts/android-screenshots.sh",

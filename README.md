@@ -167,9 +167,13 @@ npm start
 
 ```bash
 npm install          # react-dom, react-native-web, @expo/metro-runtime
-npm run web          # copies canvaskit.wasm to public/, then expo start --web
+npm run web          # copies canvaskit.wasm to public/, then expo start --web in production mode
 npm run export:web   # static build in dist/
 ```
+
+`npm run web:dev` keeps React's development mode, which freezes once a level starts:
+React 19.2 deep-diffs every component's props for its performance track, and the
+game passes whole run states as props. Use it only to debug menus.
 
 Skia draws through CanvasKit (WebAssembly); `index.ts` loads it before importing
 `App`. Keyboard: ←/→ or A/D move, ↑/W/Space jump, X/J attack, E/Enter/↓ use; the
