@@ -10,6 +10,7 @@ the human-model policy in `src/game/bot/HumanBot.ts`.
 npm run test:all   # includes tests/adventure-bot.test.ts and tests/room-threat-observation.test.ts (gates)
 npm run qa:bot     # prints a Markdown balance report (about 15 s); never fails
 npm run bot:watch  # narrates one HumanBot run from NEW GAME (optional seed: npm run bot:watch -- myseed)
+npm run bot:matrix # every player on every level: outcome, hits and knock-outs per room (npm run bot:matrix -- --level 3 --player casual)
 ```
 
 ### Filming a real run (video + stills)
@@ -36,6 +37,26 @@ the same policy as above, fed into the real App loop one fixed step at a time
 (`withDemoInput` in `App.tsx`). The demo never writes the save, ignores the
 touch deck, presses RETRY / END NIGHT by itself after a short beat, and stops
 with BACK TO MENU. The bots live in `src/game/bot/` for that reason.
+
+### Difficulty levels x players
+
+Three ways to check a level/player combination (players in
+`src/game/bot/HumanProfiles.ts`: casual, average and expert differ in reflexes
+and in how much of the level 1 rhythm they anticipate; `perfect` is
+RouteBot(800), which sees danger 800 ms ahead):
+
+- **Gate:** `tests/adventure-difficulty.test.ts` (part of `npm run test:all`)
+  enforces the target. RouteBot is never knocked out on any level. On level 1,
+  everyone finishes with at most one knock-out. On level 2, the casual player
+  loses some lives and the average and expert players lose at most one. On
+  level 3, the casual player runs out of lives around the Kitchen, the average
+  player finishes after a few knock-outs and the expert loses at most one life.
+- **Table:** `npm run bot:matrix` plays every player on every level (two seeds
+  each) and prints outcome, time, hits, knock-outs and hits per room. Narrow it
+  with `-- --level 1|2|3`, `--player casual|average|expert|perfect` and
+  `--seeds a,b,c`, for example `npm run bot:matrix -- --level 3 --player casual`.
+- **On screen:** the in-app DEMO, or `npm run demo:film -- --player ... --level ...`
+  on a device (above).
 
 ## What the player can see: `observeRoomThreats`
 
