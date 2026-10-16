@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import type { TouchControlLayout } from '../settings/core/GameSettings';
 import {
   layoutControlZones,
@@ -51,7 +51,26 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction,
   }, []);
 
   function handleTouches(event: GestureResponderEvent) {
-    const list = event.nativeEvent.touches.map(touch => ({ id: String(touch.identifier), x: touch.locationX, y: touch.locationY }));
+    applyTouches(event.nativeEvent.touches.map(touch => ({ id: String(touch.identifier), x: touch.locationX, y: touch.locationY })));
+  }
+
+  // Web: pointer events cover both the mouse and touch screens (browsers do not
+  // send touch events for a mouse). Each pressed pointer is one "finger".
+  const pointers = useRef(new Map<string, { x: number; y: number }>());
+  function handlePointer(event: { nativeEvent: unknown; currentTarget: unknown }) {
+    const pointer = event.nativeEvent as PointerEvent;
+    const target = event.currentTarget as HTMLElement;
+    const id = String(pointer.pointerId);
+    if (pointer.type === 'pointerup' || pointer.type === 'pointercancel') pointers.current.delete(id);
+    else if (pointer.type === 'pointerdown' || pointers.current.has(id)) {
+      if (pointer.type === 'pointerdown') target.setPointerCapture?.(pointer.pointerId);
+      const rect = target.getBoundingClientRect();
+      pointers.current.set(id, { x: pointer.clientX - rect.left, y: pointer.clientY - rect.top });
+    } else return; // a hovering mouse presses nothing
+    applyTouches([...pointers.current].map(([key, at]) => ({ id: key, ...at })));
+  }
+
+  function applyTouches(list: { id: string; x: number; y: number }[]) {
     const update = updateDeckTouches(touches.current, list, zones);
     touches.current = update.state;
     for (const control of ['left', 'right'] as const) {
@@ -98,10 +117,9 @@ export function TouchDeck({ layout, enabled, useTarget, onHeldControl, onAction,
       testID="touch-deck"
       style={[styles.deck, style]}
       onLayout={(event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
-      onTouchStart={handleTouches}
-      onTouchMove={handleTouches}
-      onTouchEnd={handleTouches}
-      onTouchCancel={handleTouches}
+      {...(Platform.OS === 'web'
+        ? { onPointerDown: handlePointer, onPointerMove: handlePointer, onPointerUp: handlePointer, onPointerCancel: handlePointer }
+        : { onTouchStart: handleTouches, onTouchMove: handleTouches, onTouchEnd: handleTouches, onTouchCancel: handleTouches })}
     >
       {zones.map(control)}
     </View>
