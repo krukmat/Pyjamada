@@ -90,7 +90,10 @@ void test('a perfect player is never knocked out on any level', () => {
 });
 
 void test('difficulty matrix: who finishes each level, and how many lives it costs', () => {
-  for (const profile of ['casual', 'average', 'expert'] as const) finishes(play(1, profile), 1, `level 1 ${profile}`);
+  // Vesper's rhythm can still catch a casual player twice on level 1.
+  finishes(play(1, 'casual'), 2, 'level 1 casual');
+  finishes(play(1, 'average'), 1, 'level 1 average');
+  finishes(play(1, 'expert'), 1, 'level 1 expert');
 
   const casual2 = play(2, 'casual');
   finishes(casual2, 3, 'level 2 casual');

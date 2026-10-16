@@ -78,6 +78,8 @@ The Hallway clock is a cuckoo clock. Once the Moth is dispelled its bird bursts 
 
 Difficulty climbs room by room. Dispelling any boss refills one heart (one per boss, so the Hallway gives two). The Wraith's drift and the Roach's twitch grow meaner per wound (the Wraith never reaches the Hallway door Wally wakes at), and Vesper's nightmare is the final wall: each landed spark shortens its warning and widens its attacks, and every strike costs two hearts, so a first attempt usually ends in a knock-out and a retry from the phase checkpoint, which keeps every landed spark. A bot that sees danger 800 ms ahead still finishes without dying.
 
+Jumping while running, either way, is a leap: Wally takes off at full speed in that direction and keeps it in the air even when the thumb leaves the pad for JUMP, carrying him about 30 units. A standing jump stays vertical, and holding a direction in the air still steers.
+
 NEW GAME offers three levels, saved with the run (older saves load as level 1). Every level keeps the same rooms, threats and bosses; higher ones raise the floor:
 
 - **Level 1, RESTLESS:** the base pattern, with unlimited knock-outs.
@@ -86,7 +88,7 @@ NEW GAME offers three levels, saved with the run (older saves load as level 1). 
 
 A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`). The profiles differ in reflexes and in how far ahead they know the level 1 rhythm (`anticipateMs`: 0, 250 and 600 ms):
 
-- On level 1, everyone finishes with at most one knock-out.
+- On level 1, everyone finishes; the casual player can lose up to two lives to Vesper.
 - On level 2, the casual player loses a few lives, the average player loses at most one, and the expert takes only a few hits.
 - On level 3, the casual player runs out of lives around the Kitchen, the average player finishes after a couple of knock-outs, and the expert loses at most one life.
 

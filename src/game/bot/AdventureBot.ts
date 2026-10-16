@@ -28,7 +28,7 @@ import {
 import { decodeAdventureGameSession, encodeAdventureGameSession } from '../adventure/AdventureSessionCodec';
 import { createAdventureState, getRoomState, type AdventureState, type RoomId } from '../adventure/AdventureState';
 import { bathroomTwinX, isBathroomTwinActive } from '../adventure/BathroomTwinHazard';
-import { activeRoomBoss, resolveRoomBoss, type RoomBossConfig } from '../adventure/RoomBossHazard';
+import { activeRoomBoss, isRoomBossLive, resolveRoomBoss, roomBossFor, type RoomBossConfig } from '../adventure/RoomBossHazard';
 import {
   getLaboratoryEncounterPhase,
   shouldUseLaboratoryCheckpoint,
@@ -608,8 +608,11 @@ export class RoutePlanner {
         if (!exit || seen.has(exit.targetRoom)) continue;
         seen.add(exit.targetRoom);
         const firstHop = first ?? interaction;
+        // A room whose boss is still awake is unfinished business too.
+        const bossLeft = roomBossFor(exit.targetRoom);
         const wanted = !adventure.visitedRooms.includes(exit.targetRoom)
-          || (!unvisitedOnly && this.untriedEffects(adventure, exit.targetRoom).length > 0);
+          || (!unvisitedOnly && this.untriedEffects(adventure, exit.targetRoom).length > 0)
+          || (!unvisitedOnly && bossLeft !== undefined && isRoomBossLive(adventure, bossLeft.room));
         if (wanted) return firstHop;
         queue.push({ room: exit.targetRoom, first: firstHop });
       }

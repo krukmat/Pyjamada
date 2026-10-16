@@ -252,6 +252,11 @@ export class HumanBot implements BotPolicy {
       for (const danger of seen.threats) {
         if (danger.phase !== 'danger' || !danger.jumpable) continue;
         if (this.isImminent(danger, before, x, player.vx)) {
+          // Jumping while running is a leap; this player clears threats in place, so brakes first.
+          if (Math.abs(player.vx) >= HAUNTED_PLAYER_PHYSICS.leapMinSpeed) {
+            this.intent = `braking to jump a ${danger.kind}`;
+            return IDLE_ACTION;
+          }
           this.intent = `jumping a ${danger.kind}`;
           this.lastTap.jump = this.stepIndex;
           return { move: 0, jump: true, attack: false, interact: false };

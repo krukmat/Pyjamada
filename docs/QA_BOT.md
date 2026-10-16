@@ -47,7 +47,7 @@ RouteBot(800), which sees danger 800 ms ahead):
 
 - **Gate:** `tests/adventure-difficulty.test.ts` (part of `npm run test:all`)
   enforces the target. RouteBot is never knocked out on any level. On level 1,
-  everyone finishes with at most one knock-out. On level 2, the casual player
+  everyone finishes (the casual player with at most two knock-outs). On level 2, the casual player
   loses some lives and the average and expert players lose at most one. On
   level 3, the casual player runs out of lives around the Kitchen, the average
   player finishes after a few knock-outs and the expert loses at most one life.

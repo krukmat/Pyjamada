@@ -8,6 +8,8 @@ export type HauntedPlayerPhysicsState = {
   vy: number;
   grounded: boolean;
   facing: 'left' | 'right';
+  /** A running jump: the leap keeps its speed in the air until Wally lands or steers. Transient. */
+  leaping?: boolean;
 };
 
 export const HAUNTED_PLAYER_BOUNDS = { minX: 8, maxX: 116 } as const;
@@ -26,6 +28,13 @@ export const HAUNTED_PLAYER_PHYSICS = {
    */
   ghostKnockbackX: 72,
   ghostKnockbackY: -40,
+  /**
+   * Jumping while running (either way) is a leap: it starts at full speed in
+   * that direction and keeps it in the air even with the pad released (one
+   * thumb moves to JUMP), carrying Wally about 30 units. A standing jump
+   * stays vertical; holding a direction in the air still steers.
+   */
+  leapMinSpeed: 12,
 } as const;
 
 export type HauntedKnockbackImpulse = { x: number; y: number };
@@ -45,9 +54,10 @@ export function stepHauntedPlayerPhysics(
   const intent = horizontalIntent(input);
   let vx = state.vx;
 
+  let leaping = state.leaping === true && !state.grounded;
   if (intent !== 0) {
     vx = approach(vx, intent * HAUNTED_PLAYER_PHYSICS.maxSpeed, HAUNTED_PLAYER_PHYSICS.acceleration * dt);
-  } else {
+  } else if (!leaping) {
     vx = approach(vx, 0, HAUNTED_PLAYER_PHYSICS.friction * dt);
   }
 
@@ -56,6 +66,10 @@ export function stepHauntedPlayerPhysics(
   if (input.jumpPressed && grounded) {
     vy = HAUNTED_PLAYER_PHYSICS.jumpVelocity;
     grounded = false;
+    if (Math.abs(vx) >= HAUNTED_PLAYER_PHYSICS.leapMinSpeed) {
+      vx = Math.sign(vx) * HAUNTED_PLAYER_PHYSICS.maxSpeed;
+      leaping = true;
+    }
   }
   if (!grounded) vy += HAUNTED_PLAYER_PHYSICS.gravity * dt;
 
@@ -67,10 +81,11 @@ export function stepHauntedPlayerPhysics(
     y = PLAYER_GROUND_Y;
     vy = 0;
     grounded = true;
+    leaping = false;
   }
 
   const facing = intent < 0 ? 'left' : intent > 0 ? 'right' : state.facing;
-  return { x, y, vx, vy, grounded, facing };
+  return leaping ? { x, y, vx, vy, grounded, facing, leaping } : { x, y, vx, vy, grounded, facing };
 }
 
 export function applyHauntedKnockback(
@@ -83,6 +98,7 @@ export function applyHauntedKnockback(
     vx: impulse.x * direction,
     vy: impulse.y,
     grounded: false,
+    leaping: undefined,
   };
 }
 

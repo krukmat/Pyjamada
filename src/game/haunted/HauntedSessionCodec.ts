@@ -52,6 +52,7 @@ function validateSave(value: unknown): { status: 'ok'; state: HauntedSaveState }
   if (!finite(value.player.y) || value.player.y < -256 || value.player.y > 104.001) return invalid('Invalid haunted player y.');
   if (!finite(value.player.vx) || !finite(value.player.vy)) return invalid('Invalid haunted player velocity.');
   if (typeof value.player.grounded !== 'boolean') return invalid('Invalid haunted grounded state.');
+  if (value.player.leaping !== undefined && typeof value.player.leaping !== 'boolean') return invalid('Invalid haunted leap state.');
   if (value.player.facing !== 'left' && value.player.facing !== 'right') return invalid('Invalid haunted facing.');
   if (Math.abs(value.player.x - domestic.player.x) > 1.01) return invalid('Haunted and domestic player positions diverged.');
 

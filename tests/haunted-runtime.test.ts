@@ -1,6 +1,7 @@
 import { DREAM_SPARK } from '../src/game/haunted/HauntedCombat';
 import { HAUNTED_STEP_MS, advanceFixedStep } from '../src/game/haunted/FixedStepClock';
-import { pressAction, setHeldControl } from '../src/game/haunted/HauntedInput';
+import { createHauntedInputState, pressAction, setHeldControl } from '../src/game/haunted/HauntedInput';
+import { createHauntedPlayerPhysics, stepHauntedPlayerPhysics } from '../src/game/haunted/PlayerPhysics';
 import { createHauntedSession, stepHauntedSession, type HauntedSessionState } from '../src/game/haunted/HauntedSessionRuntime';
 import { HAUNTED_WALLY_ATLAS } from '../src/game/presentation/atlas/HauntedWallyAtlas';
 import { validateSpriteAtlasManifest } from '../src/game/presentation/atlas/SpriteAtlas';
@@ -119,4 +120,21 @@ function driveTo(initial: HauntedSessionState, targetX: number): HauntedSessionS
 function interact(initial: HauntedSessionState): HauntedSessionState {
   const withInput = { ...initial, input: pressAction(initial.input, 'interact') };
   return stepHauntedSession(withInput, HAUNTED_STEP_MS).state;
+}
+
+// A running jump is a leap that carries Wally either way; a standing jump stays put.
+{
+  const run = (direction: -1 | 1, runningSteps: number) => {
+    let player = createHauntedPlayerPhysics(direction > 0 ? 20 : 108);
+    const held = setHeldControl(createHauntedInputState(), direction < 0 ? 'left' : 'right', true);
+    for (let step = 0; step < runningSteps; step += 1) player = stepHauntedPlayerPhysics(player, held, HAUNTED_STEP_MS / 1000);
+    // One thumb: the pad is released to tap JUMP, and nothing is held in the air.
+    player = stepHauntedPlayerPhysics(player, pressAction(createHauntedInputState(), 'jump'), HAUNTED_STEP_MS / 1000);
+    const takeoffX = player.x;
+    while (!player.grounded) player = stepHauntedPlayerPhysics(player, createHauntedInputState(), HAUNTED_STEP_MS / 1000);
+    return player.x - takeoffX;
+  };
+  ok(run(1, 10) > 25, 'a running jump to the right leaps forward');
+  ok(run(-1, 10) < -25, 'a running jump to the left leaps back');
+  ok(Math.abs(run(1, 0)) < 1, 'a standing jump stays vertical');
 }
