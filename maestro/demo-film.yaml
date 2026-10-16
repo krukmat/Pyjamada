@@ -5,9 +5,10 @@ tags:
   - demo
 # Who plays and on which level: override with -e DEMO_PLAYER=casual|average|expert
 # and -e DEMO_LEVEL=1|2|3 (npm run demo:film -- --player casual --level 3).
+# The flow's env wins over -e, so the defaults must defer to the CLI values.
 env:
-  DEMO_PLAYER: average
-  DEMO_LEVEL: '2'
+  DEMO_PLAYER: ${DEMO_PLAYER || 'average'}
+  DEMO_LEVEL: ${DEMO_LEVEL || '2'}
 ---
 # Run through scripts/demo-film.sh (npm run demo:film), which records the
 # screen to video around this flow. Needs no test hooks: the hidden DEMO entry is in every build.
