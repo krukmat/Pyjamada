@@ -10,7 +10,7 @@ const BINDINGS: Readonly<Record<string, KeyBinding>> = {
   d: { kind: 'held', control: 'right' },
   ArrowUp: { kind: 'action', control: 'jump' },
   w: { kind: 'action', control: 'jump' },
-  ' ': { kind: 'action', control: 'jump' },
+  ' ': { kind: 'action', control: 'attack' },
   x: { kind: 'action', control: 'attack' },
   j: { kind: 'action', control: 'attack' },
   ArrowDown: { kind: 'action', control: 'interact' },

@@ -10,7 +10,7 @@ type Handlers = {
 };
 
 /**
- * Web only: arrows/WASD steer and jump, X attacks, E/Enter/↓ uses. Actions fire
+ * Web only: ←/→ (or A/D) steer, ↑/W jumps, Space/X attacks, ↓/E/Enter uses. Actions fire
  * once per key press (auto-repeat ignored), like a touch-down on the deck, and
  * held directions are released when the window loses focus or the screen goes away.
  */
@@ -30,7 +30,10 @@ export function useKeyboardControls(active: boolean, handlers: Handlers): void {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const binding = keyBinding(event.key);
       if (!binding) return;
+      // Claim the key before any focused button sees it: Space or Enter would
+      // otherwise also press the MENU button after it was clicked.
       event.preventDefault();
+      event.stopPropagation();
       const down = event.type === 'keydown';
       if (binding.kind === 'held') setHeld(binding.control, down);
       else if (down && !event.repeat && latest.current.enabled[binding.control]) latest.current.onAction(binding.control);
@@ -39,12 +42,12 @@ export function useKeyboardControls(active: boolean, handlers: Handlers): void {
       setHeld('left', false);
       setHeld('right', false);
     };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKey);
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('keyup', onKey, true);
     window.addEventListener('blur', releaseAll);
     return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKey);
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('keyup', onKey, true);
       window.removeEventListener('blur', releaseAll);
       releaseAll();
     };

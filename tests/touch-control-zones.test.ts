@@ -55,11 +55,11 @@ void test('landscape columns: pad left, actions stacked right, nothing over the 
   equal(zoneAt(mirrored, 770, 300)?.id, 'right', 'and the pad on the right');
 });
 
-void test('the web keyboard sends the same commands as the deck: arrows/WASD steer and jump, X attacks, E/Enter uses', () => {
+void test('the web keyboard sends the same commands as the deck: arrows steer and jump, Space attacks, ↓/E/Enter uses', () => {
   deepEqual([keyBinding('ArrowLeft'), keyBinding('A')], [{ kind: 'held', control: 'left' }, { kind: 'held', control: 'left' }], 'left, any case');
   deepEqual(keyBinding('d'), { kind: 'held', control: 'right' }, 'right');
-  deepEqual([' ', 'ArrowUp', 'W'].map(key => keyBinding(key)?.control), ['jump', 'jump', 'jump'], 'jump');
-  deepEqual(['x', 'J'].map(key => keyBinding(key)?.control), ['attack', 'attack'], 'attack');
+  deepEqual(['ArrowUp', 'W'].map(key => keyBinding(key)?.control), ['jump', 'jump'], 'jump');
+  deepEqual([' ', 'x', 'J'].map(key => keyBinding(key)?.control), ['attack', 'attack', 'attack'], 'Space attacks');
   deepEqual(['e', 'Enter', 'ArrowDown'].map(key => keyBinding(key)?.control), ['interact', 'interact', 'interact'], 'use');
   equal(keyBinding('Tab'), undefined, 'unbound keys keep their browser meaning');
 });

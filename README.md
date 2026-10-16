@@ -176,7 +176,7 @@ React 19.2 deep-diffs every component's props for its performance track, and the
 game passes whole run states as props. Use it only to debug menus.
 
 Skia draws through CanvasKit (WebAssembly); `index.ts` loads it before importing
-`App`. Keyboard: ←/→ or A/D move, ↑/W/Space jump, X/J attack, E/Enter/↓ use; the
+`App`. Keyboard: ←/→ or A/D move, ↑/W jump, Space/X/J attack, ↓/E/Enter use; the
 touch deck still works on phones. Saves go to the browser's `localStorage`.
 `.github/workflows/web.yml` publishes `main` to GitHub Pages under `/Pyjamada`
 (Settings → Pages → Source: GitHub Actions). If `npm install` complains about a
