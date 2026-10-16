@@ -1,3 +1,4 @@
+import { PLAYER_GROUND_Y } from '../core/World';
 import type { HauntedSessionState } from '../haunted/HauntedSessionRuntime';
 import type { AdventureState } from './AdventureState';
 import { difficultyProfile } from './AdventureDifficulty';
@@ -11,7 +12,7 @@ import { resolveResonatorInstabilityState } from './LaboratoryResonatorInstabili
 import { resolveVesperControlState } from './LaboratoryVesperControl';
 import { resolveVesperNightmareState } from './LaboratoryVesperNightmare';
 import { LIVING_ROOM_STATIC, resolveLivingRoomStatic } from './LivingRoomStaticHazard';
-import { CUCKOO_FLIGHT, LOCKED_AIM, ROACH_CHARGE, resolveRoomBoss, roachChargeMs } from './RoomBossHazard';
+import { CUCKOO_FLIGHT, ROACH_CHARGE, WALLY_HEIGHT, resolveRoomBoss, roachChargeMs, roomBossReaches } from './RoomBossHazard';
 
 /** How much of the Roach's opening charge its twitch marks as a jump zone. */
 const ROACH_TWITCH_LANE_MS = 400;
@@ -72,8 +73,9 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
     observations.push({ kind, phase, minX, maxX, jumpable });
   };
 
-  // A room boss touches Wally within contactHalfWidth of its body; the Roach
-  // only reaches a grounded Wally. The Wraith's faint telegraph is a warning.
+  // A room boss touches Wally within contactHalfWidth where its body spans his
+  // height (a flyer over his head, or a Roach under his feet, misses). The
+  // Wraith's faint telegraph is a warning.
   const boss = resolveRoomBoss(adventure, session.elapsedMs, session.player.x, session.threats.roomBossChase);
   if (boss) {
     const reach = boss.config.contactHalfWidth;
@@ -84,11 +86,14 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
       const minX = boss.facing > 0 ? boss.x - reach : boss.x - reach - lane;
       const maxX = boss.facing > 0 ? boss.x + reach + lane : boss.x + reach;
       observations.push({ kind: 'room-boss', phase: 'danger', minX, maxX, jumpable: true, lunge: true });
-    } else if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
+    } else if (boss.config.kind === 'roach' ? boss.dangerous : roomBossReaches(boss, PLAYER_GROUND_Y - session.player.y)) {
+      // The Roach's lane stays a (jumpable) danger mid-jump: Wally lands back in it.
+      push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
+    }
     else push('room-boss', 'warning', boss.x - reach, boss.x + reach);
     // A Cuckoo with a locked aim marks its landing spot (and the low end of its dive) from the call on.
     if (boss.config.kind === 'cuckoo' && boss.aimX !== undefined && (boss.pose === 'telegraph' || boss.pose === 'dive')) {
-      const tail = (CUCKOO_FLIGHT.clockX - boss.aimX) * (LOCKED_AIM.landReachLift / CUCKOO_FLIGHT.doorLift);
+      const tail = (CUCKOO_FLIGHT.clockX - boss.aimX) * Math.min(1, WALLY_HEIGHT / CUCKOO_FLIGHT.doorLift);
       push('room-boss', 'warning', Math.min(boss.aimX, boss.aimX + tail) - reach, Math.max(boss.aimX, boss.aimX + tail) + reach);
     }
   }

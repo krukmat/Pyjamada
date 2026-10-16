@@ -17,6 +17,7 @@
  * are read directly: a player knows where Wally and the furniture are and
  * predicts Wally's own motion; reaction time applies to threats.
  */
+import { difficultyProfile } from '../adventure/AdventureDifficulty';
 import {
   findAdventureInteractionTarget,
   isAdventureExplorationActive,
@@ -120,9 +121,11 @@ function phaseKey(world: BotWorld): string {
 
 function perceive(world: BotWorld, anticipateMs: number): Frame {
   const exploring = isAdventureExplorationActive(world.adventure);
+  // Vesper's shuffled nightmare (vesperShuffle) has no rhythm to learn: no one anticipates it.
+  const shuffled = difficultyProfile(world.adventure).vesperShuffle;
   const ahead = exploring && anticipateMs > 0
     ? observeRoomThreats({ ...world.session, elapsedMs: world.session.elapsedMs + anticipateMs }, { ...world.adventure, difficulty: 1 })
-      .filter(threat => threat.phase === 'danger' && !threat.jumpable)
+      .filter(threat => threat.phase === 'danger' && !threat.jumpable && !(shuffled && threat.kind === 'nightmare-attack'))
       .map(threat => ({ ...threat, phase: 'warning' as const }))
     : [];
   const distortion = resolveResonatorInstabilityState(world.adventure, world.session.elapsedMs).distortion;
@@ -362,7 +365,7 @@ export class HumanBot implements BotPolicy {
       goal = this.planner.nextInteraction(world);
     }
     const boss = activeRoomBoss(world.adventure);
-    if (!goal && boss) return { x: roomBossFiringSpot(boss), label: `await ${boss.name}` };
+    if (!goal && boss) return { x: roomBossFiringSpot(boss, difficultyProfile(world.adventure).lockAim), label: `await ${boss.name}` };
     return goal;
   }
 
@@ -397,10 +400,11 @@ export class HumanBot implements BotPolicy {
     if (boss) {
       const key = `${phaseKey(world)}:boss:${boss.kind}`;
       // Against the hunting Roach this player keeps to the middle: room to back away from its crawl on either side.
-      if (!this.firing || this.firing.key !== key) this.firing = { key, x: boss.kind === 'roach' ? ROACH_FIRING_SPOT : roomBossFiringSpot(boss) };
-      // A Cuckoo that lands where Wally stood is shot from wherever he stepped aside to.
+      if (!this.firing || this.firing.key !== key) this.firing = { key, x: boss.kind === 'roach' ? ROACH_FIRING_SPOT : roomBossFiringSpot(boss, difficultyProfile(world.adventure).lockAim) };
+      // A Cuckoo that lands where Wally stood is shot from wherever he stepped
+      // aside to: a spark leaves ahead of him, so anywhere out of its reach will do.
       const snapshot = resolveRoomBoss(world.adventure, world.session.elapsedMs, x, world.session.threats.roomBossChase);
-      if (snapshot?.aimX !== undefined && snapshot.pose === 'hop' && Math.abs(snapshot.x - x) >= MIN_FIRING_DISTANCE + snapshot.config.contactHalfWidth) {
+      if (snapshot?.aimX !== undefined && snapshot.pose === 'hop' && Math.abs(snapshot.x - x) > snapshot.config.contactHalfWidth) {
         return { x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(x)}` };
       }
       return { x: this.firing.x, aimX: targets[0], label: `fight ${boss.name} from ${Math.round(this.firing.x)}` };

@@ -9,6 +9,8 @@ import {
   dispelBoss,
   ROOM_BOSSES,
   ROOM_BOSS_RISE_MS,
+  WALLY_HALF_WIDTH,
+  WALLY_HEIGHT,
   WRAITH_BLINK,
   armRoomBoss,
   dispelRoomBoss,
@@ -20,6 +22,9 @@ import {
   type RoomBossRoom,
 } from '../src/game/adventure/RoomBossHazard';
 import { getRoomExit, isRoomExitAvailable } from '../src/game/adventure/RoomRegistry';
+import { PLAYER_GROUND_Y } from '../src/game/core/World';
+import { ROOM_SPREAD } from '../src/game/render/StageViewport';
+import { roomBossFrame, roomBossScale } from '../src/game/render/RoomBossSprites';
 
 function awake(room: RoomBossRoom): { adventure: AdventureState; startMs: number } {
   const config = ROOM_BOSSES[room];
@@ -109,7 +114,7 @@ void test('the Wraith can be hit only once solid, and the Roach only reaches gro
   const faint = resolveRoomBoss(wraith.adventure, vulnerableMs)!;
   equal(faint.pose, 'telegraph', 'each blink starts faint');
   equal(resolveRoomBossSparks(wraith.adventure, sparkAt(faint.x), faint).events.length, 0, 'sparks pass through a faint Wraith');
-  equal(isPlayerTouchingRoomBoss({ x: faint.x, grounded: true }, faint), false, 'a faint Wraith does not hurt');
+  equal(isPlayerTouchingRoomBoss({ x: faint.x, y: PLAYER_GROUND_Y }, faint), false, 'a faint Wraith does not hurt');
   const solid = resolveRoomBoss(wraith.adventure, vulnerableMs + WRAITH_BLINK.telegraphMs)!;
   equal(solid.hittable && solid.dangerous, true, 'a solid Wraith hurts and can be hit');
 
@@ -117,8 +122,8 @@ void test('the Wraith can be hit only once solid, and the Roach only reaches gro
   const charging = resolveRoomBoss(roach.adventure, roach.startMs + ROOM_BOSS_RISE_MS + ROACH_CHARGE.waitMs + ROACH_CHARGE.chargeMs / 2)!;
   equal(charging.pose, 'charge', 'the Roach charges after waiting');
   equal(charging.x > ROACH_CHARGE.leftX && charging.x < ROACH_CHARGE.rightX, true, 'mid-charge it crosses the floor');
-  equal(isPlayerTouchingRoomBoss({ x: charging.x, grounded: true }, charging), true, 'a grounded Wally is run over');
-  equal(isPlayerTouchingRoomBoss({ x: charging.x, grounded: false }, charging), false, 'jumping clears the Roach');
+  equal(isPlayerTouchingRoomBoss({ x: charging.x, y: PLAYER_GROUND_Y }, charging), true, 'a grounded Wally is run over');
+  equal(isPlayerTouchingRoomBoss({ x: charging.x, y: PLAYER_GROUND_Y - 4 }, charging), false, 'any jump clears the Roach');
 });
 
 void test('bosses hunt Wally and get meaner with every wound', () => {
@@ -161,4 +166,49 @@ void test('the Cuckoo wakes once the Moth is dispelled and can be hit only while
   const hop = resolveRoomBoss(armed.adventure, cycleStart + CUCKOO_FLIGHT.callMs + CUCKOO_FLIGHT.diveMs + 10)!;
   equal(hop.pose === 'hop' && hop.hittable && hop.dangerous, true, 'it hops and pecks on the floor, and can be hit');
   equal(isRoomBossGuardingExit(dispelBoss(armed.adventure, CUCKOO_BOSS), 'hallway', CUCKOO_BOSS.exitId), false, 'the door opens once it is dispelled');
+});
+
+test('boss hitboxes match the drawn bodies: what overlaps Wally on screen hurts him', () => {
+  for (const config of [...Object.values(ROOM_BOSSES), CUCKOO_BOSS]) {
+    let left = Infinity;
+    let right = -Infinity;
+    let top = Infinity;
+    let width = 0;
+    let height = 0;
+    for (const nowMs of [0, 70, 140, 210]) {
+      const sprite = roomBossFrame(config.kind, nowMs, false);
+      width = sprite.width;
+      height = sprite.height;
+      for (const run of sprite.runs) {
+        left = Math.min(left, run.x);
+        right = Math.max(right, run.x + run.length);
+        top = Math.min(top, run.y);
+      }
+    }
+    const scale = roomBossScale(config.kind);
+    // Rooms are drawn spread, sprites are not: the drawn half width shrinks back to world units.
+    const drawnHalf = (Math.max(width / 2 - left, right - width / 2) * scale) / ROOM_SPREAD;
+    const reach = drawnHalf + WALLY_HALF_WIDTH;
+    // The Roach is jumped, not dodged: its reach stops at its drawn body (Wally's centre over it), the jump's margin.
+    const minReach = config.kind === 'roach' ? drawnHalf - 1 : reach - 1.5;
+    equal(config.contactHalfWidth >= minReach && config.contactHalfWidth <= reach + 1, true, `${config.name} reach ${config.contactHalfWidth} matches its drawn body plus Wally (${reach.toFixed(1)})`);
+    const drawnHeight = (height - top) * scale;
+    equal(Math.abs(config.bodyHeight - drawnHeight) <= 1.5, true, `${config.name} body height ${config.bodyHeight} matches its sprite (${drawnHeight.toFixed(1)})`);
+  }
+});
+
+test('a flyer touches Wally only where its body reaches his: over his head it misses, a jump into it hurts', () => {
+  const { adventure, startMs } = awake('hallway');
+  let over: ReturnType<typeof resolveRoomBoss>;
+  let low: ReturnType<typeof resolveRoomBoss>;
+  for (let t = startMs + ROOM_BOSS_RISE_MS; t < startMs + ROOM_BOSS_RISE_MS + ROOM_BOSSES.hallway.cycleMs; t += 20) {
+    const moth = resolveRoomBoss(adventure, t)!;
+    if (moth.lift >= WALLY_HEIGHT && !over) over = moth;
+    if (moth.lift < WALLY_HEIGHT - 3 && !low) low = moth;
+  }
+  equal(Boolean(over && low), true, 'the Moth bobs both just over his head and down to it');
+  equal(isPlayerTouchingRoomBoss({ x: over!.x, y: PLAYER_GROUND_Y }, over), false, 'Wally walks under a Moth that is up');
+  equal(isPlayerTouchingRoomBoss({ x: over!.x, y: PLAYER_GROUND_Y - 8 }, over), true, 'jumping into it hurts');
+  equal(isPlayerTouchingRoomBoss({ x: low!.x + ROOM_BOSSES.hallway.contactHalfWidth - 0.5, y: PLAYER_GROUND_Y }, low), true, 'its wing tip on his shoulder hurts');
+  equal(isPlayerTouchingRoomBoss({ x: low!.x + ROOM_BOSSES.hallway.contactHalfWidth + 0.5, y: PLAYER_GROUND_Y }, low), false, 'a clear gap does not');
 });

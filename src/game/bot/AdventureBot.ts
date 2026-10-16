@@ -8,6 +8,7 @@
  * `stepBotWorld` in sync with App.tsx when that orchestration changes; the bot
  * never mutates gameplay rules.
  */
+import { difficultyProfile } from '../adventure/AdventureDifficulty';
 import { restoreRoomCheckpointState, shouldUseRoomCheckpoint } from '../adventure/RoomCheckpoint';
 import {
   applyFalseEscape,
@@ -460,10 +461,13 @@ function roomSignature(adventure: AdventureState, roomId: RoomId, human = false)
  * wounded one hops into pecking range), and between the microwave and the
  * breaker against the Roach, which has no safe spot and must be jumped.
  */
-export function roomBossFiringSpot(boss: RoomBossConfig): number {
+export function roomBossFiringSpot(boss: RoomBossConfig, lockAim = false): number {
   // The Moth rises by the Living Room door and the Wraith's first blink is
   // left of the television: each spot lies away from where the boss starts.
-  if (boss.kind === 'moth' || boss.kind === 'cuckoo') return 12;
+  // A Cuckoo that lands where Wally stood dives low across the whole stretch
+  // from the clock to him, so he waits clear of the wall with room to step out.
+  if (boss.kind === 'cuckoo' && lockAim) return 30;
+  if (boss.kind === 'moth' || boss.kind === 'cuckoo') return 9;
   if (boss.kind === 'wraith') return 114;
   return 86;
 }
@@ -708,7 +712,7 @@ export class RouteBot implements BotPolicy {
     if (this.reading) return { x: this.reading.x, label: this.reading.label };
     const goal = this.planner.nextInteraction(world);
     const boss = activeRoomBoss(world.adventure);
-    if (!goal && boss) return { x: roomBossFiringSpot(boss), label: `await ${boss.name}` };
+    if (!goal && boss) return { x: roomBossFiringSpot(boss, difficultyProfile(world.adventure).lockAim), label: `await ${boss.name}` };
     return goal;
   }
 
@@ -717,7 +721,7 @@ export class RouteBot implements BotPolicy {
     const playerX = world.session.player.x;
     if (isBathroomTwinActive(world.adventure)) return playerX < 64 ? 24 : 104;
     const boss = activeRoomBoss(world.adventure);
-    if (boss) return roomBossFiringSpot(boss);
+    if (boss) return roomBossFiringSpot(boss, difficultyProfile(world.adventure).lockAim);
     // Every spot in range of the Nightmare lies in some attack lane. Just right
     // of the center rift Wally can fire through each recovery window; from
     // further left the rift's dodge walked him back with his back to the

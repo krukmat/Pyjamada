@@ -68,7 +68,7 @@ The same room must support efficient, near-miss and chaos runs without random be
 
 Solving the Hallway, Living Room or Kitchen puzzle wakes that room's boss, which seals the way forward until Dream Sparks dispel it (`src/game/adventure/RoomBossHazard.ts`). Each round opens with a harmless 3 s rise, then one shielded attack cycle (it shows its pattern and blocks Dream Sparks, but still hurts) and three vulnerable ones that take one wound each: after a wound the shield is back until the next cycle, so a fight lasts several attacks (missed cycles can be caught up). Bosses are drawn at 1.5x the pixel size (Wally at 0.8x his atlas size), with a health bar across the top of the room, a white flash and a jolt on each wound, and a burst when dispelled:
 
-- Hallway, **Dust Moth** (3 hits): flutters across the room, leaning toward Wally; after a wound it reaches the doorway too, so keep moving.
+- Hallway, **Dust Moth** (3 hits): flutters across the room, leaning toward Wally and bobbing between his head and just over it; after a wound it reaches the doorway too, and on higher levels its sweep reaches the walls. Cross under it while it is up.
 - Living Room, **Static Wraith** (3 hits): blinks between three spots and, once solid, drifts toward Wally (never onto the television); hittable only once solid.
 - Kitchen, **Giant Roach** (3 hits): waits at a wall, then charges along the floor; jump it when it twitches if you stand near that wall.
 
@@ -82,11 +82,13 @@ Jumping while running, either way, is a leap: Wally takes off at full speed in t
 
 The Roach hunts along the floor: while it waits at a wall it crawls out toward Wally (6, 12 and 16 units/s by level, never more than 48 units), then charges the rest of the way. It only reaches a grounded Wally, so a leap over it is the answer. The Dust Moth, the Cuckoo and the Roach are drawn 15% smaller than the other bosses, and their hit widths shrink with them.
 
+Boss contact matches the drawings: a boss hurts Wally where its drawn body overlaps his (about 30 units tall and 3.7 to each side), so a flyer over his head misses and a jump into it hurts, and one wing tip on his shoulder counts. The Roach is the exception: it reaches only as wide as its body and any jump clears it.
+
 NEW GAME offers three levels, saved with the run (older saves load as level 1). Every level keeps the same rooms, threats and bosses; higher ones raise the floor:
 
 - **Level 1, RESTLESS:** the base pattern, with unlimited knock-outs.
 - **Level 2, HAUNTED:** no warning lasts longer than 420 ms (boss telegraphs, the Cuckoo's call, Vesper's warning, attic shadows, basement telegraphs). Bosses lean 20% harder toward Wally and the Roach charges 15% faster.
-- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and hurts only on landing: a quick step aside dodges it. Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. The run has three lives; the third knock-out ends it.
+- **Level 3, NIGHT TERROR:** warnings last at most 300 ms, bosses lean 40% harder and the Roach charges 40% faster. The Cuckoo picks its landing spot as it calls (where Wally stands then), marks it, and lands there; it hurts wherever it flies low enough to touch Wally, so step out of the low end of its dive, away from the clock. Vesper's nightmare changes the order of its three attacks every cycle, so its rhythm cannot be learned. The run has three lives; the third knock-out ends it.
 
 A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`). The profiles differ in reflexes and in how far ahead they know the level 1 rhythm (`anticipateMs`: 0, 250 and 600 ms):
 

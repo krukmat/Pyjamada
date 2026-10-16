@@ -1,3 +1,4 @@
+import { PLAYER_GROUND_Y } from '../core/World';
 import type { HauntedCombatState } from '../haunted/HauntedCombat';
 import { difficultyProfile, reactionWindowMs, type DifficultyProfile } from './AdventureDifficulty';
 import { getRoomState, markRoomInteraction, updateRoomState, type AdventureState, type RoomId } from './AdventureState';
@@ -42,29 +43,37 @@ export type RoomBossConfig = {
   exitId: string;
   hp: number;
   cycleMs: number;
+  /**
+   * Touch reach from Wally's centre: the drawn body's half width (in world
+   * units, rooms are drawn spread) plus Wally's half width (WALLY_HALF_WIDTH),
+   * less one unit of forgiveness. Tests keep it matched to the sprites. The
+   * Roach, which Wally jumps, reaches only to its drawn body: the jump's margin.
+   */
   contactHalfWidth: number;
+  /** Height of the drawn body above its lift, in world units. */
+  bodyHeight: number;
   sparkHitRadius: number;
 };
 
 export const ROOM_BOSSES: Record<RoomBossRoom, RoomBossConfig> = {
   hallway: {
     kind: 'moth', room: 'hallway', name: 'DUST MOTH', markPrefix: 'hallway-boss', guardSwitch: 'living-room-unlocked',
-    exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 9.5, sparkHitRadius: 10,
+    exitId: 'hallway-to-living-room', hp: 3, cycleMs: 4_800, contactHalfWidth: 12, bodyHeight: 25, sparkHitRadius: 10,
   },
   'living-room': {
     kind: 'wraith', room: 'living-room', name: 'STATIC WRAITH', markPrefix: 'living-room-boss', guardSwitch: 'source-hum-traced',
-    exitId: 'living-room-to-kitchen', hp: 3, cycleMs: 4_500, contactHalfWidth: 11, sparkHitRadius: 12,
+    exitId: 'living-room-to-kitchen', hp: 3, cycleMs: 4_500, contactHalfWidth: 11, bodyHeight: 39, sparkHitRadius: 12,
   },
   kitchen: {
     kind: 'roach', room: 'kitchen', name: 'GIANT ROACH', markPrefix: 'kitchen-boss', guardSwitch: 'power-rerouted',
-    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 11, sparkHitRadius: 12,
+    exitId: 'kitchen-to-bathroom', hp: 3, cycleMs: 4_400, contactHalfWidth: 11, bodyHeight: 12, sparkHitRadius: 12,
   },
 };
 
 /** The Hallway's mini boss, woken when the Dust Moth is dispelled. */
 export const CUCKOO_BOSS: RoomBossConfig = {
   kind: 'cuckoo', room: 'hallway', name: 'CUCKOO', markPrefix: 'hallway-cuckoo', guardSwitch: 'living-room-unlocked',
-  exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_200, contactHalfWidth: 8.5, sparkHitRadius: 9.5,
+  exitId: 'hallway-to-living-room', hp: 2, cycleMs: 4_200, contactHalfWidth: 9.5, bodyHeight: 17, sparkHitRadius: 9.5,
 };
 
 /** Each room's bosses in the order they wake; the next one wakes when the previous is dispelled. */
@@ -75,15 +84,22 @@ export const ROOM_BOSS_SEQUENCES: Record<RoomBossRoom, readonly RoomBossConfig[]
 };
 
 /**
+ * Wally's drawn body, in world units: about 30 tall and 3.7 to each side of his
+ * centre. A flyer touches him only where its drawn body overlaps his, so one
+ * above his head (raised by his jump) misses.
+ */
+export const WALLY_HEIGHT = 30;
+export const WALLY_HALF_WIDTH = 3.7;
+
+/**
  * Cuckoo, one cycle: calls from the clock door (harmless), dives toward one of
  * two landing spots bent toward Wally, hops after him pecking (the only time it
- * can be hit), flies back up and hides. It hurts only when low enough to reach
- * him (`reachLift`). Landing spots alternate between cycles.
+ * can be hit), flies back up and hides. In flight it hurts wherever it is low
+ * enough to touch him (WALLY_HEIGHT). Landing spots alternate between cycles.
  */
 export const CUCKOO_FLIGHT = {
   clockX: 64,
   doorLift: 62,
-  reachLift: 16,
   landX: [36, 92],
   callMs: 700,
   diveMs: 700,
@@ -94,8 +110,13 @@ export const CUCKOO_FLIGHT = {
   leanPerHit: 0.25,
 } as const;
 
-/** Moth: x = center + amplitude * cos(phase); it starts beside the forward exit. */
-export const MOTH_PATH = { centerX: 64, amplitude: 36 } as const;
+/**
+ * Moth: x = center + amplitude * hunt * cos(phase), so on higher levels its
+ * sweep reaches the walls and no corner is safe; it starts beside the forward
+ * exit. It bobs bob units around lift three times a pass, rising just over
+ * Wally's head (WALLY_HEIGHT): he crosses under it while it is up.
+ */
+export const MOTH_PATH = { centerX: 64, amplitude: 36, lift: 26, bob: 6 } as const;
 /**
  * Wraith: one blink per spot; faint and harmless for telegraphMs, then solid.
  * It rises far from the television that wakes it and never blinks onto it.
@@ -183,12 +204,10 @@ const aimPrefix = (config: RoomBossConfig) => `${config.markPrefix}-aim-`;
 
 /**
  * Locked aim: on levels that lock it, the Cuckoo picks its landing spot as it
- * calls (where Wally stands then) and lands right there; it only hurts in the
- * last part of the dive (lift at most landReachLift) and while it hops, so a
- * quick step away from the marked spot dodges it. Only the current aim is stored, as one room
- * interaction.
+ * calls (where Wally stands then) and lands right there, so a quick step away
+ * from the marked spot (and out of the low end of its dive) dodges it. Only the
+ * current aim is stored, as one room interaction.
  */
-export const LOCKED_AIM = { landReachLift: 6 } as const;
 
 function aimSegment(config: RoomBossConfig, elapsedMs: number): string | undefined {
   if (config.kind !== 'cuckoo') return undefined;
@@ -311,7 +330,7 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
   if (roundT < ROOM_BOSS_RISE_MS) {
     const start = config.kind === 'moth' ? MOTH_PATH.centerX + MOTH_PATH.amplitude
       : config.kind === 'wraith' ? WRAITH_BLINK.spots[0] : config.kind === 'cuckoo' ? CUCKOO_FLIGHT.clockX : ROACH_CHARGE.leftX;
-    const lift = config.kind === 'moth' ? 26 : config.kind === 'wraith' ? 14 : config.kind === 'cuckoo' ? CUCKOO_FLIGHT.doorLift : 0;
+    const lift = config.kind === 'moth' ? MOTH_PATH.lift : config.kind === 'wraith' ? 14 : config.kind === 'cuckoo' ? CUCKOO_FLIGHT.doorLift : 0;
     return { config, pose: 'rise', hits, dangerous: false, hittable: false, shielded: false, x: start, lift, facing: config.kind === 'roach' ? 1 : -1 };
   }
   // Shielded through the opening cycle, and again after each wound until the
@@ -340,12 +359,12 @@ export function resolveRoomBoss(adventure: AdventureState, elapsedMs: number, pl
 function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number | undefined, level: DifficultyProfile, cycleKey = '', chase?: RoomBossChase): Omit<RoomBossSnapshot, 'shielded'> {
   if (config.kind === 'moth') {
     const phase = (2 * Math.PI * t) / config.cycleMs;
-    const pathX = MOTH_PATH.centerX + MOTH_PATH.amplitude * Math.cos(phase);
+    const pathX = MOTH_PATH.centerX + MOTH_PATH.amplitude * level.hunt * Math.cos(phase);
     const lean = Math.min(1, (MOTH_HUNT.leanBase + MOTH_HUNT.leanPerHit * hits) * level.hunt);
     return {
       config, pose: 'fly', hits, dangerous: true, hittable: true,
       x: playerX === undefined ? pathX : pathX + (playerX - pathX) * lean,
-      lift: 26 + 5 * Math.sin(phase * 3),
+      lift: MOTH_PATH.lift + MOTH_PATH.bob * Math.sin(phase * 3),
       facing: Math.sin(phase) > 0 ? -1 : 1,
     };
   }
@@ -389,7 +408,7 @@ function poseAt(config: RoomBossConfig, hits: number, t: number, playerX: number
 }
 
 function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: number, playerX: number | undefined, level: DifficultyProfile, aimX?: number): Omit<RoomBossSnapshot, 'shielded'> {
-  const { clockX, doorLift, reachLift, landX, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
+  const { clockX, doorLift, landX, diveMs, hopMs, returnMs, leanBase, leanPerHit } = CUCKOO_FLIGHT;
   // Higher levels cut the call short: the bird dives sooner.
   const callMs = reactionWindowMs(CUCKOO_FLIGHT.callMs, level);
   const base = landX[cycle % landX.length];
@@ -398,9 +417,8 @@ function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: nu
     : playerX === undefined ? base : base + (playerX - base) * Math.min(1, (leanBase + leanPerHit * hits) * level.hunt);
   const facing: 1 | -1 = (playerX ?? base) >= land ? 1 : -1;
   const outward: 1 | -1 = land < clockX ? -1 : 1;
-  const flightReach = aimX === undefined ? reachLift : LOCKED_AIM.landReachLift;
   const flight = (pose: RoomBossPose, x: number, lift: number, heading: 1 | -1) => ({
-    config, pose, hits, x, lift, facing: heading, dangerous: lift <= flightReach, hittable: false,
+    config, pose, hits, x, lift, facing: heading, dangerous: true, hittable: false,
   });
   if (t < callMs) return { config, pose: 'telegraph', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
   if (t < callMs + diveMs) {
@@ -414,16 +432,25 @@ function cuckooPoseAt(config: RoomBossConfig, hits: number, cycle: number, t: nu
   }
   if (t < callMs + diveMs + hopMs + returnMs) {
     const progress = (t - callMs - diveMs - hopMs) / returnMs;
-    // A bird with a locked aim takes off straight up: only its landing hurts.
-    const back = flight('fly', land + (clockX - land) * progress, doorLift * progress, outward === 1 ? -1 : 1);
-    return aimX === undefined ? back : { ...back, dangerous: false };
+    return flight('fly', land + (clockX - land) * progress, doorLift * progress, outward === 1 ? -1 : 1);
   }
   return { config, pose: 'hide', hits, dangerous: false, hittable: false, x: clockX, lift: doorLift, facing: -1 };
 }
 
-export function isPlayerTouchingRoomBoss(player: { x: number; grounded: boolean }, boss: RoomBossSnapshot | undefined): boolean {
-  if (!boss?.dangerous) return false;
-  if (boss.config.kind === 'roach' && !player.grounded) return false;
+/**
+ * A dangerous boss whose body spans the height of a Wally with his feet
+ * airHeight off the floor. The Roach keeps the arcade rule its pacing is built
+ * on, any jump clears it: its back stands almost as high as Wally's jump.
+ */
+export function roomBossReaches(boss: RoomBossSnapshot, airHeight = 0): boolean {
+  const feet = Math.max(0, airHeight);
+  if (!boss.dangerous) return false;
+  if (boss.config.kind === 'roach') return feet === 0;
+  return boss.lift < feet + WALLY_HEIGHT && boss.lift + boss.config.bodyHeight > feet;
+}
+
+export function isPlayerTouchingRoomBoss(player: { x: number; y: number }, boss: RoomBossSnapshot | undefined): boolean {
+  if (!boss || !roomBossReaches(boss, PLAYER_GROUND_Y - player.y)) return false;
   return Math.abs(player.x - boss.x) <= boss.config.contactHalfWidth;
 }
 
