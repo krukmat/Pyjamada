@@ -14,7 +14,8 @@ import {
   ROOM_BOSSES,
 } from '../src/game/adventure/RoomBossHazard';
 import { createBotStart, RouteBot, runBot, type BotRunResult } from '../src/game/bot/AdventureBot';
-import { HumanBot, type HumanBotOptions } from '../src/game/bot/HumanBot';
+import { HumanBot } from '../src/game/bot/HumanBot';
+import { HUMAN_PROFILES, type HumanProfileId } from '../src/game/bot/HumanProfiles';
 import { createHauntedSession } from '../src/game/haunted/HauntedSessionRuntime';
 import { resolveVesperNightmareState, VESPER_NIGHTMARE_ATTACK, VESPER_NIGHTMARE_CYCLE_MS } from '../src/game/adventure/LaboratoryVesperNightmare';
 import { explorationIn, laboratoryIn } from './support/ThreatScenarios';
@@ -64,23 +65,18 @@ void test('on Night Terror the Cuckoo lands where Wally stood when it called', (
 /**
  * The difficulty target, measured with three HumanBot skill profiles (casual,
  * average, expert): they differ in reflexes and in how much of the rooms'
- * rhythm they have learned (anticipateMs). Level 1 is easy for everyone; level 2 costs the casual
+ * rhythm they have learned (anticipateMs; see HumanProfiles). Level 1 is easy for everyone; level 2 costs the casual
  * player a few knock-outs; on level 3 the casual player runs out of lives
  * around the middle of the house, the average player finishes after a couple
  * of knock-outs and the expert loses at most one life.
  */
-const PROFILES: Record<'casual' | 'average' | 'expert', HumanBotOptions> = {
-  casual: { reactionMs: 350, latencyMs: 120, tapIntervalMs: 260, tapJitterMs: 200, readMs: 1_800 },
-  average: { anticipateMs: 250 },
-  expert: { reactionMs: 170, latencyMs: 70, tapIntervalMs: 140, tapJitterMs: 80, readMs: 800, anticipateMs: 600 },
-};
 const OPTIONS = { maxGameMs: 20 * 60_000, stallMs: 180_000 };
 const start = (difficulty: 1 | 2 | 3) => {
   const world = createBotStart('qa-bot-route');
   return { ...world, adventure: { ...world.adventure, difficulty } };
 };
-const play = (difficulty: 1 | 2 | 3, profile: keyof typeof PROFILES): BotRunResult =>
-  runBot(start(difficulty), new HumanBot({ ...PROFILES[profile], seed: 'demo' }), OPTIONS);
+const play = (difficulty: 1 | 2 | 3, profile: HumanProfileId): BotRunResult =>
+  runBot(start(difficulty), new HumanBot({ ...HUMAN_PROFILES[profile], seed: 'demo' }), OPTIONS);
 const finishes = (result: BotRunResult, maxDeaths: number, label: string) => {
   equal(result.outcome, 'completed', `${label} finishes (${result.diagnostic})`);
   equal(result.deaths <= maxDeaths, true, `${label}: at most ${maxDeaths} knock-outs, got ${result.deaths}`);

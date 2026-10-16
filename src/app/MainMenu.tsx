@@ -7,6 +7,10 @@ import { HAUNTED_WALLY_ATLAS } from '../game/presentation/atlas/HauntedWallyAtla
 import { createSpriteAtlasIndex, requireAtlasFrame } from '../game/presentation/atlas/SpriteAtlas';
 import { VISUAL_TOKENS } from '../game/render/VisualLanguage';
 import { ADVENTURE_DIFFICULTIES, DIFFICULTY_PROFILES, type AdventureDifficulty } from '../game/adventure/AdventureDifficulty';
+import { DEFAULT_DEMO_PROFILE, HUMAN_PROFILE_IDS, type HumanProfileId } from '../game/bot/HumanProfiles';
+
+/** The DEMO starts on the average player at level 2 unless another is picked. */
+const DEFAULT_DEMO_LEVEL: AdventureDifficulty = 2;
 
 // The menu portrait reuses Wally's sleepy eye-rubbing gameplay frame.
 const PORTRAIT_FRAME = requireAtlasFrame(createSpriteAtlasIndex(HAUNTED_WALLY_ATLAS), 'pajamas_15');
@@ -18,8 +22,8 @@ type Props = {
   completedRun: boolean;
   onContinue: () => void;
   onNewGame: (difficulty: AdventureDifficulty) => void;
-  /** Watch the QA bot play a throwaway run (never saved). */
-  onDemo: () => void;
+  /** Watch the QA bot play a throwaway run (never saved) as this player, on this level. */
+  onDemo: (profile: HumanProfileId, difficulty: AdventureDifficulty) => void;
   onSettings: () => void;
 };
 
@@ -27,6 +31,9 @@ type MenuTier = 'primary' | 'secondary';
 
 export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGame, onDemo, onSettings }: Props) {
   const [choosingLevel, setChoosingLevel] = useState(false);
+  const [demoSetup, setDemoSetup] = useState(false);
+  const [demoProfile, setDemoProfile] = useState<HumanProfileId>(DEFAULT_DEMO_PROFILE);
+  const [demoLevel, setDemoLevel] = useState<AdventureDifficulty>(DEFAULT_DEMO_LEVEL);
   return (
     <View testID="main-menu-screen" style={styles.container}>
       <View style={styles.backdropStripeA} />
@@ -62,6 +69,24 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
           </View>
         </View>
 
+        {demoSetup ? (
+        <View style={styles.column}>
+          <Text style={styles.sectionLabel}>DEMO · WHO PLAYS</Text>
+          <View style={styles.chipRow}>
+            {HUMAN_PROFILE_IDS.map(profile => (
+              <Chip key={profile} testID={`demo-player-${profile}`} label={profile.toUpperCase()} selected={profile === demoProfile} onPress={() => setDemoProfile(profile)} />
+            ))}
+          </View>
+          <Text style={styles.sectionLabel}>LEVEL</Text>
+          <View style={styles.chipRow}>
+            {ADVENTURE_DIFFICULTIES.map(level => (
+              <Chip key={level} testID={`demo-level-${level}`} label={`${level} · ${DIFFICULTY_PROFILES[level].name}`} selected={level === demoLevel} onPress={() => setDemoLevel(level)} />
+            ))}
+          </View>
+          <MenuButton testID="demo-start" label="WATCH THE BOT PLAY" tier="primary" disabled={busy} onPress={() => { setDemoSetup(false); onDemo(demoProfile, demoLevel); }} />
+          <MenuButton testID="demo-back" label="BACK" tier="secondary" disabled={busy} onPress={() => setDemoSetup(false)} />
+        </View>
+        ) : (
         <View style={styles.column}>
           <Text style={styles.sectionLabel}>SELECT RUN</Text>
           <MenuButton testID="continue-button" label={completedRun ? 'VIEW ENDING' : 'CONTINUE'} tier="primary" disabled={busy || !canContinue} onPress={onContinue} />
@@ -83,9 +108,10 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
           ) : (
             <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={() => setChoosingLevel(true)} />
           )}
-          <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={onDemo} />
+          <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={() => setDemoSetup(true)} />
           <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
         </View>
+        )}
       </View>
     </View>
   );
@@ -99,6 +125,20 @@ function WallyBadge() {
         <AtlasSprite image={image} frame={PORTRAIT_FRAME} x={31} y={74} scale={PORTRAIT_SCALE} />
       </Canvas>
     </View>
+  );
+}
+
+function Chip({ testID, label, selected, onPress }: { testID: string; label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }) => [styles.chip, selected && styles.chipSelected, pressed && styles.pressed]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -146,6 +186,11 @@ const styles = StyleSheet.create({
   buttonText: { color: VISUAL_TOKENS.ui.ink, fontFamily: 'monospace', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   pressed: { transform: [{ translateX: 2 }, { translateY: 3 }], borderRightWidth: 3, borderBottomWidth: 3, opacity: 0.82 },
   disabled: { opacity: 0.24 },
+  chipRow: { flexDirection: 'row', gap: 6 },
+  chip: { flex: 1, minHeight: 34, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4, borderWidth: 2, borderRightWidth: 4, borderBottomWidth: 4, borderColor: VISUAL_TOKENS.ui.cyanDark, backgroundColor: VISUAL_TOKENS.ui.panelRaised },
+  chipSelected: { borderColor: VISUAL_TOKENS.ui.yellowDark, backgroundColor: VISUAL_TOKENS.ui.panelEdge },
+  chipText: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 8, fontWeight: '900', letterSpacing: 1, textAlign: 'center' },
+  chipTextSelected: { color: VISUAL_TOKENS.ui.ink },
   disabledHint: { marginTop: -6, color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 7, fontWeight: '900', textAlign: 'right' },
   footerRail: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 2, borderTopColor: VISUAL_TOKENS.ui.panelEdge },
   footer: { color: VISUAL_TOKENS.ui.inkMuted, fontFamily: 'monospace', fontSize: 7, fontWeight: '900' },

@@ -3,7 +3,21 @@
 # Android device or emulator, plus one still per numbered moment.
 # The app must already be installed (npm run android). Output:
 #   artifacts/demo-film/<timestamp>/demo-run.mp4 and MOMENT_*.png
+# Options: --player casual|average|expert (default average) and
+#          --level 1|2|3 (default 2).
 set -euo pipefail
+
+PLAYER=average
+LEVEL=2
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --player) PLAYER="${2:-}"; shift 2 ;;
+    --level) LEVEL="${2:-}"; shift 2 ;;
+    *) echo "unknown option: $1 (use --player casual|average|expert, --level 1|2|3)" >&2; exit 1 ;;
+  esac
+done
+[[ "$PLAYER" =~ ^(casual|average|expert)$ ]] || { echo "--player must be casual, average or expert" >&2; exit 1; }
+[[ "$LEVEL" =~ ^[123]$ ]] || { echo "--level must be 1, 2 or 3" >&2; exit 1; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$REPO_ROOT/artifacts/demo-film/$(date +%Y%m%d-%H%M%S)"
@@ -32,7 +46,7 @@ STOP_FILE="$OUT_DIR/.stop"
 RECORDER=$!
 
 status=0
-maestro --device "$SERIAL" test --test-output-dir "$OUT_DIR" "$REPO_ROOT/maestro/demo-film.yaml" || status=$?
+maestro --device "$SERIAL" test -e DEMO_PLAYER="$PLAYER" -e DEMO_LEVEL="$LEVEL" --test-output-dir "$OUT_DIR" "$REPO_ROOT/maestro/demo-film.yaml" || status=$?
 
 touch "$STOP_FILE"
 adb -s "$SERIAL" shell pkill -INT screenrecord >/dev/null 2>&1 || true

@@ -12,6 +12,7 @@ import type { RoomTransitionPhase } from './src/app/RoomTransitionOverlay';
 import { ScreenshotScenarioController } from './src/app/ScreenshotScenarioController';
 import { SettingsScreen } from './src/app/SettingsScreen';
 import { EndingScreen } from './src/app/EndingScreen';
+import { DEFAULT_DEMO_PROFILE, HUMAN_PROFILES, type HumanProfileId } from './src/game/bot/HumanProfiles';
 import { formatDemoMoment, nextDemoMoment, type DemoFrame, type DemoMoment } from './src/app/DemoFilm';
 import { isTestHooksEnabled } from './src/app/testHooks';
 import {
@@ -84,6 +85,8 @@ export default function App() {
   const demoBotRef = useRef<HumanBot | null>(null);
   const demoAutoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [demo, setDemo] = useState(false);
+  const demoProfileRef = useRef<HumanProfileId>(DEFAULT_DEMO_PROFILE);
+  const [demoLabel, setDemoLabel] = useState('');
   // Demo film: numbered moments (room entries, hits, falls) for maestro/demo-film.yaml.
   const demoFrameRef = useRef<DemoFrame | null>(null);
   const [demoMoment, setDemoMoment] = useState<DemoMoment | null>(null);
@@ -437,7 +440,7 @@ export default function App() {
       if (!demoBotRef.current) return;
       if (!failed) { void handleFinishEnding(); return; }
       // A bedroom death restarts the run; the bot starts over with it.
-      if (!isAdventureExplorationActive(adventureRef.current)) demoBotRef.current = new HumanBot({ seed: `demo-${Date.now()}` });
+      if (!isAdventureExplorationActive(adventureRef.current)) demoBotRef.current = new HumanBot({ ...HUMAN_PROFILES[demoProfileRef.current], seed: `demo-${Date.now()}` });
       void handleRestart();
     }, 1_800);
   }
@@ -451,11 +454,13 @@ export default function App() {
     setDemo(false);
   }
 
-  function handleDemo() {
+  function handleDemo(profile: HumanProfileId, difficulty: AdventureDifficulty) {
     leaveScreenshotMode();
     clearTransitionTimers();
-    const next = createAdventureGameSession(`demo-${Date.now()}`);
-    demoBotRef.current = new HumanBot({ seed: next.haunted.runId });
+    const next = createAdventureGameSession(`demo-${Date.now()}`, difficulty);
+    demoProfileRef.current = profile;
+    setDemoLabel(`DEMO · ${profile.toUpperCase()} · LEVEL ${difficulty}`);
+    demoBotRef.current = new HumanBot({ ...HUMAN_PROFILES[profile], seed: next.haunted.runId });
     demoFrameRef.current = null;
     setDemoMoment(null);
     setDemo(true);
@@ -613,6 +618,7 @@ export default function App() {
       {view === 'game' && session !== null && (
         <HauntedGameScreen
           demo={demo}
+          demoLabel={demoLabel}
           demoMoment={demo && demoMoment ? formatDemoMoment(demoMoment) : undefined}
           session={session}
           adventure={adventure}

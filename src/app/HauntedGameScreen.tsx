@@ -65,6 +65,8 @@ type Props = {
   touchControlLayout: TouchControlLayout;
   /** The QA bot is playing (DEMO): show it and leave the deck to the bot. */
   demo?: boolean;
+  /** Who the DEMO bot plays as, shown in its banner. */
+  demoLabel?: string;
   /** Numbered DEMO moment (see DemoFilm), read by maestro/demo-film.yaml. */
   demoMoment?: string;
   onHeldControl: (control: HauntedHeldControl, pressed: boolean) => void;
@@ -81,6 +83,7 @@ export function HauntedGameScreen({
   presentationRuntime,
   touchControlLayout,
   demo = false,
+  demoLabel,
   demoMoment,
   onHeldControl,
   onAction,
@@ -143,7 +146,7 @@ export function HauntedGameScreen({
           <Text style={styles.exitText}>◀ MENU</Text>
         </Pressable>
         <View style={styles.info} pointerEvents="none">
-          <Text testID={demo ? 'demo-banner' : undefined} style={styles.kicker}>{demo ? 'DEMO · BOT PLAYING' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
+          <Text testID={demo ? 'demo-banner' : undefined} style={styles.kicker}>{demo ? demoLabel || 'DEMO · BOT PLAYING' : endingActive ? 'PYJAMADA · MORNING AFTER' : kickerFor(roomId, exploration)}</Text>
           {demoMoment && <Text testID="demo-moment" style={styles.kicker}>{demoMoment}</Text>}
           <Text style={styles.objective}>{objectiveFor(session, adventure)}</Text>
           {exploration && !endingActive && <Text testID="exploration-hp" style={styles.hp}>{hp}</Text>}

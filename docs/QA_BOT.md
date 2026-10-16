@@ -15,7 +15,9 @@ npm run bot:watch  # narrates one HumanBot run from NEW GAME (optional seed: npm
 ### Filming a real run (video + stills)
 
 `npm run demo:film` needs `adb`, `maestro` and the app installed on a connected
-device or emulator (`npm run android`; no test hooks needed). Maestro starts the
+device or emulator (`npm run android`; no test hooks needed). It films the
+average player on level 2 unless told otherwise
+(`npm run demo:film -- --player casual|average|expert --level 1|2|3`). Maestro starts the
 DEMO while `adb screenrecord` films the screen in 170 s segments (joined with
 `ffmpeg` when available). The App numbers each moment on screen
 (`MOMENT 004 · HIT KITCHEN`, see `src/app/DemoFilm.ts`): start, room entry, hit,
@@ -27,7 +29,9 @@ the same every run), the film shows whatever the bot really ran into.
 
 ### Watching it play in the app
 
-Main menu -> **DEMO · BOT PLAYS** starts a throwaway run driven by HumanBot,
+Main menu -> **DEMO · BOT PLAYS** -> pick the player (casual, average, expert;
+`src/game/bot/HumanProfiles.ts`) and the level (average on level 2 by default)
+-> **WATCH THE BOT PLAY** starts a throwaway run driven by HumanBot,
 the same policy as above, fed into the real App loop one fixed step at a time
 (`withDemoInput` in `App.tsx`). The demo never writes the save, ignores the
 touch deck, presses RETRY / END NIGHT by itself after a short beat, and stops

@@ -3,6 +3,11 @@ name: DEMO film - the QA bot plays one real run
 tags:
   - android
   - demo
+# Who plays and on which level: override with -e DEMO_PLAYER=casual|average|expert
+# and -e DEMO_LEVEL=1|2|3 (npm run demo:film -- --player casual --level 3).
+env:
+  DEMO_PLAYER: average
+  DEMO_LEVEL: '2'
 ---
 # Run through scripts/demo-film.sh (npm run demo:film), which records the
 # screen to video around this flow. Needs no test hooks: DEMO is in every build.
@@ -13,6 +18,12 @@ tags:
     timeout: 20000
 - tapOn:
     id: demo-button
+- tapOn:
+    id: demo-player-${DEMO_PLAYER}
+- tapOn:
+    id: demo-level-${DEMO_LEVEL}
+- tapOn:
+    id: demo-start
 - extendedWaitUntil:
     visible:
       id: demo-banner
