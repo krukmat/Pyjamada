@@ -10,14 +10,15 @@ env:
   DEMO_LEVEL: '2'
 ---
 # Run through scripts/demo-film.sh (npm run demo:film), which records the
-# screen to video around this flow. Needs no test hooks: DEMO is in every build.
+# screen to video around this flow. Needs no test hooks: the hidden DEMO entry is in every build.
 - launchApp
 - extendedWaitUntil:
     visible:
       id: main-menu-screen
     timeout: 20000
-- tapOn:
-    id: demo-button
+# The DEMO has no menu button for players: a long press on the title opens it.
+- longPressOn:
+    id: demo-hidden-entry
 - tapOn:
     id: demo-player-${DEMO_PLAYER}
 - tapOn:

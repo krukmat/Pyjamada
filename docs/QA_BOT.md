@@ -30,7 +30,8 @@ the same every run), the film shows whatever the bot really ran into.
 
 ### Watching it play in the app
 
-Main menu -> **DEMO · BOT PLAYS** -> pick the player (casual, average, expert;
+Main menu -> **long press on the PYJAMADA title** (the DEMO has no menu button, so
+players never see it) -> pick the player (casual, average, expert;
 `src/game/bot/HumanProfiles.ts`) and the level (average on level 2 by default)
 -> **WATCH THE BOT PLAY** starts a throwaway run driven by HumanBot,
 the same policy as above, fed into the real App loop one fixed step at a time

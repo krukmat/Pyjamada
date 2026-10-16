@@ -50,7 +50,10 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
             <WallyBadge />
             <View style={styles.titleBlock}>
               <Text style={styles.eyebrow}>DOMESTIC ARCADE ADVENTURE</Text>
-              <Text style={styles.title}>PYJAMADA</Text>
+              {/* QA only: a long press on the title opens the bot DEMO (no menu entry for players). */}
+              <Pressable testID="demo-hidden-entry" delayLongPress={1200} disabled={busy} onLongPress={() => setDemoSetup(true)}>
+                <Text style={styles.title}>PYJAMADA</Text>
+              </Pressable>
               <Text style={styles.subtitle}>ONE HOUSE. BAD DREAMS. NO SLEEP.</Text>
             </View>
           </View>
@@ -108,7 +111,6 @@ export function MainMenu({ busy, canContinue, completedRun, onContinue, onNewGam
           ) : (
             <MenuButton testID="new-game-button" label={busy ? 'WORKING…' : 'NEW GAME'} tier="primary" disabled={busy} onPress={() => setChoosingLevel(true)} />
           )}
-          <MenuButton testID="demo-button" label="DEMO · BOT PLAYS" tier="secondary" disabled={busy} onPress={() => setDemoSetup(true)} />
           <MenuButton testID="settings-button" label="SETTINGS" tier="secondary" disabled={busy} onPress={onSettings} />
         </View>
         )}
