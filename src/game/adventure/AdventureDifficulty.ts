@@ -33,7 +33,7 @@ export type DifficultyProfile = {
 };
 
 export const DIFFICULTY_PROFILES: Readonly<Record<AdventureDifficulty, DifficultyProfile>> = {
-  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, crawlSpeed: 8, lockAim: false, vesperShuffle: false },
+  1: { name: 'RESTLESS', reactMs: Infinity, hunt: 1, rush: 1, crawlSpeed: 6, lockAim: false, vesperShuffle: false },
   2: { name: 'HAUNTED', reactMs: 420, hunt: 1.2, rush: 1.15, crawlSpeed: 12, lockAim: false, vesperShuffle: false },
   3: { name: 'NIGHT TERROR', reactMs: 300, hunt: 1.4, rush: 1.4, crawlSpeed: 16, lockAim: true, lives: 3, vesperShuffle: true },
 };

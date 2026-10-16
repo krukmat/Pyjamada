@@ -48,6 +48,8 @@ export type ThreatObservation = {
   minX: number;
   maxX: number;
   jumpable: boolean;
+  /** A twitching Roach's lane: it is about to charge along it (jump it on time, do not stand clear). */
+  lunge?: boolean;
 };
 
 /** Threat kinds whose dangers are always announced by a warning on the same floor zone first. */
@@ -81,7 +83,7 @@ export function observeRoomThreats(session: HauntedSessionState, adventure: Adve
       const lane = (ROACH_CHARGE.rightX - ROACH_CHARGE.leftX) * Math.min(1, ROACH_TWITCH_LANE_MS / roachChargeMs(boss.hits, difficultyProfile(adventure).rush));
       const minX = boss.facing > 0 ? boss.x - reach : boss.x - reach - lane;
       const maxX = boss.facing > 0 ? boss.x + reach + lane : boss.x + reach;
-      push('room-boss', 'danger', minX, maxX, true);
+      observations.push({ kind: 'room-boss', phase: 'danger', minX, maxX, jumpable: true, lunge: true });
     } else if (boss.dangerous) push('room-boss', 'danger', boss.x - reach, boss.x + reach, boss.config.kind === 'roach');
     else push('room-boss', 'warning', boss.x - reach, boss.x + reach);
     // A Cuckoo with a locked aim marks its landing spot (and the low end of its dive) from the call on.

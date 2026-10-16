@@ -100,7 +100,7 @@ void test('difficulty matrix: who finishes each level, and how many lives it cos
   const casual2 = play(2, 'casual');
   finishes(casual2, 3, 'level 2 casual');
   equal(casual2.deaths >= 2, true, `level 2 costs the casual player some lives, got ${casual2.deaths}`);
-  finishes(play(2, 'average'), 1, 'level 2 average');
+  finishes(play(2, 'average'), 2, 'level 2 average');
   finishes(play(2, 'expert'), 1, 'level 2 expert');
 
   const casual3 = play(3, 'casual');

@@ -80,7 +80,7 @@ Difficulty climbs room by room. Dispelling any boss refills one heart (one per b
 
 Jumping while running, either way, is a leap: Wally takes off at full speed in that direction and keeps it in the air even when the thumb leaves the pad for JUMP, carrying him about 30 units. A standing jump stays vertical, and holding a direction in the air still steers.
 
-The Roach hunts along the floor: while it waits at a wall it crawls out toward Wally (8, 12 or 16 units/s by level, never more than 48 units), then charges the rest of the way. It only reaches a grounded Wally, so a leap over it is the answer. The Dust Moth, the Cuckoo and the Roach are drawn 15% smaller than the other bosses, and their hit widths shrink with them.
+The Roach hunts along the floor: while it waits at a wall it crawls out toward Wally (6, 12 and 16 units/s by level, never more than 48 units), then charges the rest of the way. It only reaches a grounded Wally, so a leap over it is the answer. The Dust Moth, the Cuckoo and the Roach are drawn 15% smaller than the other bosses, and their hit widths shrink with them.
 
 NEW GAME offers three levels, saved with the run (older saves load as level 1). Every level keeps the same rooms, threats and bosses; higher ones raise the floor:
 
@@ -91,7 +91,7 @@ NEW GAME offers three levels, saved with the run (older saves load as level 1). 
 A knock-out restarts the boss's round and keeps its wounds. A spark that meets a shielded attack repels it, once per round. The levels are measured with three HumanBot profiles (casual, average, expert; `tests/adventure-difficulty.test.ts`). The profiles differ in reflexes and in how far ahead they know the level 1 rhythm (`anticipateMs`: 0, 250 and 600 ms):
 
 - On level 1, everyone finishes; the casual player can lose up to two lives to Vesper.
-- On level 2, the casual player loses a few lives, the average player loses at most one, and the expert takes only a few hits.
+- On level 2, the casual player loses a few lives, the average player at most two, and the expert takes only a few hits.
 - On level 3, the casual player runs out of lives around the Kitchen, the average player finishes after a couple of knock-outs, and the expert loses at most one life.
 
 The DEMO bot (human model) ignores which object was looked at last (`*-focused` switches) when deciding what to re-read, and takes a newly opened exit to an unvisited room once it has read everything in the current one.

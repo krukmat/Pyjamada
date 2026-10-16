@@ -78,7 +78,9 @@ export type HumanBotOptions = {
 
 type PerceivedGhost = { x: number; phase: GhostPhase };
 /** `distortion` is the Resonator zone that swaps left and right while it pulses (drawn on screen, no damage). */
-type Frame = { phaseKey: string; threats: ThreatObservation[]; ghosts: PerceivedGhost[]; distortion?: Zone };
+/** `crawling`: a slow floor threat (the Roach waiting or crawling) that is avoided, or leapt, instead of jumped in place. */
+type SeenThreat = ThreatObservation & { crawling?: boolean };
+type Frame = { phaseKey: string; threats: SeenThreat[]; ghosts: PerceivedGhost[]; distortion?: Zone };
 type Zone = { minX: number; maxX: number };
 type HumanGoal = Goal & { domestic?: SystemicObjectId | 'exit' };
 type Decision = { action: BotAction; goal?: HumanGoal };
@@ -94,6 +96,12 @@ const GHOST_FIGHT_RANGE = 70;
 const INTERACT_RETRY_MS = 300;
 const LEAVE_DISTANCE = 5;
 const SHADOW_DISTANCE = 0.75;
+/** Floor threats slower than this (units/s) are crawling: avoided or leapt, not jumped in place. */
+const CRAWL_MAX_SPEED = 40;
+/** A crawling threat's zone is widened by this much plus how far it moves in CRAWL_LEAD_S. */
+const CRAWL_MARGIN = 4;
+const CRAWL_LEAD_S = 0.45;
+const ROACH_FIRING_SPOT = 64;
 
 function steps(ms: number): number {
   return Math.ceil(ms / BOT_STEP_MS - 1e-9);
@@ -194,7 +202,7 @@ export class HumanBot implements BotPolicy {
       this.firing = undefined;
       this.turnSettlesAt = -1;
     }
-    this.frames.push(perceive(world, this.anticipateMs));
+    this.frames.push(markCrawling(perceive(world, this.anticipateMs), this.frames[this.frames.length - 1]));
     if (this.frames.length > this.reactionSteps + 2) this.frames.shift();
     const seenIndex = this.frames.length - 1 - this.reactionSteps;
     const seen = seenIndex >= 0 ? this.frames[seenIndex] : undefined;
@@ -248,12 +256,19 @@ export class HumanBot implements BotPolicy {
     const player = world.session.player;
     const x = player.x;
 
+    // A leap is committed: keep holding its way until Wally lands.
+    if (!player.grounded && player.leaping) {
+      this.intent = 'leaping';
+      return this.walk(player.vx < 0 ? -1 : 1);
+    }
+
     if (player.grounded && this.canTap('jump')) {
       for (const danger of seen.threats) {
-        if (danger.phase !== 'danger' || !danger.jumpable) continue;
+        if (danger.phase !== 'danger' || !danger.jumpable || danger.crawling) continue;
         if (this.isImminent(danger, before, x, player.vx)) {
           // Jumping while running is a leap; this player clears threats in place, so brakes first.
-          if (Math.abs(player.vx) >= HAUNTED_PLAYER_PHYSICS.leapMinSpeed) {
+          // (A charging Roach is fast enough to pass under a leap too, so that one is jumped at once.)
+          if (Math.abs(player.vx) >= HAUNTED_PLAYER_PHYSICS.leapMinSpeed && danger.kind !== 'room-boss') {
             this.intent = `braking to jump a ${danger.kind}`;
             return IDLE_ACTION;
           }
@@ -264,7 +279,7 @@ export class HumanBot implements BotPolicy {
       }
     }
 
-    const zones = seen.threats.filter(threat => !threat.jumpable);
+    const zones = avoidZones(seen);
     const area = mergedZoneAt(zones, x);
     if (!area) return undefined;
     // A zone that stops short of a wall can be escaped by squeezing against it.
@@ -284,6 +299,19 @@ export class HumanBot implements BotPolicy {
       direction = -1;
     } else if (canRight) {
       direction = 1;
+    }
+    // The only way out runs through a crawling threat (the Roach hunting along the floor): leap it.
+    const edge = direction === -1 ? area.minX : area.maxX;
+    const crawler = direction === undefined ? zones.find(zone => zone.crawling) : zones.find(zone => zone.crawling && isBetween((zone.minX + zone.maxX) / 2, x, edge));
+    if (crawler && player.grounded) {
+      const toward: -1 | 1 = direction ?? ((crawler.minX + crawler.maxX) / 2 < x ? -1 : 1);
+      if (Math.sign(player.vx) === toward && Math.abs(player.vx) >= HAUNTED_PLAYER_PHYSICS.leapMinSpeed && this.canTap('jump')) {
+        this.intent = `leaping over a ${crawler.kind}`;
+        this.lastTap.jump = this.stepIndex;
+        return { move: 0, jump: true, attack: false, interact: false };
+      }
+      this.intent = `running to leap a ${crawler.kind}`;
+      return this.walk(toward);
     }
     this.intent = `escaping a ${zones.find(zone => x >= zone.minX && x <= zone.maxX)?.kind ?? 'threat'} zone`;
     return direction === undefined ? IDLE_ACTION : this.walk(direction);
@@ -319,7 +347,7 @@ export class HumanBot implements BotPolicy {
     const x = world.session.player.x;
     const direction = this.inverted ? -action.move : action.move;
     const ahead = x + direction * ENTRY_LOOKAHEAD;
-    const zones = seen.threats.filter(threat => !threat.jumpable);
+    const zones = avoidZones(seen);
     return zones.some(zone => ahead >= zone.minX - 1 && ahead <= zone.maxX + 1 && !(x >= zone.minX - 1 && x <= zone.maxX + 1));
   }
 
@@ -368,7 +396,8 @@ export class HumanBot implements BotPolicy {
     const boss = activeRoomBoss(world.adventure);
     if (boss) {
       const key = `${phaseKey(world)}:boss:${boss.kind}`;
-      if (!this.firing || this.firing.key !== key) this.firing = { key, x: roomBossFiringSpot(boss) };
+      // Against the hunting Roach this player keeps to the middle: room to back away from its crawl on either side.
+      if (!this.firing || this.firing.key !== key) this.firing = { key, x: boss.kind === 'roach' ? ROACH_FIRING_SPOT : roomBossFiringSpot(boss) };
       // A Cuckoo that lands where Wally stood is shot from wherever he stepped aside to.
       const snapshot = resolveRoomBoss(world.adventure, world.session.elapsedMs, x, world.session.threats.roomBossChase);
       if (snapshot?.aimX !== undefined && snapshot.pose === 'hop' && Math.abs(snapshot.x - x) >= MIN_FIRING_DISTANCE + snapshot.config.contactHalfWidth) {
@@ -582,6 +611,36 @@ function isBetween(value: number, a: number, b: number): boolean {
 }
 
 /** The union of overlapping zones that contains x, if any. */
+/** Marks the jumpable dangers that move slower than CRAWL_MAX_SPEED since the previous frame, widened ahead of their motion. */
+function markCrawling(frame: Frame, previous: Frame | undefined): Frame {
+  if (!previous) return frame;
+  const threats = frame.threats.map(threat => {
+    if (threat.phase !== 'danger' || !threat.jumpable || threat.lunge) return threat;
+    const center = (threat.minX + threat.maxX) / 2;
+    const before = previous.threats
+      .filter(other => other.kind === threat.kind && other.phase === 'danger' && other.jumpable)
+      .map(other => (other.minX + other.maxX) / 2)
+      .filter(prevCenter => Math.abs(prevCenter - center) <= 12)
+      .sort((a, b) => Math.abs(a - center) - Math.abs(b - center))[0];
+    if (before === undefined) return threat;
+    const speed = (center - before) / STEP_S;
+    if (Math.abs(speed) >= CRAWL_MAX_SPEED) return threat;
+    const lead = speed * CRAWL_LEAD_S;
+    return {
+      ...threat,
+      crawling: true,
+      minX: threat.minX - CRAWL_MARGIN + Math.min(0, lead),
+      maxX: threat.maxX + CRAWL_MARGIN + Math.max(0, lead),
+    };
+  });
+  return { ...frame, threats };
+}
+
+/** Zones to stay out of: everything that cannot be jumped, and crawling floor threats. */
+function avoidZones(frame: Frame): SeenThreat[] {
+  return frame.threats.filter(threat => !threat.jumpable || threat.crawling);
+}
+
 function mergedZoneAt(zones: readonly Zone[], x: number): Zone | undefined {
   const sorted = [...zones].sort((a, b) => a.minX - b.minX);
   let current: Zone | undefined;
